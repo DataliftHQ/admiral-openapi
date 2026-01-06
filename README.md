@@ -4,7 +4,7 @@ OpenAPI specifications for the Admiral API. Use these specs to generate HTTP cli
 
 ## Documentation
 
-[View Interactive API Docs](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/DataliftHQ/admiral-openapi/main/openapi.v3.yaml)
+[View Interactive API Docs](https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/DataliftHQ/admiral-openapi/master/openapi.v3.yaml)
 
 ## Files
 
@@ -18,8 +18,8 @@ OpenAPI specifications for the Admiral API. Use these specs to generate HTTP cli
 ### Raw URLs
 
 ```
-https://raw.githubusercontent.com/DataliftHQ/admiral-openapi/main/openapi.v3.yaml
-https://raw.githubusercontent.com/DataliftHQ/admiral-openapi/main/openapi.swagger.yaml
+https://raw.githubusercontent.com/DataliftHQ/admiral-openapi/master/openapi.v3.yaml
+https://raw.githubusercontent.com/DataliftHQ/admiral-openapi/master/openapi.swagger.yaml
 ```
 
 ### Client Generation
