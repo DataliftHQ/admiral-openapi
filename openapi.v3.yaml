@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: Admiral API
+  description: Admiral API
+  version: 0.0.0
+paths:
+  /healthz:
+    get:
+      tags:
+        - admiral.api.healthcheck.v1.HealthcheckAPI
+      summary: Healthcheck
+      description: |-
+        Healthcheck verifies that the service is running and healthy.
+         Returns an empty response on success. Use this endpoint for load balancer
+         health checks and monitoring systems.
+      operationId: admiral.api.healthcheck.v1.HealthcheckAPI.Healthcheck2
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.healthcheck.v1.HealthcheckResponse'
+  /v1/healthcheck:
+    get:
+      tags:
+        - admiral.api.healthcheck.v1.HealthcheckAPI
+      summary: Healthcheck
+      description: |-
+        Healthcheck verifies that the service is running and healthy.
+         Returns an empty response on success. Use this endpoint for load balancer
+         health checks and monitoring systems.
+      operationId: admiral.api.healthcheck.v1.HealthcheckAPI.Healthcheck
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.healthcheck.v1.HealthcheckResponse'
+  /v1/user:
+    get:
+      tags:
+        - admiral.api.user.v1.UserAPI
+      summary: GetUser
+      description: |-
+        GetUser retrieves the profile of the currently authenticated user.
+         The user is identified by the authentication token provided in the request.
+      operationId: admiral.api.user.v1.UserAPI.GetUser
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.user.v1.GetUserResponse'
+components:
+  schemas:
+    admiral.api.healthcheck.v1.HealthcheckRequest:
+      type: object
+      title: HealthcheckRequest
+      additionalProperties: false
+      description: |-
+        HealthcheckRequest is the request message for Healthcheck.
+         No parameters are required.
+    admiral.api.healthcheck.v1.HealthcheckResponse:
+      type: object
+      title: HealthcheckResponse
+      additionalProperties: false
+      description: |-
+        HealthcheckResponse is returned when the service is healthy.
+         An empty response indicates the service is operating normally.
+    admiral.api.user.v1.GetUserRequest:
+      type: object
+      title: GetUserRequest
+      additionalProperties: false
+      description: |-
+        GetUserRequest is the request message for GetUser.
+         No parameters are required as the user is identified by the auth token.
+    admiral.api.user.v1.GetUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          description: Unique identifier for the user (UUID format).
+        tenantId:
+          type: string
+          title: tenant_id
+          description: The tenant/organization this user belongs to (UUID format).
+        email:
+          type: string
+          title: email
+          description: User's email address.
+        displayName:
+          type:
+            - string
+            - "null"
+          title: display_name
+          description: User's display name for UI purposes.
+          nullable: true
+        givenName:
+          type:
+            - string
+            - "null"
+          title: given_name
+          description: User's given (first) name.
+          nullable: true
+        familyName:
+          type:
+            - string
+            - "null"
+          title: family_name
+          description: User's family (last) name.
+          nullable: true
+        avatarUrl:
+          type:
+            - string
+            - "null"
+          title: avatar_url
+          description: URL to the user's avatar image.
+          nullable: true
+      title: GetUserResponse
+      additionalProperties: false
+      description: GetUserResponse contains the authenticated user's profile information.
+security: []
+tags:
+  - name: admiral.api.healthcheck.v1.HealthcheckAPI
+    description: HealthcheckAPI provides health check operations for monitoring service availability.
+  - name: admiral.api.user.v1.UserAPI
+    description: UserAPI provides operations for retrieving user profile information.
