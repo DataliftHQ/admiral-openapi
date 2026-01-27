@@ -64,7 +64,7 @@ paths:
       tags:
         - UserAPI
 definitions:
-  googleprotobufAny:
+  protobufAny:
     type: object
     properties:
       '@type':
@@ -197,7 +197,7 @@ definitions:
         type: array
         items:
           type: object
-          $ref: '#/definitions/googleprotobufAny'
+          $ref: '#/definitions/protobufAny'
   v1GetUserResponse:
     type: object
     properties:

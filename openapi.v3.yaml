@@ -98,28 +98,24 @@ components:
             - "null"
           title: display_name
           description: User's display name for UI purposes.
-          nullable: true
         givenName:
           type:
             - string
             - "null"
           title: given_name
           description: User's given (first) name.
-          nullable: true
         familyName:
           type:
             - string
             - "null"
           title: family_name
           description: User's family (last) name.
-          nullable: true
         avatarUrl:
           type:
             - string
             - "null"
           title: avatar_url
           description: URL to the user's avatar image.
-          nullable: true
       title: GetUserResponse
       additionalProperties: false
       description: GetUserResponse contains the authenticated user's profile information.
