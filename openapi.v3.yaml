@@ -21,25 +21,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.healthcheck.v1.HealthcheckResponse'
-  /v1/agents:
+  /v1/applications:
     get:
       tags:
-        - admiral.api.agent.v1.AgentAPI
+        - admiral.api.application.v1.ApplicationAPI
       summary: |-
-        ListAgents returns a paginated list of agents within the caller's tenant.
-         Use the filter parameter to scope results by resource binding
-         (e.g., `cluster_id = "uuid"` or `runner_id = "uuid"`).
-      description: 'Scope: `agents:read`'
-      operationId: admiral.api.agent.v1.AgentAPI.ListAgents
+        ListApplications returns a paginated list of applications within the
+         caller's tenant.
+      description: 'Scope: `app:read`'
+      operationId: admiral.api.application.v1.ApplicationAPI.ListApplications
       parameters:
+        - name: filter
+          in: query
+          description: Filter expression using the PEG filter DSL.
+          schema:
+            type: string
+            title: filter
+            description: Filter expression using the PEG filter DSL.
         - name: pageSize
           in: query
-          description: Maximum number of agents to return per page.
+          description: Maximum number of applications to return per page.
           schema:
             type: integer
             title: page_size
             format: int32
-            description: Maximum number of agents to return per page.
+            description: Maximum number of applications to return per page.
         - name: pageToken
           in: query
           description: Opaque pagination token from a previous response.
@@ -47,92 +53,74 @@ paths:
             type: string
             title: page_token
             description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: |-
-            Filter expression using the PEG filter DSL. Supported fields include
-             `cluster_id`, `runner_id`, and `status`.
-             Examples: `cluster_id = "uuid"`, `runner_id = "uuid"`, `status = "ONLINE"`.
-          schema:
-            type: string
-            title: filter
-            description: |-
-              Filter expression using the PEG filter DSL. Supported fields include
-               `cluster_id`, `runner_id`, and `status`.
-               Examples: `cluster_id = "uuid"`, `runner_id = "uuid"`, `status = "ONLINE"`.
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/admiral.api.agent.v1.ListAgentsResponse'
-  /v1/agents/{agent_id}:
-    get:
-      tags:
-        - admiral.api.agent.v1.AgentAPI
-      summary: |-
-        GetAgent retrieves an agent by ID, including its current connectivity
-         status and resource binding.
-      description: 'Scope: `agents:read`'
-      operationId: admiral.api.agent.v1.AgentAPI.GetAgent
-      parameters:
-        - name: agent_id
-          in: path
-          description: The unique identifier of the agent (UUID).
-          required: true
-          schema:
-            type: string
-            title: agent_id
-            format: uuid
-            description: The unique identifier of the agent (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.agent.v1.GetAgentResponse'
-  /v1/agents/{agent_id}/heartbeat:
+                $ref: '#/components/schemas/admiral.api.application.v1.ListApplicationsResponse'
     post:
       tags:
-        - admiral.api.agent.v1.AgentAPI
+        - admiral.api.application.v1.ApplicationAPI
+      summary: CreateApplication creates a new application within the caller's tenant.
+      description: 'Scope: `app:write`'
+      operationId: admiral.api.application.v1.ApplicationAPI.CreateApplication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/admiral.api.application.v1.CreateApplicationRequest'
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.application.v1.CreateApplicationResponse'
+  /v1/applications/{application.id}:
+    patch:
+      tags:
+        - admiral.api.application.v1.ApplicationAPI
       summary: |-
-        Heartbeat sends a liveness signal from the agent to the control plane.
-         If no heartbeat is received within 3x the poll interval (default 90s),
-         the agent transitions to UNREACHABLE status.
-      description: 'Scope: `agents:heartbeat` | Token types: `agt`'
-      operationId: admiral.api.agent.v1.AgentAPI.Heartbeat
+        UpdateApplication updates an application's mutable fields.
+         Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `app:write`'
+      operationId: admiral.api.application.v1.ApplicationAPI.UpdateApplication
       parameters:
-        - name: agent_id
+        - name: application.id
           in: path
-          description: The agent sending the heartbeat (UUID).
+          description: Unique identifier for the application (UUID).
           required: true
           schema:
             type: string
-            title: agent_id
+            title: id
             format: uuid
-            description: The agent sending the heartbeat (UUID).
+            description: Unique identifier for the application (UUID).
       requestBody:
         content:
           application/json:
             schema:
               type: object
               properties:
-                version:
-                  type: string
-                  title: version
-                  description: Current agent software version.
-                uptimeSeconds:
-                  type:
-                    - integer
-                    - string
-                  title: uptime_seconds
-                  format: int64
-                  description: How long the agent process has been running, in seconds.
-              title: HeartbeatRequest
+                application:
+                  title: application
+                  description: |-
+                    The application with updated fields. The `id` field is required.
+                     Only fields specified in `update_mask` are updated.
+                  $ref: '#/components/schemas/admiral.api.application.v1.Application'
+                updateMask:
+                  title: update_mask
+                  description: |-
+                    The set of fields to update. If unset, all mutable fields are updated.
+                     Supported fields: `name`, `description`, `labels`.
+                  $ref: '#/components/schemas/google.protobuf.FieldMask'
+              title: UpdateApplicationRequest
+              required:
+                - application
               additionalProperties: false
-              description: HeartbeatRequest contains a liveness signal from the agent.
+              description: UpdateApplicationRequest contains the application fields to update.
         required: true
       responses:
         "200":
@@ -140,48 +128,71 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/admiral.api.agent.v1.HeartbeatResponse'
-  /v1/agents:register:
-    post:
+                $ref: '#/components/schemas/admiral.api.application.v1.UpdateApplicationResponse'
+  /v1/applications/{application_id}:
+    get:
       tags:
-        - admiral.api.agent.v1.AgentAPI
-      summary: |-
-        RegisterAgent registers a new agent, binding it to its parent resource
-         (Cluster or Runner). The binding is derived from the AGT used to
-         authenticate — the request does not specify which resource to bind to.
-      description: |-
-        For Kubernetes agents, the request must include `cluster_uid` (the
-         kube-system namespace UID). This value is written to the Cluster record
-         using a first-write-wins strategy. Subsequent registrations with a
-         different UID return 409 Conflict.
-
-         Registration is idempotent: if the agent restarts and calls RegisterAgent
-         with the same AGT and matching metadata, the existing agent record is
-         returned and its status is set to ONLINE.
-
-         Scope: `agents:write` | Token types: `agt`
-      operationId: admiral.api.agent.v1.AgentAPI.RegisterAgent
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/admiral.api.agent.v1.RegisterAgentRequest'
-        required: true
+        - admiral.api.application.v1.ApplicationAPI
+      summary: GetApplication retrieves an application by ID.
+      description: 'Scope: `app:read`'
+      operationId: admiral.api.application.v1.ApplicationAPI.GetApplication
+      parameters:
+        - name: application_id
+          in: path
+          description: The unique identifier of the application (UUID).
+          required: true
+          schema:
+            type: string
+            title: application_id
+            format: uuid
+            description: The unique identifier of the application (UUID).
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/admiral.api.agent.v1.RegisterAgentResponse'
+                $ref: '#/components/schemas/admiral.api.application.v1.GetApplicationResponse'
+    delete:
+      tags:
+        - admiral.api.application.v1.ApplicationAPI
+      summary: |-
+        DeleteApplication permanently deletes an application and all of its
+         associated environments. This action cannot be undone.
+      description: 'Scope: `app:write`'
+      operationId: admiral.api.application.v1.ApplicationAPI.DeleteApplication
+      parameters:
+        - name: application_id
+          in: path
+          description: The unique identifier of the application to delete (UUID).
+          required: true
+          schema:
+            type: string
+            title: application_id
+            format: uuid
+            description: The unique identifier of the application to delete (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.application.v1.DeleteApplicationResponse'
   /v1/clusters:
     get:
       tags:
         - admiral.api.cluster.v1.ClusterAPI
       summary: ListClusters returns a paginated list of clusters within the caller's tenant.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: admiral.api.cluster.v1.ClusterAPI.ListClusters
       parameters:
+        - name: filter
+          in: query
+          description: Filter expression using the PEG filter DSL
+          schema:
+            type: string
+            title: filter
+            description: Filter expression using the PEG filter DSL
         - name: pageSize
           in: query
           description: Maximum number of clusters to return per page.
@@ -197,17 +208,6 @@ paths:
             type: string
             title: page_token
             description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: |-
-            Filter expression using the PEG filter DSL
-             (e.g., `health_status = "healthy"` or `labels.region = "us-east-1"`).
-          schema:
-            type: string
-            title: filter
-            description: |-
-              Filter expression using the PEG filter DSL
-               (e.g., `health_status = "healthy"` or `labels.region = "us-east-1"`).
       responses:
         "200":
           description: Success
@@ -228,7 +228,7 @@ paths:
          or a Kubernetes Secret). The agent uses it to authenticate with
          AgentAPI.RegisterAgent on first boot.
 
-         Scope: `clusters:write`
+         Scope: `cluster:write`
       operationId: admiral.api.cluster.v1.ClusterAPI.CreateCluster
       requestBody:
         content:
@@ -248,9 +248,9 @@ paths:
       tags:
         - admiral.api.cluster.v1.ClusterAPI
       summary: |-
-        UpdateCluster updates a cluster's mutable fields (display name, labels).
+        UpdateCluster updates a cluster's mutable fields.
          Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `clusters:write`'
+      description: 'Scope: `cluster:write`'
       operationId: admiral.api.cluster.v1.ClusterAPI.UpdateCluster
       parameters:
         - name: cluster.id
@@ -278,7 +278,7 @@ paths:
                   title: update_mask
                   description: |-
                     The set of fields to update. If unset, all mutable fields are updated.
-                     Supported fields: `display_name`, `labels`.
+                     Supported fields: `name`, `description`, `labels`.
                   $ref: '#/components/schemas/google.protobuf.FieldMask'
               title: UpdateClusterRequest
               required:
@@ -303,7 +303,7 @@ paths:
          detailed telemetry (node counts, resource usage, workload summary), use
          GetClusterStatus instead.
 
-         Scope: `clusters:read`
+         Scope: `cluster:read`
       operationId: admiral.api.cluster.v1.ClusterAPI.GetCluster
       parameters:
         - name: cluster_id
@@ -328,7 +328,7 @@ paths:
       summary: |-
         DeleteCluster permanently deletes a cluster record and revokes all
          associated agent tokens. This action cannot be undone.
-      description: 'Scope: `clusters:write`'
+      description: 'Scope: `cluster:write`'
       operationId: admiral.api.cluster.v1.ClusterAPI.DeleteCluster
       parameters:
         - name: cluster_id
@@ -364,7 +364,7 @@ paths:
          no agent has reported telemetry yet, the response will have health_status
          PENDING and no status message.
 
-         Scope: `clusters:read`
+         Scope: `cluster:read`
       operationId: admiral.api.cluster.v1.ClusterAPI.GetClusterStatus
       parameters:
         - name: cluster_id
@@ -393,7 +393,7 @@ paths:
       description: |-
         This endpoint is agent-facing and restricted to agent tokens.
 
-         Scope: `clusters:status` | Token types: `agt`
+         Scope: `cluster:status` | Token types: `agt`
       operationId: admiral.api.cluster.v1.ClusterAPI.ReportClusterStatus
       parameters:
         - name: cluster_id
@@ -454,7 +454,7 @@ paths:
       summary: |-
         ListClusterTokens returns a paginated list of AGTs bound to the specified
          cluster. Token secrets are never included.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: admiral.api.cluster.v1.ClusterAPI.ListClusterTokens
       parameters:
         - name: cluster_id
@@ -507,7 +507,7 @@ paths:
          zero-downtime token rotation). The initial AGT is created automatically
          by CreateCluster.
 
-         Scope: `clusters:write`
+         Scope: `cluster:write`
       operationId: admiral.api.cluster.v1.ClusterAPI.CreateClusterToken
       parameters:
         - name: cluster_id
@@ -555,7 +555,7 @@ paths:
       summary: |-
         GetClusterToken retrieves a single AGT by ID.
          Returns metadata only — the token secret is never included.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: admiral.api.cluster.v1.ClusterAPI.GetClusterToken
       parameters:
         - name: cluster_id
@@ -591,7 +591,7 @@ paths:
         RevokeClusterToken permanently revokes an AGT bound to this cluster.
          The agent will receive a 401 on its next request. If this is the only
          active AGT for the cluster, the agent will become disconnected.
-      description: 'Scope: `clusters:write`'
+      description: 'Scope: `cluster:write`'
       operationId: admiral.api.cluster.v1.ClusterAPI.RevokeClusterToken
       parameters:
         - name: cluster_id
@@ -624,7 +624,7 @@ paths:
       tags:
         - admiral.api.cluster.v1.ClusterAPI
       summary: ListWorkloads returns a paginated list of workloads running in a specific cluster.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: admiral.api.cluster.v1.ClusterAPI.ListWorkloads
       parameters:
         - name: cluster_id
@@ -636,6 +636,13 @@ paths:
             title: cluster_id
             format: uuid
             description: The cluster whose workloads to list (UUID).
+        - name: filter
+          in: query
+          description: Filter expression using the PEG filter DSL
+          schema:
+            type: string
+            title: filter
+            description: Filter expression using the PEG filter DSL
         - name: pageSize
           in: query
           description: Maximum number of workloads to return per page.
@@ -651,17 +658,6 @@ paths:
             type: string
             title: page_token
             description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: |-
-            Filter expression using the PEG filter DSL
-             (e.g., `namespace = "production"` or `health_status = "degraded"`).
-          schema:
-            type: string
-            title: filter
-            description: |-
-              Filter expression using the PEG filter DSL
-               (e.g., `namespace = "production"` or `health_status = "degraded"`).
       responses:
         "200":
           description: Success
@@ -679,7 +675,7 @@ paths:
       description: |-
         This endpoint is agent-facing and restricted to agent tokens.
 
-         Scope: `clusters:status` | Token types: `agt`
+         Scope: `cluster:status` | Token types: `agt`
       operationId: admiral.api.cluster.v1.ClusterAPI.ReportWorkloadStatus
       parameters:
         - name: cluster_id
@@ -718,6 +714,164 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.ReportWorkloadStatusResponse'
+  /v1/environments:
+    get:
+      tags:
+        - admiral.api.environment.v1.EnvironmentAPI
+      summary: |-
+        ListEnvironments returns a paginated list of environments. Use the filter
+         to scope by application, cluster, or labels.
+      description: 'Scope: `env:read`'
+      operationId: admiral.api.environment.v1.EnvironmentAPI.ListEnvironments
+      parameters:
+        - name: filter
+          in: query
+          description: Filter expression using the PEG filter DSL.
+          schema:
+            type: string
+            title: filter
+            description: Filter expression using the PEG filter DSL.
+        - name: pageSize
+          in: query
+          description: Maximum number of environments to return per page.
+          schema:
+            type: integer
+            title: page_size
+            format: int32
+            description: Maximum number of environments to return per page.
+        - name: pageToken
+          in: query
+          description: Opaque pagination token from a previous response.
+          schema:
+            type: string
+            title: page_token
+            description: Opaque pagination token from a previous response.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.ListEnvironmentsResponse'
+    post:
+      tags:
+        - admiral.api.environment.v1.EnvironmentAPI
+      summary: CreateEnvironment creates a new environment for the specified application.
+      description: 'Scope: `env:write`'
+      operationId: admiral.api.environment.v1.EnvironmentAPI.CreateEnvironment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/admiral.api.environment.v1.CreateEnvironmentRequest'
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.CreateEnvironmentResponse'
+  /v1/environments/{environment.id}:
+    patch:
+      tags:
+        - admiral.api.environment.v1.EnvironmentAPI
+      summary: |-
+        UpdateEnvironment updates an environment's mutable fields.
+         Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `env:write`'
+      operationId: admiral.api.environment.v1.EnvironmentAPI.UpdateEnvironment
+      parameters:
+        - name: environment.id
+          in: path
+          description: Unique identifier for the environment (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier for the environment (UUID).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                environment:
+                  title: environment
+                  description: |-
+                    The environment with updated fields. The `id` field is required.
+                     Only fields specified in `update_mask` are updated.
+                  $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+                updateMask:
+                  title: update_mask
+                  description: |-
+                    The set of fields to update. If unset, all mutable fields are updated.
+                     Supported fields: `name`, `cluster_id`, `namespace`, `labels`.
+                  $ref: '#/components/schemas/google.protobuf.FieldMask'
+              title: UpdateEnvironmentRequest
+              required:
+                - environment
+              additionalProperties: false
+              description: UpdateEnvironmentRequest contains the environment fields to update.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.UpdateEnvironmentResponse'
+  /v1/environments/{environment_id}:
+    get:
+      tags:
+        - admiral.api.environment.v1.EnvironmentAPI
+      summary: GetEnvironment retrieves an environment by ID.
+      description: 'Scope: `env:read`'
+      operationId: admiral.api.environment.v1.EnvironmentAPI.GetEnvironment
+      parameters:
+        - name: environment_id
+          in: path
+          description: The unique identifier of the environment (UUID).
+          required: true
+          schema:
+            type: string
+            title: environment_id
+            format: uuid
+            description: The unique identifier of the environment (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.GetEnvironmentResponse'
+    delete:
+      tags:
+        - admiral.api.environment.v1.EnvironmentAPI
+      summary: |-
+        DeleteEnvironment permanently deletes an environment. This does not affect
+         the underlying cluster or namespace — only the Admiral environment record
+         is removed. This action cannot be undone.
+      description: 'Scope: `env:write`'
+      operationId: admiral.api.environment.v1.EnvironmentAPI.DeleteEnvironment
+      parameters:
+        - name: environment_id
+          in: path
+          description: The unique identifier of the environment to delete (UUID).
+          required: true
+          schema:
+            type: string
+            title: environment_id
+            format: uuid
+            description: The unique identifier of the environment to delete (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.DeleteEnvironmentResponse'
   /v1/healthcheck:
     get:
       tags:
@@ -735,691 +889,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.healthcheck.v1.HealthcheckResponse'
-  /v1/runners:
-    get:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: ListRunners returns a paginated list of runners within the caller's tenant.
-      description: 'Scope: `runners:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.ListRunners
-      parameters:
-        - name: pageSize
-          in: query
-          description: Maximum number of runners to return per page.
-          schema:
-            type: integer
-            title: page_size
-            format: int32
-            description: Maximum number of runners to return per page.
-        - name: pageToken
-          in: query
-          description: Opaque pagination token from a previous response.
-          schema:
-            type: string
-            title: page_token
-            description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: |-
-            Filter expression using the PEG filter DSL.
-             Examples: `kind = "TERRAFORM"`, `labels.team = "platform"`.
-          schema:
-            type: string
-            title: filter
-            description: |-
-              Filter expression using the PEG filter DSL.
-               Examples: `kind = "TERRAFORM"`, `labels.team = "platform"`.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.ListRunnersResponse'
-    post:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        CreateRunner creates a new runner within the caller's tenant and generates
-         an initial Agent Token (AGT) for the controller. The response includes a
-         `plain_text_token` — the raw AGT secret shown exactly once.
-      description: |-
-        Deploy this token to the controller (e.g., via Helm values or a Kubernetes
-         Secret). The controller uses it to authenticate with AgentAPI.RegisterAgent
-         on first boot.
-
-         Scope: `runners:write`
-      operationId: admiral.api.runner.v1.RunnerAPI.CreateRunner
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/admiral.api.runner.v1.CreateRunnerRequest'
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.CreateRunnerResponse'
-  /v1/runners/{runner.id}:
-    patch:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        UpdateRunner updates a runner's mutable fields (display name, labels).
-         Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `runners:write`'
-      operationId: admiral.api.runner.v1.RunnerAPI.UpdateRunner
-      parameters:
-        - name: runner.id
-          in: path
-          description: Unique identifier for the runner (UUID).
-          required: true
-          schema:
-            type: string
-            title: id
-            format: uuid
-            description: Unique identifier for the runner (UUID).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                runner:
-                  title: runner
-                  description: |-
-                    The runner with updated fields. The `id` field is required.
-                     Only fields specified in `update_mask` are updated.
-                  $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-                updateMask:
-                  title: update_mask
-                  description: |-
-                    The set of fields to update. If unset, all mutable fields are updated.
-                     Supported fields: `display_name`, `labels`.
-                  $ref: '#/components/schemas/google.protobuf.FieldMask'
-              title: UpdateRunnerRequest
-              required:
-                - runner
-              additionalProperties: false
-              description: UpdateRunnerRequest contains the runner fields to update.
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.UpdateRunnerResponse'
-  /v1/runners/{runner_id}:
-    get:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: GetRunner retrieves a runner by ID.
-      description: 'Scope: `runners:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.GetRunner
-      parameters:
-        - name: runner_id
-          in: path
-          description: The unique identifier of the runner (UUID).
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: The unique identifier of the runner (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
-    delete:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        DeleteRunner permanently deletes a runner, revokes all associated Agent
-         Tokens, and removes the agent record. Running jobs are not interrupted
-         but no new jobs will be assigned to this runner.
-      description: 'Scope: `runners:write`'
-      operationId: admiral.api.runner.v1.RunnerAPI.DeleteRunner
-      parameters:
-        - name: runner_id
-          in: path
-          description: |-
-            The unique identifier of the runner to delete (UUID).
-             All associated Agent Tokens will be revoked and the agent record removed.
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: |-
-              The unique identifier of the runner to delete (UUID).
-               All associated Agent Tokens will be revoked and the agent record removed.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.DeleteRunnerResponse'
-  /v1/runners/{runner_id}/tokens:
-    get:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        ListRunnerTokens returns a paginated list of AGTs bound to the specified
-         runner. Token secrets are never included.
-      description: 'Scope: `runners:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.ListRunnerTokens
-      parameters:
-        - name: runner_id
-          in: path
-          description: The runner whose tokens to list (UUID).
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: The runner whose tokens to list (UUID).
-        - name: pageSize
-          in: query
-          description: Maximum number of tokens to return per page.
-          schema:
-            type: integer
-            title: page_size
-            format: int32
-            description: Maximum number of tokens to return per page.
-        - name: pageToken
-          in: query
-          description: Opaque pagination token from a previous response.
-          schema:
-            type: string
-            title: page_token
-            description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: Filter expression using the PEG filter DSL.
-          schema:
-            type: string
-            title: filter
-            description: Filter expression using the PEG filter DSL.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.ListRunnerTokensResponse'
-    post:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        CreateRunnerToken creates a new Agent Token (AGT) bound to the specified
-         runner. Scopes are auto-assigned and cannot be overridden. The response
-         includes the raw token secret, which is shown exactly once.
-      description: |-
-        Use this to create additional AGTs for an existing runner (e.g., for
-         zero-downtime token rotation). The initial AGT is created automatically
-         by CreateRunner.
-
-         Scope: `runners:write`
-      operationId: admiral.api.runner.v1.RunnerAPI.CreateRunnerToken
-      parameters:
-        - name: runner_id
-          in: path
-          description: The runner to bind this token to (UUID).
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: The runner to bind this token to (UUID).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                displayName:
-                  type: string
-                  title: display_name
-                  maxLength: 255
-                  minLength: 1
-                  description: Human-readable name for the token (e.g., "team1-terraform-agent-key").
-                expiresAt:
-                  title: expires_at
-                  description: Optional expiration time. If unset, the token does not expire.
-                  $ref: '#/components/schemas/google.protobuf.Timestamp'
-              title: CreateRunnerTokenRequest
-              additionalProperties: false
-              description: |-
-                CreateRunnerTokenRequest contains the parameters for creating a new AGT
-                 bound to a runner.
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.CreateRunnerTokenResponse'
-  /v1/runners/{runner_id}/tokens/{token_id}:
-    get:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        GetRunnerToken retrieves a single AGT by ID.
-         Returns metadata only — the token secret is never included.
-      description: 'Scope: `runners:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.GetRunnerToken
-      parameters:
-        - name: runner_id
-          in: path
-          description: The runner the token belongs to (UUID).
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: The runner the token belongs to (UUID).
-        - name: token_id
-          in: path
-          description: The unique identifier of the token (UUID).
-          required: true
-          schema:
-            type: string
-            title: token_id
-            format: uuid
-            description: The unique identifier of the token (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerTokenResponse'
-  /v1/runners/{runner_id}/tokens/{token_id}/revoke:
-    post:
-      tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        RevokeRunnerToken permanently revokes an AGT bound to this runner.
-         The agent will receive a 401 on its next request. If this is the only
-         active AGT for the runner, the agent will become disconnected.
-      description: 'Scope: `runners:write`'
-      operationId: admiral.api.runner.v1.RunnerAPI.RevokeRunnerToken
-      parameters:
-        - name: runner_id
-          in: path
-          description: The runner the token belongs to (UUID).
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: The runner the token belongs to (UUID).
-        - name: token_id
-          in: path
-          description: The unique identifier of the token to revoke (UUID).
-          required: true
-          schema:
-            type: string
-            title: token_id
-            format: uuid
-            description: The unique identifier of the token to revoke (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.RevokeRunnerTokenResponse'
-  /v1/service-accounts:
-    get:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        ListServiceAccounts returns a paginated list of service accounts
-         within the caller's tenant.
-      description: 'Scope: `sa:read`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.ListServiceAccounts
-      parameters:
-        - name: pageSize
-          in: query
-          description: Maximum number of service accounts to return per page.
-          schema:
-            type: integer
-            title: page_size
-            format: int32
-            description: Maximum number of service accounts to return per page.
-        - name: pageToken
-          in: query
-          description: Opaque pagination token from a previous response.
-          schema:
-            type: string
-            title: page_token
-            description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: |-
-            Filter expression using the PEG filter DSL
-             (e.g., `status = "active"` or `display_name = "ci-*"`).
-          schema:
-            type: string
-            title: filter
-            description: |-
-              Filter expression using the PEG filter DSL
-               (e.g., `status = "active"` or `display_name = "ci-*"`).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ListServiceAccountsResponse'
-    post:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: CreateServiceAccount creates a new service account within the caller's tenant.
-      description: 'Scope: `sa:write`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.CreateServiceAccount
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/admiral.api.serviceaccount.v1.CreateServiceAccountRequest'
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.CreateServiceAccountResponse'
-  /v1/service-accounts/{service_account.id}:
-    patch:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        UpdateServiceAccount updates a service account's mutable fields.
-         Use the `update_mask` to specify which fields to update.
-         Setting status to DISABLED invalidates all associated SATs.
-      description: 'Scope: `sa:write`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.UpdateServiceAccount
-      parameters:
-        - name: service_account.id
-          in: path
-          description: Unique identifier for the service account (UUID).
-          required: true
-          schema:
-            type: string
-            title: id
-            format: uuid
-            description: Unique identifier for the service account (UUID).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                serviceAccount:
-                  title: service_account
-                  description: |-
-                    The service account with updated fields. The `id` field is required
-                     to identify the resource. Only fields specified in `update_mask` are updated.
-                  $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccount'
-                updateMask:
-                  title: update_mask
-                  description: |-
-                    The set of fields to update. If unset, all mutable fields are updated.
-                     Supported fields: `display_name`, `description`, `scopes`, `status`.
-                  $ref: '#/components/schemas/google.protobuf.FieldMask'
-              title: UpdateServiceAccountRequest
-              required:
-                - serviceAccount
-              additionalProperties: false
-              description: UpdateServiceAccountRequest contains the service account fields to update.
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.UpdateServiceAccountResponse'
-  /v1/service-accounts/{service_account_id}:
-    get:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: GetServiceAccount retrieves a service account by ID.
-      description: 'Scope: `sa:read`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.GetServiceAccount
-      parameters:
-        - name: service_account_id
-          in: path
-          description: The unique identifier of the service account (UUID).
-          required: true
-          schema:
-            type: string
-            title: service_account_id
-            format: uuid
-            description: The unique identifier of the service account (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.GetServiceAccountResponse'
-    delete:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        DeleteServiceAccount permanently deletes a service account and revokes
-         all associated SATs. This action cannot be undone.
-      description: 'Scope: `sa:write`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.DeleteServiceAccount
-      parameters:
-        - name: service_account_id
-          in: path
-          description: |-
-            The unique identifier of the service account to delete (UUID).
-             All associated SATs will be revoked.
-          required: true
-          schema:
-            type: string
-            title: service_account_id
-            format: uuid
-            description: |-
-              The unique identifier of the service account to delete (UUID).
-               All associated SATs will be revoked.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.DeleteServiceAccountResponse'
-  /v1/service-accounts/{service_account_id}/tokens:
-    get:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        ListServiceAccountTokens returns a paginated list of tokens for a
-         service account. Token secrets are never included.
-      description: 'Scope: `sa:read`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.ListServiceAccountTokens
-      parameters:
-        - name: service_account_id
-          in: path
-          description: The service account whose tokens to list (UUID).
-          required: true
-          schema:
-            type: string
-            title: service_account_id
-            format: uuid
-            description: The service account whose tokens to list (UUID).
-        - name: pageSize
-          in: query
-          description: Maximum number of tokens to return per page.
-          schema:
-            type: integer
-            title: page_size
-            format: int32
-            description: Maximum number of tokens to return per page.
-        - name: pageToken
-          in: query
-          description: Opaque pagination token from a previous response.
-          schema:
-            type: string
-            title: page_token
-            description: Opaque pagination token from a previous response.
-        - name: filter
-          in: query
-          description: Filter expression using the PEG filter DSL.
-          schema:
-            type: string
-            title: filter
-            description: Filter expression using the PEG filter DSL.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ListServiceAccountTokensResponse'
-    post:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        CreateServiceAccountToken creates a new SAT under the specified service
-         account. The token's scopes must be a subset of the parent service
-         account's allowed scopes. The response includes the raw token secret,
-         which is shown exactly once.
-      description: 'Scope: `sa:write`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.CreateServiceAccountToken
-      parameters:
-        - name: service_account_id
-          in: path
-          description: The service account to create the token under (UUID).
-          required: true
-          schema:
-            type: string
-            title: service_account_id
-            format: uuid
-            description: The service account to create the token under (UUID).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                displayName:
-                  type: string
-                  title: display_name
-                  maxLength: 255
-                  minLength: 1
-                  description: |-
-                    Human-readable name for the token (e.g., "github-actions-key").
-                     Must be unique per service account.
-                scopes:
-                  type: array
-                  items:
-                    type: string
-                  title: scopes
-                  description: |-
-                    The scopes to grant this token. Must be a subset of the parent service
-                     account's allowed scopes.
-                expiresAt:
-                  title: expires_at
-                  description: Optional expiration time. If unset, the token does not expire.
-                  $ref: '#/components/schemas/google.protobuf.Timestamp'
-              title: CreateServiceAccountTokenRequest
-              additionalProperties: false
-              description: CreateServiceAccountTokenRequest contains the parameters for creating a new SAT.
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.CreateServiceAccountTokenResponse'
-  /v1/service-accounts/{service_account_id}/tokens/{token_id}:
-    get:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        GetServiceAccountToken retrieves a single SAT by ID.
-         Returns metadata only — the token secret is never included.
-      description: 'Scope: `sa:read`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.GetServiceAccountToken
-      parameters:
-        - name: service_account_id
-          in: path
-          description: The service account the token belongs to (UUID).
-          required: true
-          schema:
-            type: string
-            title: service_account_id
-            format: uuid
-            description: The service account the token belongs to (UUID).
-        - name: token_id
-          in: path
-          description: The unique identifier of the token (UUID).
-          required: true
-          schema:
-            type: string
-            title: token_id
-            format: uuid
-            description: The unique identifier of the token (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.GetServiceAccountTokenResponse'
-  /v1/service-accounts/{service_account_id}/tokens/{token_id}/revoke:
-    post:
-      tags:
-        - admiral.api.serviceaccount.v1.ServiceAccountAPI
-      summary: |-
-        RevokeServiceAccountToken permanently revokes a SAT. The token becomes
-         immediately unusable and cannot be restored.
-      description: 'Scope: `sa:write`'
-      operationId: admiral.api.serviceaccount.v1.ServiceAccountAPI.RevokeServiceAccountToken
-      parameters:
-        - name: service_account_id
-          in: path
-          description: The service account the token belongs to (UUID).
-          required: true
-          schema:
-            type: string
-            title: service_account_id
-            format: uuid
-            description: The service account the token belongs to (UUID).
-        - name: token_id
-          in: path
-          description: The unique identifier of the token to revoke (UUID).
-          required: true
-          schema:
-            type: string
-            title: token_id
-            format: uuid
-            description: The unique identifier of the token to revoke (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.serviceaccount.v1.RevokeServiceAccountTokenResponse'
   /v1/user:
     get:
       tags:
@@ -1443,7 +912,7 @@ paths:
       summary: |-
         ListPersonalAccessTokens returns a paginated list of the authenticated
          user's PATs. Token secrets are never included.
-      description: 'Scope: `tokens:read`'
+      description: 'Scope: `token:read`'
       operationId: admiral.api.user.v1.UserAPI.ListPersonalAccessTokens
       parameters:
         - name: pageSize
@@ -1486,7 +955,7 @@ paths:
         CreatePersonalAccessToken creates a new PAT for the authenticated user.
          The response includes the raw token secret, which is shown exactly once
          and cannot be retrieved again.
-      description: 'Scope: `tokens:write`'
+      description: 'Scope: `token:write`'
       operationId: admiral.api.user.v1.UserAPI.CreatePersonalAccessToken
       requestBody:
         content:
@@ -1508,7 +977,7 @@ paths:
       summary: |-
         GetPersonalAccessToken retrieves a single PAT by ID.
          Returns metadata only — the token secret is never included.
-      description: 'Scope: `tokens:read`'
+      description: 'Scope: `token:read`'
       operationId: admiral.api.user.v1.UserAPI.GetPersonalAccessToken
       parameters:
         - name: token_id
@@ -1534,7 +1003,7 @@ paths:
       summary: |-
         RevokePersonalAccessToken permanently revokes a PAT. The token becomes
          immediately unusable and cannot be restored.
-      description: 'Scope: `tokens:write`'
+      description: 'Scope: `token:write`'
       operationId: admiral.api.user.v1.UserAPI.RevokePersonalAccessToken
       parameters:
         - name: token_id
@@ -1555,424 +1024,222 @@ paths:
                 $ref: '#/components/schemas/admiral.api.user.v1.RevokePersonalAccessTokenResponse'
 components:
   schemas:
-    admiral.api.accesstoken.v1.AccessToken:
+    admiral.api.application.v1.Application:
       type: object
       properties:
         id:
           type: string
           title: id
           format: uuid
-          description: Unique identifier for the token (UUID).
+          description: Unique identifier for the application (UUID).
         tenantId:
           type: string
           title: tenant_id
           format: uuid
-          description: Tenant this token belongs to (UUID).
-        displayName:
+          description: Tenant this application belongs to (UUID).
+        name:
           type: string
-          title: display_name
-          description: Human-readable name for the token (e.g., "postman-testing", "ci-deploy-key").
-        tokenPrefix:
-          type: string
-          title: token_prefix
-          description: |-
-            Display-safe prefix for identifying the token without exposing the secret
-             (e.g., "adm_pat_7kH3").
-        tokenType:
-          title: token_type
-          description: The category of this token.
-          $ref: '#/components/schemas/admiral.api.authz.v1.TokenType'
-        scopes:
-          type: array
-          items:
-            type: string
-          title: scopes
-          description: |-
-            The scopes granted to this token. For PATs and SATs, these are user-selected.
-             For AGTs, these are auto-assigned based on the resource type.
-        status:
-          title: status
-          description: Current lifecycle status of the token.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessTokenStatus'
-        userId:
-          type: string
-          title: user_id
-          description: |-
-            The user this token is bound to (UUID). Set when token_type is
-             PERSONAL_ACCESS_TOKEN.
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          description: |-
-            The service account this token is bound to (UUID). Set when token_type is
-             SERVICE_ACCOUNT_TOKEN.
-        clusterId:
-          type: string
-          title: cluster_id
-          description: |-
-            The cluster this token is bound to (UUID). Set when token_type is
-             AGENT_TOKEN and the token is bound to a cluster.
-        runnerId:
-          type: string
-          title: runner_id
-          description: |-
-            The runner this token is bound to (UUID). Set when token_type is
-             AGENT_TOKEN and the token is bound to a runner.
-        createdBy:
-          type: string
-          title: created_by
-          description: |-
-            The user who created this token (UUID). For PATs, this is the token owner.
-             For SATs and AGTs, this is the administrator who issued the token.
-        expiresAt:
-          title: expires_at
-          description: When the token expires. If unset, the token does not expire.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-        lastUsedAt:
-          title: last_used_at
-          description: When the token was last used to authenticate an API request.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-        createdAt:
-          title: created_at
-          description: When the token was created.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-        revokedAt:
-          title: revoked_at
-          description: When the token was revoked. Only set when status is REVOKED.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-      title: AccessToken
-      additionalProperties: false
-      description: |-
-        AccessToken contains token metadata common to all token types (PAT, SAT, AGT).
-         The raw token secret is never included in this message — it is only returned
-         once at creation time via the `plain_text_token` field in Create responses.
-
-         Token CRUD is managed by each parent resource's API:
-           - PATs:         UserAPI            (/v1/user/tokens)
-           - SATs:         ServiceAccountAPI  (/v1/service-accounts/{id}/tokens)
-           - Cluster AGTs: ClusterAPI         (/v1/clusters/{id}/tokens)
-           - Runner AGTs:  RunnerAPI          (/v1/runners/{id}/tokens)
-    admiral.api.accesstoken.v1.AccessTokenStatus:
-      type: string
-      title: AccessTokenStatus
-      enum:
-        - ACCESS_TOKEN_STATUS_UNSPECIFIED
-        - ACCESS_TOKEN_STATUS_ACTIVE
-        - ACCESS_TOKEN_STATUS_REVOKED
-        - ACCESS_TOKEN_STATUS_ROTATING
-      description: AccessTokenStatus represents the lifecycle state of an access token.
-    admiral.api.agent.v1.Agent:
-      type: object
-      properties:
-        id:
-          type: string
-          title: id
-          format: uuid
-          description: Unique identifier for the agent (UUID).
-        tenantId:
-          type: string
-          title: tenant_id
-          format: uuid
-          description: Tenant this agent belongs to (UUID).
-        clusterId:
-          type: string
-          title: cluster_id
-          description: |-
-            The cluster this agent is bound to (UUID). Set for Kubernetes agents.
-             Mutually exclusive with runner_id.
-        runnerId:
-          type: string
-          title: runner_id
-          description: |-
-            The runner this agent is bound to (UUID). Set for runner agents.
-             Mutually exclusive with cluster_id.
-        displayName:
-          type: string
-          title: display_name
+          title: name
           maxLength: 255
           minLength: 1
-          description: Human-readable name for the agent (e.g., "prod-us-east-1-agent").
-        version:
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+          description: |-
+            URL-safe, human-readable identifier (e.g., "billing-api"). Unique within
+             the tenant. Lowercase alphanumeric and hyphens only, must start with a
+             letter and end with an alphanumeric character (1-63 chars).
+        description:
           type: string
-          title: version
-          description: Agent software version (e.g., "0.1.0").
-        status:
-          title: status
-          description: Current connectivity status.
-          $ref: '#/components/schemas/admiral.api.agent.v1.AgentStatus'
-        lastHeartbeatAt:
-          title: last_heartbeat_at
-          description: When the agent last sent a heartbeat.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: description
+          maxLength: 1024
+          description: |-
+            Optional longer-form description of the application's purpose
+             (e.g., "Handles invoice generation and payment processing").
+        labels:
+          type: object
+          title: labels
+          additionalProperties:
+            type: string
+            title: value
+          description: |-
+            Arbitrary key-value labels for organizing and filtering applications
+             (e.g., `{"team": "payments", "tier": "critical"}`).
         createdAt:
           title: created_at
-          description: When the agent was registered.
+          description: When the application was created.
           $ref: '#/components/schemas/google.protobuf.Timestamp'
         updatedAt:
           title: updated_at
-          description: When the agent record was last updated.
+          description: When the application was last updated.
           $ref: '#/components/schemas/google.protobuf.Timestamp'
-      title: Agent
+      title: Application
       additionalProperties: false
       description: |-
-        Agent represents a registered agent process connected to Admiral's control
-         plane. Each agent is bound to exactly one parent resource (Cluster or Runner)
-         and tracks the connection state of the deployed agent binary.
-
-         Agent records are system-managed — they are created by RegisterAgent and
-         deleted when the parent resource is removed. Admins observe agents via
-         GetAgent and ListAgents but do not create, update, or delete them directly.
-    admiral.api.agent.v1.AgentStatus:
-      type: string
-      title: AgentStatus
-      enum:
-        - AGENT_STATUS_UNSPECIFIED
-        - AGENT_STATUS_ONLINE
-        - AGENT_STATUS_OFFLINE
-        - AGENT_STATUS_UNREACHABLE
-      description: AgentStatus represents the connectivity state of an agent.
-    admiral.api.agent.v1.GetAgentRequest:
+        Application represents a deployable unit within a tenant. An application
+         groups manifests, dependencies, and environment configuration into a single
+         entity that Admiral orchestrates across environments.
+    admiral.api.application.v1.Application.LabelsEntry:
       type: object
       properties:
-        agentId:
+        key:
           type: string
-          title: agent_id
-          format: uuid
-          description: The unique identifier of the agent (UUID).
-      title: GetAgentRequest
-      additionalProperties: false
-      description: GetAgentRequest identifies an agent to retrieve.
-    admiral.api.agent.v1.GetAgentResponse:
-      type: object
-      properties:
-        agent:
-          title: agent
-          description: The agent.
-          $ref: '#/components/schemas/admiral.api.agent.v1.Agent'
-      title: GetAgentResponse
-      additionalProperties: false
-      description: GetAgentResponse contains the requested agent.
-    admiral.api.agent.v1.HeartbeatRequest:
-      type: object
-      properties:
-        agentId:
+          title: key
+        value:
           type: string
-          title: agent_id
-          format: uuid
-          description: The agent sending the heartbeat (UUID).
-        version:
-          type: string
-          title: version
-          description: Current agent software version.
-        uptimeSeconds:
-          type:
-            - integer
-            - string
-          title: uptime_seconds
-          format: int64
-          description: How long the agent process has been running, in seconds.
-      title: HeartbeatRequest
+          title: value
+      title: LabelsEntry
       additionalProperties: false
-      description: HeartbeatRequest contains a liveness signal from the agent.
-    admiral.api.agent.v1.HeartbeatResponse:
+    admiral.api.application.v1.CreateApplicationRequest:
       type: object
       properties:
-        ok:
-          type: boolean
-          title: ok
-          description: Whether the heartbeat was accepted.
-        pollIntervalSeconds:
-          type: integer
-          title: poll_interval_seconds
-          format: int32
-          description: |-
-            Server-controlled heartbeat interval in seconds. The agent should use
-             this value for its next heartbeat cycle. Allows the server to dynamically
-             adjust frequency (e.g., faster when changes are pending).
-        statusPushIntervalSeconds:
-          type: integer
-          title: status_push_interval_seconds
-          format: int32
-          description: Server-controlled status push interval in seconds.
-      title: HeartbeatResponse
-      additionalProperties: false
-      description: |-
-        HeartbeatResponse acknowledges the heartbeat and provides server-controlled
-         configuration for the agent's polling behavior.
-    admiral.api.agent.v1.KubernetesAgentMetadata:
-      type: object
-      properties:
-        clusterUid:
+        name:
           type: string
-          title: cluster_uid
+          title: name
+          maxLength: 255
           minLength: 1
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
           description: |-
-            The UID of the kube-system namespace, used as a stable physical cluster
-             identifier. Written to the Cluster record on first registration using a
-             first-write-wins strategy. If a subsequent registration presents a
-             different UID, the server returns 409 Conflict.
-      title: KubernetesAgentMetadata
+            URL-safe, human-readable identifier (e.g., "billing-api"). Must be unique
+             within the tenant. Lowercase alphanumeric and hyphens only.
+        description:
+          type:
+            - string
+            - "null"
+          title: description
+          maxLength: 1024
+          description: Optional longer-form description of the application's purpose.
+        labels:
+          type: object
+          title: labels
+          additionalProperties:
+            type: string
+            title: value
+          description: Arbitrary key-value labels for organizing and filtering applications.
+      title: CreateApplicationRequest
       additionalProperties: false
-      description: |-
-        KubernetesAgentMetadata contains registration-time metadata for a Kubernetes
-         cluster agent. This is sent once during RegisterAgent, not on every heartbeat.
-         Dynamic telemetry (k8s version, node count, etc.) is reported separately via
-         ClusterAPI.ReportClusterStatus.
-    admiral.api.agent.v1.ListAgentsRequest:
+      description: CreateApplicationRequest contains the parameters for creating a new application.
+    admiral.api.application.v1.CreateApplicationRequest.LabelsEntry:
       type: object
       properties:
+        key:
+          type: string
+          title: key
+        value:
+          type: string
+          title: value
+      title: LabelsEntry
+      additionalProperties: false
+    admiral.api.application.v1.CreateApplicationResponse:
+      type: object
+      properties:
+        application:
+          title: application
+          description: The created application.
+          $ref: '#/components/schemas/admiral.api.application.v1.Application'
+      title: CreateApplicationResponse
+      additionalProperties: false
+      description: CreateApplicationResponse contains the newly created application.
+    admiral.api.application.v1.DeleteApplicationRequest:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          title: application_id
+          format: uuid
+          description: The unique identifier of the application to delete (UUID).
+      title: DeleteApplicationRequest
+      additionalProperties: false
+      description: DeleteApplicationRequest identifies an application to delete.
+    admiral.api.application.v1.DeleteApplicationResponse:
+      type: object
+      title: DeleteApplicationResponse
+      additionalProperties: false
+      description: DeleteApplicationResponse is empty on success.
+    admiral.api.application.v1.GetApplicationRequest:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          title: application_id
+          format: uuid
+          description: The unique identifier of the application (UUID).
+      title: GetApplicationRequest
+      additionalProperties: false
+      description: GetApplicationRequest identifies an application to retrieve.
+    admiral.api.application.v1.GetApplicationResponse:
+      type: object
+      properties:
+        application:
+          title: application
+          description: The application record.
+          $ref: '#/components/schemas/admiral.api.application.v1.Application'
+      title: GetApplicationResponse
+      additionalProperties: false
+      description: GetApplicationResponse contains the application record.
+    admiral.api.application.v1.ListApplicationsRequest:
+      type: object
+      properties:
+        filter:
+          type: string
+          title: filter
+          description: Filter expression using the PEG filter DSL.
         pageSize:
           type: integer
           title: page_size
           format: int32
-          description: Maximum number of agents to return per page.
+          description: Maximum number of applications to return per page.
         pageToken:
           type: string
           title: page_token
           description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: |-
-            Filter expression using the PEG filter DSL. Supported fields include
-             `cluster_id`, `runner_id`, and `status`.
-             Examples: `cluster_id = "uuid"`, `runner_id = "uuid"`, `status = "ONLINE"`.
-      title: ListAgentsRequest
+      title: ListApplicationsRequest
       additionalProperties: false
-      description: ListAgentsRequest contains pagination and filter parameters.
-    admiral.api.agent.v1.ListAgentsResponse:
+      description: ListApplicationsRequest contains pagination and filter parameters.
+    admiral.api.application.v1.ListApplicationsResponse:
       type: object
       properties:
-        agents:
+        applications:
           type: array
           items:
-            $ref: '#/components/schemas/admiral.api.agent.v1.Agent'
-          title: agents
-          description: The list of agents.
+            $ref: '#/components/schemas/admiral.api.application.v1.Application'
+          title: applications
+          description: The list of applications.
         nextPageToken:
           type: string
           title: next_page_token
           description: Pagination token for the next page. Empty when there are no more results.
-      title: ListAgentsResponse
+      title: ListApplicationsResponse
       additionalProperties: false
-      description: ListAgentsResponse contains a page of agents.
-    admiral.api.agent.v1.RegisterAgentRequest:
-      type: object
-      allOf:
-        - properties:
-            displayName:
-              type: string
-              title: display_name
-              maxLength: 255
-              minLength: 1
-              description: Human-readable name for the agent.
-            version:
-              type: string
-              title: version
-              description: Agent software version (e.g., "0.1.0").
-        - oneOf:
-            - properties:
-                kubernetes:
-                  title: kubernetes
-                  description: |-
-                    Registration metadata for Kubernetes cluster agents. Required when the
-                     AGT is bound to a Cluster.
-                  $ref: '#/components/schemas/admiral.api.agent.v1.KubernetesAgentMetadata'
-              title: kubernetes
-              required:
-                - kubernetes
-            - properties:
-                runner:
-                  title: runner
-                  description: |-
-                    Registration metadata for runner agents. Required when the AGT is
-                     bound to a Runner.
-                  $ref: '#/components/schemas/admiral.api.agent.v1.RunnerAgentMetadata'
-              title: runner
-              required:
-                - runner
-      title: RegisterAgentRequest
-      additionalProperties: false
-      description: |-
-        RegisterAgentRequest contains the parameters for registering a new agent.
-         The parent resource binding (Cluster or Runner) is derived from the AGT
-         used to authenticate — it does not need to be specified in the request.
-    admiral.api.agent.v1.RegisterAgentResponse:
+      description: ListApplicationsResponse contains a page of applications.
+    admiral.api.application.v1.UpdateApplicationRequest:
       type: object
       properties:
-        agent:
-          title: agent
+        application:
+          title: application
           description: |-
-            The registered agent. On first registration, a new record is created with
-             status ONLINE. On re-registration (agent restart), the existing record is
-             returned with status set to ONLINE.
-          $ref: '#/components/schemas/admiral.api.agent.v1.Agent'
-        pollIntervalSeconds:
-          type: integer
-          title: poll_interval_seconds
-          format: int32
+            The application with updated fields. The `id` field is required.
+             Only fields specified in `update_mask` are updated.
+          $ref: '#/components/schemas/admiral.api.application.v1.Application'
+        updateMask:
+          title: update_mask
           description: |-
-            Server-controlled heartbeat interval in seconds. The agent should send
-             heartbeats at this frequency. If no heartbeat is received within 3x this
-             interval, the agent transitions to UNREACHABLE.
-        statusPushIntervalSeconds:
-          type: integer
-          title: status_push_interval_seconds
-          format: int32
-          description: |-
-            Server-controlled status push interval in seconds. For Kubernetes agents,
-             this controls how often to push cluster telemetry via ReportClusterStatus.
-      title: RegisterAgentResponse
+            The set of fields to update. If unset, all mutable fields are updated.
+             Supported fields: `name`, `description`, `labels`.
+          $ref: '#/components/schemas/google.protobuf.FieldMask'
+      title: UpdateApplicationRequest
+      required:
+        - application
       additionalProperties: false
-      description: |-
-        RegisterAgentResponse contains the registered agent and server-controlled
-         configuration for the agent's polling behavior.
-    admiral.api.agent.v1.RunnerAgentMetadata:
-      type: object
-      title: RunnerAgentMetadata
-      additionalProperties: false
-      description: |-
-        RunnerAgentMetadata contains registration-time metadata for a runner agent.
-         Currently empty — runner configuration is managed on the Runner resource by
-         admins, not self-reported by the agent at registration.
-    admiral.api.authz.v1.AuthRule:
+      description: UpdateApplicationRequest contains the application fields to update.
+    admiral.api.application.v1.UpdateApplicationResponse:
       type: object
       properties:
-        scope:
-          type: string
-          title: scope
-          description: |-
-            The scope required to call this RPC (e.g., "clusters:read").
-             Empty string means any valid token is sufficient — no specific scope required.
-        allowedTokenTypes:
-          type: array
-          items:
-            type: string
-          title: allowed_token_types
-          description: |-
-            Restrict to specific token types ("pat", "sat", "agt", "session").
-             Empty means all token types are allowed.
-      title: AuthRule
+        application:
+          title: application
+          description: The updated application.
+          $ref: '#/components/schemas/admiral.api.application.v1.Application'
+      title: UpdateApplicationResponse
       additionalProperties: false
-      description: |-
-        AuthRule defines the authorization requirements for an RPC method.
-         Applied as a custom method option and enforced at runtime by a Connect interceptor.
-
-         The presence of the option means the RPC requires authentication.
-         An empty scope means any authenticated request is sufficient.
-    admiral.api.authz.v1.TokenType:
-      type: string
-      title: TokenType
-      enum:
-        - TOKEN_TYPE_UNSPECIFIED
-        - PERSONAL_ACCESS_TOKEN
-        - SERVICE_ACCOUNT_TOKEN
-        - AGENT_TOKEN
-      description: |-
-        TokenType identifies the category of an access token issued by Admiral's token system.
-         IDP-issued JWTs (OAuth2/OIDC sessions) are NOT represented here — they are
-         resolved by separate middleware and can be referenced as "session" in
-         AuthRule.allowed_token_types when needed.
+      description: UpdateApplicationResponse contains the updated application.
     admiral.api.cluster.v1.Cluster:
       type: object
       properties:
@@ -1986,12 +1253,22 @@ components:
           title: tenant_id
           format: uuid
           description: Tenant this cluster belongs to (UUID).
-        displayName:
+        name:
           type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: Human-readable name (e.g., "prod-us-east-1"). Unique within the tenant.
+          title: name
+          maxLength: 63
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+          description: |-
+            URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Unique
+             within the tenant. Lowercase alphanumeric and hyphens only, must start
+             with a letter and end with an alphanumeric character (1-63 chars).
+        description:
+          type: string
+          title: description
+          maxLength: 1024
+          description: |-
+            Optional longer-form description of the cluster's purpose
+             (e.g., "Primary production cluster serving US East traffic").
         labels:
           type: object
           title: labels
@@ -2177,14 +1454,19 @@ components:
     admiral.api.cluster.v1.CreateClusterRequest:
       type: object
       properties:
-        displayName:
+        name:
           type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
+          title: name
+          maxLength: 63
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
           description: |-
-            Human-readable name for the cluster (e.g., "prod-us-east-1").
-             Must be unique within the tenant.
+            URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Must be
+             unique within the tenant. Lowercase alphanumeric and hyphens only.
+        description:
+          type: string
+          title: description
+          maxLength: 1024
+          description: Optional longer-form description of the cluster's purpose.
         labels:
           type: object
           title: labels
@@ -2261,7 +1543,7 @@ components:
         accessToken:
           title: access_token
           description: The created token metadata. Scopes are auto-assigned for cluster AGTs.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+          $ref: '#/components/schemas/admiral.common.v1.AccessToken'
         plainTextToken:
           type: string
           title: plain_text_token
@@ -2368,7 +1650,7 @@ components:
         accessToken:
           title: access_token
           description: The token metadata. The token secret is never included.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+          $ref: '#/components/schemas/admiral.common.v1.AccessToken'
       title: GetClusterTokenResponse
       additionalProperties: false
       description: GetClusterTokenResponse contains the requested cluster AGT metadata.
@@ -2402,7 +1684,7 @@ components:
         accessTokens:
           type: array
           items:
-            $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+            $ref: '#/components/schemas/admiral.common.v1.AccessToken'
           title: access_tokens
           description: The list of tokens. Token secrets are never included.
         nextPageToken:
@@ -2415,6 +1697,10 @@ components:
     admiral.api.cluster.v1.ListClustersRequest:
       type: object
       properties:
+        filter:
+          type: string
+          title: filter
+          description: Filter expression using the PEG filter DSL
         pageSize:
           type: integer
           title: page_size
@@ -2424,12 +1710,6 @@ components:
           type: string
           title: page_token
           description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: |-
-            Filter expression using the PEG filter DSL
-             (e.g., `health_status = "healthy"` or `labels.region = "us-east-1"`).
       title: ListClustersRequest
       additionalProperties: false
       description: ListClustersRequest contains pagination and filter parameters.
@@ -2457,6 +1737,10 @@ components:
           title: cluster_id
           format: uuid
           description: The cluster whose workloads to list (UUID).
+        filter:
+          type: string
+          title: filter
+          description: Filter expression using the PEG filter DSL
         pageSize:
           type: integer
           title: page_size
@@ -2466,12 +1750,6 @@ components:
           type: string
           title: page_token
           description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: |-
-            Filter expression using the PEG filter DSL
-             (e.g., `namespace = "production"` or `health_status = "degraded"`).
       title: ListWorkloadsRequest
       additionalProperties: false
       description: |-
@@ -2617,7 +1895,7 @@ components:
         accessToken:
           title: access_token
           description: The token metadata with updated status.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+          $ref: '#/components/schemas/admiral.common.v1.AccessToken'
       title: RevokeClusterTokenResponse
       additionalProperties: false
       description: RevokeClusterTokenResponse contains the revoked cluster AGT metadata.
@@ -2634,7 +1912,7 @@ components:
           title: update_mask
           description: |-
             The set of fields to update. If unset, all mutable fields are updated.
-             Supported fields: `display_name`, `labels`.
+             Supported fields: `name`, `description`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
       title: UpdateClusterRequest
       required:
@@ -2927,6 +2205,243 @@ components:
           title: value
       title: LabelsEntry
       additionalProperties: false
+    admiral.api.environment.v1.CreateEnvironmentRequest:
+      type: object
+      properties:
+        applicationId:
+          type: string
+          title: application_id
+          format: uuid
+          description: The application to create this environment for (UUID).
+        name:
+          type: string
+          title: name
+          maxLength: 255
+          minLength: 1
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+          description: |-
+            URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+             Must be unique within the application. Lowercase alphanumeric and hyphens only.
+        clusterId:
+          type:
+            - string
+            - "null"
+          title: cluster_id
+          description: |-
+            The cluster to deploy this environment to (UUID). Optional — can be
+             assigned later via UpdateEnvironment.
+        namespace:
+          type:
+            - string
+            - "null"
+          title: namespace
+          description: The Kubernetes namespace for this environment's workloads.
+        labels:
+          type: object
+          title: labels
+          additionalProperties:
+            type: string
+            title: value
+          description: Arbitrary key-value labels for organizing and filtering environments.
+      title: CreateEnvironmentRequest
+      additionalProperties: false
+      description: CreateEnvironmentRequest contains the parameters for creating a new environment.
+    admiral.api.environment.v1.CreateEnvironmentRequest.LabelsEntry:
+      type: object
+      properties:
+        key:
+          type: string
+          title: key
+        value:
+          type: string
+          title: value
+      title: LabelsEntry
+      additionalProperties: false
+    admiral.api.environment.v1.CreateEnvironmentResponse:
+      type: object
+      properties:
+        environment:
+          title: environment
+          description: The created environment.
+          $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+      title: CreateEnvironmentResponse
+      additionalProperties: false
+      description: CreateEnvironmentResponse contains the newly created environment.
+    admiral.api.environment.v1.DeleteEnvironmentRequest:
+      type: object
+      properties:
+        environmentId:
+          type: string
+          title: environment_id
+          format: uuid
+          description: The unique identifier of the environment to delete (UUID).
+      title: DeleteEnvironmentRequest
+      additionalProperties: false
+      description: DeleteEnvironmentRequest identifies an environment to delete.
+    admiral.api.environment.v1.DeleteEnvironmentResponse:
+      type: object
+      title: DeleteEnvironmentResponse
+      additionalProperties: false
+      description: DeleteEnvironmentResponse is empty on success.
+    admiral.api.environment.v1.Environment:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: Unique identifier for the environment (UUID).
+        applicationId:
+          type: string
+          title: application_id
+          format: uuid
+          description: The application this environment belongs to (UUID).
+        name:
+          type: string
+          title: name
+          maxLength: 255
+          minLength: 1
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+          description: |-
+            URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+             Unique within the application. Lowercase alphanumeric and hyphens only,
+             must start with a letter and end with an alphanumeric character (1-63 chars).
+        clusterId:
+          type:
+            - string
+            - "null"
+          title: cluster_id
+          description: |-
+            The cluster this environment deploys to (UUID). Optional — can be assigned
+             after creation.
+        namespace:
+          type:
+            - string
+            - "null"
+          title: namespace
+          description: |-
+            The Kubernetes namespace for this environment's workloads. Optional —
+             defaults to the environment name if not specified at deploy time.
+        labels:
+          type: object
+          title: labels
+          additionalProperties:
+            type: string
+            title: value
+          description: |-
+            Arbitrary key-value labels for organizing and filtering environments
+             (e.g., `{"region": "us-east-1", "tier": "production"}`).
+        createdAt:
+          title: created_at
+          description: When the environment was created.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+        updatedAt:
+          title: updated_at
+          description: When the environment was last updated.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+      title: Environment
+      additionalProperties: false
+      description: |-
+        Environment represents a named deployment target for an application. Each
+         environment binds an application to a cluster and namespace where its
+         workloads are deployed.
+    admiral.api.environment.v1.Environment.LabelsEntry:
+      type: object
+      properties:
+        key:
+          type: string
+          title: key
+        value:
+          type: string
+          title: value
+      title: LabelsEntry
+      additionalProperties: false
+    admiral.api.environment.v1.GetEnvironmentRequest:
+      type: object
+      properties:
+        environmentId:
+          type: string
+          title: environment_id
+          format: uuid
+          description: The unique identifier of the environment (UUID).
+      title: GetEnvironmentRequest
+      additionalProperties: false
+      description: GetEnvironmentRequest identifies an environment to retrieve.
+    admiral.api.environment.v1.GetEnvironmentResponse:
+      type: object
+      properties:
+        environment:
+          title: environment
+          description: The environment record.
+          $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+      title: GetEnvironmentResponse
+      additionalProperties: false
+      description: GetEnvironmentResponse contains the environment record.
+    admiral.api.environment.v1.ListEnvironmentsRequest:
+      type: object
+      properties:
+        filter:
+          type: string
+          title: filter
+          description: Filter expression using the PEG filter DSL.
+        pageSize:
+          type: integer
+          title: page_size
+          format: int32
+          description: Maximum number of environments to return per page.
+        pageToken:
+          type: string
+          title: page_token
+          description: Opaque pagination token from a previous response.
+      title: ListEnvironmentsRequest
+      additionalProperties: false
+      description: ListEnvironmentsRequest contains pagination and filter parameters.
+    admiral.api.environment.v1.ListEnvironmentsResponse:
+      type: object
+      properties:
+        environments:
+          type: array
+          items:
+            $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+          title: environments
+          description: The list of environments.
+        nextPageToken:
+          type: string
+          title: next_page_token
+          description: Pagination token for the next page. Empty when there are no more results.
+      title: ListEnvironmentsResponse
+      additionalProperties: false
+      description: ListEnvironmentsResponse contains a page of environments.
+    admiral.api.environment.v1.UpdateEnvironmentRequest:
+      type: object
+      properties:
+        environment:
+          title: environment
+          description: |-
+            The environment with updated fields. The `id` field is required.
+             Only fields specified in `update_mask` are updated.
+          $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+        updateMask:
+          title: update_mask
+          description: |-
+            The set of fields to update. If unset, all mutable fields are updated.
+             Supported fields: `name`, `cluster_id`, `namespace`, `labels`.
+          $ref: '#/components/schemas/google.protobuf.FieldMask'
+      title: UpdateEnvironmentRequest
+      required:
+        - environment
+      additionalProperties: false
+      description: UpdateEnvironmentRequest contains the environment fields to update.
+    admiral.api.environment.v1.UpdateEnvironmentResponse:
+      type: object
+      properties:
+        environment:
+          title: environment
+          description: The updated environment.
+          $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+      title: UpdateEnvironmentResponse
+      additionalProperties: false
+      description: UpdateEnvironmentResponse contains the updated environment.
     admiral.api.healthcheck.v1.HealthcheckRequest:
       type: object
       title: HealthcheckRequest
@@ -2941,717 +2456,6 @@ components:
       description: |-
         HealthcheckResponse is returned when the service is healthy.
          An empty response indicates the service is operating normally.
-    admiral.api.runner.v1.CreateRunnerRequest:
-      type: object
-      properties:
-        displayName:
-          type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: |-
-            Human-readable name for the runner (e.g., "team1-terraform").
-             Must be unique within the tenant.
-        kind:
-          title: kind
-          description: The type of jobs this runner will execute.
-          $ref: '#/components/schemas/admiral.api.runner.v1.RunnerKind'
-        labels:
-          type: object
-          title: labels
-          additionalProperties:
-            type: string
-            title: value
-          description: Arbitrary key-value labels for organizing and job routing.
-      title: CreateRunnerRequest
-      additionalProperties: false
-      description: CreateRunnerRequest contains the parameters for creating a new runner.
-    admiral.api.runner.v1.CreateRunnerRequest.LabelsEntry:
-      type: object
-      properties:
-        key:
-          type: string
-          title: key
-        value:
-          type: string
-          title: value
-      title: LabelsEntry
-      additionalProperties: false
-    admiral.api.runner.v1.CreateRunnerResponse:
-      type: object
-      properties:
-        runner:
-          title: runner
-          description: The created runner.
-          $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-        plainTextToken:
-          type: string
-          title: plain_text_token
-          description: |-
-            The raw Agent Token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value
-             is shown exactly once and cannot be retrieved again. Deploy this token to
-             the controller for authentication.
-
-             To create additional tokens (e.g., for rotation), use
-             AccessTokenAPI.CreateAgentToken.
-      title: CreateRunnerResponse
-      additionalProperties: false
-      description: |-
-        CreateRunnerResponse contains the newly created runner and its initial
-         Agent Token (AGT).
-    admiral.api.runner.v1.CreateRunnerTokenRequest:
-      type: object
-      properties:
-        runnerId:
-          type: string
-          title: runner_id
-          format: uuid
-          description: The runner to bind this token to (UUID).
-        displayName:
-          type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: Human-readable name for the token (e.g., "team1-terraform-agent-key").
-        expiresAt:
-          title: expires_at
-          description: Optional expiration time. If unset, the token does not expire.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-      title: CreateRunnerTokenRequest
-      additionalProperties: false
-      description: |-
-        CreateRunnerTokenRequest contains the parameters for creating a new AGT
-         bound to a runner.
-    admiral.api.runner.v1.CreateRunnerTokenResponse:
-      type: object
-      properties:
-        accessToken:
-          title: access_token
-          description: The created token metadata. Scopes are auto-assigned for runner AGTs.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-        plainTextToken:
-          type: string
-          title: plain_text_token
-          description: |-
-            The raw token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value is
-             shown exactly once and cannot be retrieved again. Store it securely.
-      title: CreateRunnerTokenResponse
-      additionalProperties: false
-      description: CreateRunnerTokenResponse contains the newly created AGT.
-    admiral.api.runner.v1.DeleteRunnerRequest:
-      type: object
-      properties:
-        runnerId:
-          type: string
-          title: runner_id
-          format: uuid
-          description: |-
-            The unique identifier of the runner to delete (UUID).
-             All associated Agent Tokens will be revoked and the agent record removed.
-      title: DeleteRunnerRequest
-      additionalProperties: false
-      description: DeleteRunnerRequest identifies a runner to delete.
-    admiral.api.runner.v1.DeleteRunnerResponse:
-      type: object
-      title: DeleteRunnerResponse
-      additionalProperties: false
-      description: DeleteRunnerResponse is empty on success.
-    admiral.api.runner.v1.GetRunnerRequest:
-      type: object
-      properties:
-        runnerId:
-          type: string
-          title: runner_id
-          format: uuid
-          description: The unique identifier of the runner (UUID).
-      title: GetRunnerRequest
-      additionalProperties: false
-      description: GetRunnerRequest identifies a runner to retrieve.
-    admiral.api.runner.v1.GetRunnerResponse:
-      type: object
-      properties:
-        runner:
-          title: runner
-          description: The runner.
-          $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-      title: GetRunnerResponse
-      additionalProperties: false
-      description: GetRunnerResponse contains the requested runner.
-    admiral.api.runner.v1.GetRunnerTokenRequest:
-      type: object
-      properties:
-        runnerId:
-          type: string
-          title: runner_id
-          format: uuid
-          description: The runner the token belongs to (UUID).
-        tokenId:
-          type: string
-          title: token_id
-          format: uuid
-          description: The unique identifier of the token (UUID).
-      title: GetRunnerTokenRequest
-      additionalProperties: false
-      description: GetRunnerTokenRequest identifies a runner AGT to retrieve.
-    admiral.api.runner.v1.GetRunnerTokenResponse:
-      type: object
-      properties:
-        accessToken:
-          title: access_token
-          description: The token metadata. The token secret is never included.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-      title: GetRunnerTokenResponse
-      additionalProperties: false
-      description: GetRunnerTokenResponse contains the requested runner AGT metadata.
-    admiral.api.runner.v1.ListRunnerTokensRequest:
-      type: object
-      properties:
-        runnerId:
-          type: string
-          title: runner_id
-          format: uuid
-          description: The runner whose tokens to list (UUID).
-        pageSize:
-          type: integer
-          title: page_size
-          format: int32
-          description: Maximum number of tokens to return per page.
-        pageToken:
-          type: string
-          title: page_token
-          description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: Filter expression using the PEG filter DSL.
-      title: ListRunnerTokensRequest
-      additionalProperties: false
-      description: ListRunnerTokensRequest contains pagination and filter parameters.
-    admiral.api.runner.v1.ListRunnerTokensResponse:
-      type: object
-      properties:
-        accessTokens:
-          type: array
-          items:
-            $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-          title: access_tokens
-          description: The list of tokens. Token secrets are never included.
-        nextPageToken:
-          type: string
-          title: next_page_token
-          description: Pagination token for the next page. Empty when there are no more results.
-      title: ListRunnerTokensResponse
-      additionalProperties: false
-      description: ListRunnerTokensResponse contains a page of runner AGT metadata.
-    admiral.api.runner.v1.ListRunnersRequest:
-      type: object
-      properties:
-        pageSize:
-          type: integer
-          title: page_size
-          format: int32
-          description: Maximum number of runners to return per page.
-        pageToken:
-          type: string
-          title: page_token
-          description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: |-
-            Filter expression using the PEG filter DSL.
-             Examples: `kind = "TERRAFORM"`, `labels.team = "platform"`.
-      title: ListRunnersRequest
-      additionalProperties: false
-      description: ListRunnersRequest contains pagination and filter parameters.
-    admiral.api.runner.v1.ListRunnersResponse:
-      type: object
-      properties:
-        runners:
-          type: array
-          items:
-            $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-          title: runners
-          description: The list of runners.
-        nextPageToken:
-          type: string
-          title: next_page_token
-          description: Pagination token for the next page. Empty when there are no more results.
-      title: ListRunnersResponse
-      additionalProperties: false
-      description: ListRunnersResponse contains a page of runners.
-    admiral.api.runner.v1.RevokeRunnerTokenRequest:
-      type: object
-      properties:
-        runnerId:
-          type: string
-          title: runner_id
-          format: uuid
-          description: The runner the token belongs to (UUID).
-        tokenId:
-          type: string
-          title: token_id
-          format: uuid
-          description: The unique identifier of the token to revoke (UUID).
-      title: RevokeRunnerTokenRequest
-      additionalProperties: false
-      description: RevokeRunnerTokenRequest identifies a runner AGT to revoke.
-    admiral.api.runner.v1.RevokeRunnerTokenResponse:
-      type: object
-      properties:
-        accessToken:
-          title: access_token
-          description: The token metadata with updated status.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-      title: RevokeRunnerTokenResponse
-      additionalProperties: false
-      description: RevokeRunnerTokenResponse contains the revoked runner AGT metadata.
-    admiral.api.runner.v1.Runner:
-      type: object
-      properties:
-        id:
-          type: string
-          title: id
-          format: uuid
-          description: Unique identifier for the runner (UUID).
-        tenantId:
-          type: string
-          title: tenant_id
-          format: uuid
-          description: Tenant this runner belongs to (UUID).
-        displayName:
-          type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: Human-readable name (e.g., "team1-terraform"). Unique within the tenant.
-        kind:
-          title: kind
-          description: The type of jobs this runner can execute.
-          $ref: '#/components/schemas/admiral.api.runner.v1.RunnerKind'
-        labels:
-          type: object
-          title: labels
-          additionalProperties:
-            type: string
-            title: value
-          description: |-
-            Arbitrary key-value labels for organizing, filtering, and job routing.
-             Labels are set by admins and used in the UI to select which runner should
-             execute a given module or workflow (e.g., `{"team": "platform", "env": "prod"}`).
-        createdAt:
-          title: created_at
-          description: When the runner was created.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-        updatedAt:
-          title: updated_at
-          description: When the runner was last updated.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-      title: Runner
-      additionalProperties: false
-      description: |-
-        Runner represents an execution environment for IaC or workflow jobs within a
-         tenant. Each runner is backed by a controller process that holds an AGT,
-         registers as an agent, and spawns ephemeral pods to execute work.
-
-         Runners serve as credential boundaries — different teams or cloud accounts
-         should use separate runners to maintain isolation (e.g., via Workload Identity
-         in GKE where each controller runs under a distinct K8s ServiceAccount).
-    admiral.api.runner.v1.Runner.LabelsEntry:
-      type: object
-      properties:
-        key:
-          type: string
-          title: key
-        value:
-          type: string
-          title: value
-      title: LabelsEntry
-      additionalProperties: false
-    admiral.api.runner.v1.RunnerKind:
-      type: string
-      title: RunnerKind
-      enum:
-        - RUNNER_KIND_UNSPECIFIED
-        - RUNNER_KIND_TERRAFORM
-        - RUNNER_KIND_WORKFLOW
-      description: RunnerKind identifies the type of jobs a runner can execute.
-    admiral.api.runner.v1.UpdateRunnerRequest:
-      type: object
-      properties:
-        runner:
-          title: runner
-          description: |-
-            The runner with updated fields. The `id` field is required.
-             Only fields specified in `update_mask` are updated.
-          $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-        updateMask:
-          title: update_mask
-          description: |-
-            The set of fields to update. If unset, all mutable fields are updated.
-             Supported fields: `display_name`, `labels`.
-          $ref: '#/components/schemas/google.protobuf.FieldMask'
-      title: UpdateRunnerRequest
-      required:
-        - runner
-      additionalProperties: false
-      description: UpdateRunnerRequest contains the runner fields to update.
-    admiral.api.runner.v1.UpdateRunnerResponse:
-      type: object
-      properties:
-        runner:
-          title: runner
-          description: The updated runner.
-          $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-      title: UpdateRunnerResponse
-      additionalProperties: false
-      description: UpdateRunnerResponse contains the updated runner.
-    admiral.api.serviceaccount.v1.CreateServiceAccountRequest:
-      type: object
-      properties:
-        displayName:
-          type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: |-
-            Human-readable name for the service account (e.g., "ci-pipeline").
-             Must be unique within the tenant.
-        description:
-          type: string
-          title: description
-          description: Optional description of the service account's purpose.
-        scopes:
-          type: array
-          items:
-            type: string
-          title: scopes
-          description: |-
-            The scopes this service account is allowed to use. SATs created under
-             this account can only request a subset of these scopes.
-      title: CreateServiceAccountRequest
-      additionalProperties: false
-      description: CreateServiceAccountRequest contains the parameters for creating a new service account.
-    admiral.api.serviceaccount.v1.CreateServiceAccountResponse:
-      type: object
-      properties:
-        serviceAccount:
-          title: service_account
-          description: The created service account.
-          $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccount'
-      title: CreateServiceAccountResponse
-      additionalProperties: false
-      description: CreateServiceAccountResponse contains the newly created service account.
-    admiral.api.serviceaccount.v1.CreateServiceAccountTokenRequest:
-      type: object
-      properties:
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          format: uuid
-          description: The service account to create the token under (UUID).
-        displayName:
-          type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: |-
-            Human-readable name for the token (e.g., "github-actions-key").
-             Must be unique per service account.
-        scopes:
-          type: array
-          items:
-            type: string
-          title: scopes
-          description: |-
-            The scopes to grant this token. Must be a subset of the parent service
-             account's allowed scopes.
-        expiresAt:
-          title: expires_at
-          description: Optional expiration time. If unset, the token does not expire.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-      title: CreateServiceAccountTokenRequest
-      additionalProperties: false
-      description: CreateServiceAccountTokenRequest contains the parameters for creating a new SAT.
-    admiral.api.serviceaccount.v1.CreateServiceAccountTokenResponse:
-      type: object
-      properties:
-        accessToken:
-          title: access_token
-          description: The created token metadata.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-        plainTextToken:
-          type: string
-          title: plain_text_token
-          description: |-
-            The raw token secret (e.g., "adm_sat_mJ4nP7qR9sT2..."). This value is
-             shown exactly once and cannot be retrieved again. Store it securely.
-      title: CreateServiceAccountTokenResponse
-      additionalProperties: false
-      description: CreateServiceAccountTokenResponse contains the newly created SAT.
-    admiral.api.serviceaccount.v1.DeleteServiceAccountRequest:
-      type: object
-      properties:
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          format: uuid
-          description: |-
-            The unique identifier of the service account to delete (UUID).
-             All associated SATs will be revoked.
-      title: DeleteServiceAccountRequest
-      additionalProperties: false
-      description: DeleteServiceAccountRequest identifies a service account to delete.
-    admiral.api.serviceaccount.v1.DeleteServiceAccountResponse:
-      type: object
-      title: DeleteServiceAccountResponse
-      additionalProperties: false
-      description: DeleteServiceAccountResponse is empty on success.
-    admiral.api.serviceaccount.v1.GetServiceAccountRequest:
-      type: object
-      properties:
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          format: uuid
-          description: The unique identifier of the service account (UUID).
-      title: GetServiceAccountRequest
-      additionalProperties: false
-      description: GetServiceAccountRequest identifies a service account to retrieve.
-    admiral.api.serviceaccount.v1.GetServiceAccountResponse:
-      type: object
-      properties:
-        serviceAccount:
-          title: service_account
-          description: The service account.
-          $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccount'
-      title: GetServiceAccountResponse
-      additionalProperties: false
-      description: GetServiceAccountResponse contains the requested service account.
-    admiral.api.serviceaccount.v1.GetServiceAccountTokenRequest:
-      type: object
-      properties:
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          format: uuid
-          description: The service account the token belongs to (UUID).
-        tokenId:
-          type: string
-          title: token_id
-          format: uuid
-          description: The unique identifier of the token (UUID).
-      title: GetServiceAccountTokenRequest
-      additionalProperties: false
-      description: GetServiceAccountTokenRequest identifies a SAT to retrieve.
-    admiral.api.serviceaccount.v1.GetServiceAccountTokenResponse:
-      type: object
-      properties:
-        accessToken:
-          title: access_token
-          description: The token metadata. The token secret is never included.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-      title: GetServiceAccountTokenResponse
-      additionalProperties: false
-      description: GetServiceAccountTokenResponse contains the requested SAT metadata.
-    admiral.api.serviceaccount.v1.ListServiceAccountTokensRequest:
-      type: object
-      properties:
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          format: uuid
-          description: The service account whose tokens to list (UUID).
-        pageSize:
-          type: integer
-          title: page_size
-          format: int32
-          description: Maximum number of tokens to return per page.
-        pageToken:
-          type: string
-          title: page_token
-          description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: Filter expression using the PEG filter DSL.
-      title: ListServiceAccountTokensRequest
-      additionalProperties: false
-      description: ListServiceAccountTokensRequest contains pagination and filter parameters.
-    admiral.api.serviceaccount.v1.ListServiceAccountTokensResponse:
-      type: object
-      properties:
-        accessTokens:
-          type: array
-          items:
-            $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-          title: access_tokens
-          description: The list of tokens. Token secrets are never included.
-        nextPageToken:
-          type: string
-          title: next_page_token
-          description: Pagination token for the next page. Empty when there are no more results.
-      title: ListServiceAccountTokensResponse
-      additionalProperties: false
-      description: ListServiceAccountTokensResponse contains a page of SAT metadata.
-    admiral.api.serviceaccount.v1.ListServiceAccountsRequest:
-      type: object
-      properties:
-        pageSize:
-          type: integer
-          title: page_size
-          format: int32
-          description: Maximum number of service accounts to return per page.
-        pageToken:
-          type: string
-          title: page_token
-          description: Opaque pagination token from a previous response.
-        filter:
-          type: string
-          title: filter
-          description: |-
-            Filter expression using the PEG filter DSL
-             (e.g., `status = "active"` or `display_name = "ci-*"`).
-      title: ListServiceAccountsRequest
-      additionalProperties: false
-      description: ListServiceAccountsRequest contains pagination and filter parameters.
-    admiral.api.serviceaccount.v1.ListServiceAccountsResponse:
-      type: object
-      properties:
-        serviceAccounts:
-          type: array
-          items:
-            $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccount'
-          title: service_accounts
-          description: The list of service accounts.
-        nextPageToken:
-          type: string
-          title: next_page_token
-          description: Pagination token for the next page. Empty when there are no more results.
-      title: ListServiceAccountsResponse
-      additionalProperties: false
-      description: ListServiceAccountsResponse contains a page of service accounts.
-    admiral.api.serviceaccount.v1.RevokeServiceAccountTokenRequest:
-      type: object
-      properties:
-        serviceAccountId:
-          type: string
-          title: service_account_id
-          format: uuid
-          description: The service account the token belongs to (UUID).
-        tokenId:
-          type: string
-          title: token_id
-          format: uuid
-          description: The unique identifier of the token to revoke (UUID).
-      title: RevokeServiceAccountTokenRequest
-      additionalProperties: false
-      description: RevokeServiceAccountTokenRequest identifies a SAT to revoke.
-    admiral.api.serviceaccount.v1.RevokeServiceAccountTokenResponse:
-      type: object
-      properties:
-        accessToken:
-          title: access_token
-          description: The token metadata with updated status.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
-      title: RevokeServiceAccountTokenResponse
-      additionalProperties: false
-      description: RevokeServiceAccountTokenResponse contains the revoked SAT metadata.
-    admiral.api.serviceaccount.v1.ServiceAccount:
-      type: object
-      properties:
-        id:
-          type: string
-          title: id
-          format: uuid
-          description: Unique identifier for the service account (UUID).
-        tenantId:
-          type: string
-          title: tenant_id
-          format: uuid
-          description: Tenant this service account belongs to (UUID).
-        displayName:
-          type: string
-          title: display_name
-          maxLength: 255
-          minLength: 1
-          description: Human-readable name, unique within the tenant (e.g., "ci-pipeline").
-        description:
-          type: string
-          title: description
-          description: |-
-            Optional description of the service account's purpose
-             (e.g., "GitHub Actions deployment automation").
-        scopes:
-          type: array
-          items:
-            type: string
-          title: scopes
-          description: |-
-            The set of scopes this service account is allowed to use.
-             SATs created under this account can only request a subset of these scopes.
-        status:
-          title: status
-          description: Current lifecycle status.
-          $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccountStatus'
-        createdBy:
-          type: string
-          title: created_by
-          description: |-
-            The user who created this service account (UUID). For audit purposes only —
-             the service account is not bound to this user's access.
-        createdAt:
-          title: created_at
-          description: When the service account was created.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-        updatedAt:
-          title: updated_at
-          description: When the service account was last updated.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-      title: ServiceAccount
-      additionalProperties: false
-      description: |-
-        ServiceAccount is a first-class non-human identity within a tenant.
-         It represents a machine identity (e.g., CI/CD pipeline, external integration)
-         and can have multiple SATs (credentials) attached for key rotation.
-    admiral.api.serviceaccount.v1.ServiceAccountStatus:
-      type: string
-      title: ServiceAccountStatus
-      enum:
-        - SERVICE_ACCOUNT_STATUS_UNSPECIFIED
-        - SERVICE_ACCOUNT_STATUS_ACTIVE
-        - SERVICE_ACCOUNT_STATUS_DISABLED
-      description: ServiceAccountStatus represents the lifecycle state of a service account.
-    admiral.api.serviceaccount.v1.UpdateServiceAccountRequest:
-      type: object
-      properties:
-        serviceAccount:
-          title: service_account
-          description: |-
-            The service account with updated fields. The `id` field is required
-             to identify the resource. Only fields specified in `update_mask` are updated.
-          $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccount'
-        updateMask:
-          title: update_mask
-          description: |-
-            The set of fields to update. If unset, all mutable fields are updated.
-             Supported fields: `display_name`, `description`, `scopes`, `status`.
-          $ref: '#/components/schemas/google.protobuf.FieldMask'
-      title: UpdateServiceAccountRequest
-      required:
-        - serviceAccount
-      additionalProperties: false
-      description: UpdateServiceAccountRequest contains the service account fields to update.
-    admiral.api.serviceaccount.v1.UpdateServiceAccountResponse:
-      type: object
-      properties:
-        serviceAccount:
-          title: service_account
-          description: The updated service account.
-          $ref: '#/components/schemas/admiral.api.serviceaccount.v1.ServiceAccount'
-      title: UpdateServiceAccountResponse
-      additionalProperties: false
-      description: UpdateServiceAccountResponse contains the updated service account.
     admiral.api.user.v1.CreatePersonalAccessTokenRequest:
       type: object
       properties:
@@ -3681,10 +2485,6 @@ components:
     admiral.api.user.v1.CreatePersonalAccessTokenResponse:
       type: object
       properties:
-        accessToken:
-          title: access_token
-          description: The created token metadata.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
         plainTextToken:
           type: string
           title: plain_text_token
@@ -3693,7 +2493,9 @@ components:
              shown exactly once and cannot be retrieved again. Store it securely.
       title: CreatePersonalAccessTokenResponse
       additionalProperties: false
-      description: CreatePersonalAccessTokenResponse contains the newly created PAT.
+      description: |-
+        CreatePersonalAccessTokenResponse contains the newly created PAT. The created token metadata.
+          admiral.common.v1.AccessToken access_token = 1;
     admiral.api.user.v1.GetPersonalAccessTokenRequest:
       type: object
       properties:
@@ -3711,7 +2513,7 @@ components:
         accessToken:
           title: access_token
           description: The token metadata. The token secret is never included.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+          $ref: '#/components/schemas/admiral.common.v1.AccessToken'
       title: GetPersonalAccessTokenResponse
       additionalProperties: false
       description: GetPersonalAccessTokenResponse contains the requested PAT metadata.
@@ -3791,7 +2593,7 @@ components:
         accessTokens:
           type: array
           items:
-            $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+            $ref: '#/components/schemas/admiral.common.v1.AccessToken'
           title: access_tokens
           description: The list of tokens. Token secrets are never included.
         nextPageToken:
@@ -3818,10 +2620,120 @@ components:
         accessToken:
           title: access_token
           description: The token metadata with updated status.
-          $ref: '#/components/schemas/admiral.api.accesstoken.v1.AccessToken'
+          $ref: '#/components/schemas/admiral.common.v1.AccessToken'
       title: RevokePersonalAccessTokenResponse
       additionalProperties: false
       description: RevokePersonalAccessTokenResponse contains the revoked PAT metadata.
+    admiral.common.v1.AccessToken:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: Unique identifier for the token (UUID).
+        tenantId:
+          type: string
+          title: tenant_id
+          format: uuid
+          description: Tenant this token belongs to (UUID).
+        displayName:
+          type: string
+          title: display_name
+          description: Human-readable name for the token (e.g., "postman-testing", "ci-deploy-key").
+        tokenPrefix:
+          type: string
+          title: token_prefix
+          description: |-
+            Display-safe prefix for identifying the token without exposing the secret
+             (e.g., "adm_pat_7kH3").
+        tokenType:
+          title: token_type
+          description: The category of this token.
+          $ref: '#/components/schemas/admiral.common.v1.TokenType'
+        scopes:
+          type: array
+          items:
+            type: string
+          title: scopes
+          description: |-
+            The scopes granted to this token. For PATs, these are user-selected.
+             For AGTs, these are auto-assigned based on the resource type.
+        status:
+          title: status
+          description: Current lifecycle status of the token.
+          $ref: '#/components/schemas/admiral.common.v1.AccessTokenStatus'
+        userId:
+          type: string
+          title: user_id
+          description: |-
+            The user this token is bound to (UUID). Set when token_type is
+             TOKEN_TYPE_PAT.
+        clusterId:
+          type: string
+          title: cluster_id
+          description: |-
+            The cluster this token is bound to (UUID). Set when token_type is
+             TOKEN_TYPE_AGT and the token is bound to a cluster.
+        runnerId:
+          type: string
+          title: runner_id
+          description: |-
+            The runner this token is bound to (UUID). Set when token_type is
+             TOKEN_TYPE_AGT and the token is bound to a runner.
+        createdBy:
+          type: string
+          title: created_by
+          description: |-
+            The user who created this token (UUID). For PATs, this is the token owner.
+             For AGTs, this is the administrator who issued the token.
+        expiresAt:
+          title: expires_at
+          description: When the token expires. If unset, the token does not expire.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+        lastUsedAt:
+          title: last_used_at
+          description: When the token was last used to authenticate an API request.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+        createdAt:
+          title: created_at
+          description: When the token was created.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+        revokedAt:
+          title: revoked_at
+          description: When the token was revoked. Only set when status is REVOKED.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+      title: AccessToken
+      additionalProperties: false
+      description: |-
+        AccessToken contains token metadata common to all token types (PAT, AGT).
+         The raw token secret is never included in this message — it is only returned
+         once at creation time via the `plain_text_token` field in Create responses.
+
+         Token CRUD is managed by each parent resource's API:
+           - PATs:         UserAPI    (/v1/user/tokens)
+           - Cluster AGTs: ClusterAPI (/v1/clusters/{id}/tokens)
+    admiral.common.v1.AccessTokenStatus:
+      type: string
+      title: AccessTokenStatus
+      enum:
+        - ACCESS_TOKEN_STATUS_UNSPECIFIED
+        - ACCESS_TOKEN_STATUS_ACTIVE
+        - ACCESS_TOKEN_STATUS_REVOKED
+        - ACCESS_TOKEN_STATUS_ROTATING
+      description: AccessTokenStatus represents the lifecycle state of an access token.
+    admiral.common.v1.TokenType:
+      type: string
+      title: TokenType
+      enum:
+        - TOKEN_TYPE_UNSPECIFIED
+        - TOKEN_TYPE_PAT
+        - TOKEN_TYPE_AGT
+      description: |-
+        TokenType identifies the category of an access token issued by Admiral's token system.
+         IDP-issued JWTs (OAuth2/OIDC sessions) are NOT represented here — they are
+         resolved by separate middleware and can be referenced as "session" in
+         AuthRule.allowed_token_types when needed.
     google.protobuf.FieldMask:
       type: string
       description: |-
@@ -4122,20 +3034,15 @@ components:
          ) to obtain a formatter capable of generating timestamps in this format.
 security: []
 tags:
-  - name: admiral.api.agent.v1.AgentAPI
+  - name: admiral.api.application.v1.ApplicationAPI
     description: |-
-      AgentAPI manages agent registration, lifecycle, and heartbeat.
+      ApplicationAPI manages applications within a tenant.
 
-       Agents are long-lived processes that run in customer environments and connect
-       to Admiral's control plane. Each agent is bound to a parent resource — either
-       a Cluster or a Runner — and the binding is determined by the Agent Token (AGT)
-       used to authenticate.
-
-       Agent records are system-managed projections of connection state. Admins can
-       observe agents via GetAgent and ListAgents, but cannot create, update, or
-       delete them directly. The agent lifecycle is controlled by RegisterAgent
-       (creates the record on first boot) and cascading deletes when the parent
-       resource (Cluster or Runner) is removed.
+       An application is the fundamental unit in Admiral. It groups deployment
+       manifests, infrastructure dependencies, environment configuration, and
+       relationships into a single entity that can be deployed across multiple
+       environments. Applications are defined once and promoted explicitly between
+       environments.
   - name: admiral.api.cluster.v1.ClusterAPI
     description: |-
       ClusterAPI manages Kubernetes clusters and their workload telemetry.
@@ -4147,35 +3054,16 @@ tags:
 
        The telemetry model has three tiers: current snapshot (upserted per push),
        time-series metrics (rolling 48-hour window), and events (rolling 7-day window).
+  - name: admiral.api.environment.v1.EnvironmentAPI
+    description: |-
+      EnvironmentAPI manages environments within an application.
+
+       An environment is a named deployment target (e.g., dev, staging, prod) that
+       binds an application to a specific cluster and namespace. Each environment
+       carries its own configuration, credentials, and compute targets. Promotion
+       between environments is explicit — Admiral never auto-promotes.
   - name: admiral.api.healthcheck.v1.HealthcheckAPI
     description: HealthcheckAPI provides health check operations for monitoring service availability.
-  - name: admiral.api.runner.v1.RunnerAPI
-    description: |-
-      RunnerAPI manages runners — execution environments for Infrastructure as Code
-       (IaC) and workflow jobs.
-
-       A runner represents a credential and execution boundary. Each runner is backed
-       by a controller process deployed to a Kubernetes cluster. The controller holds
-       an Agent Token (AGT), registers with AgentAPI.RegisterAgent on boot, and
-       spawns ephemeral pods to execute jobs (e.g., terraform plan/apply).
-
-       Administrators create runners via CreateRunner, which returns an AGT for
-       deploying the controller. Labels on the runner are used for job routing in
-       the UI — for example, selecting which runner should execute a Terraform module
-       based on team or environment labels.
-
-       Different teams or cloud accounts should use separate runners to maintain
-       credential isolation (e.g., via Workload Identity in GKE).
-  - name: admiral.api.serviceaccount.v1.ServiceAccountAPI
-    description: |-
-      ServiceAccountAPI manages service accounts — first-class non-human identities
-       within a tenant. Service accounts follow the Google Cloud IAM model: the
-       account IS the identity, and Service Account Tokens (SATs) are credentials
-       attached to it.
-
-       A service account can have multiple SATs for zero-downtime key rotation.
-       Deleting a service account automatically revokes all associated SATs.
-       Disabling a service account invalidates all SATs without deleting them.
   - name: admiral.api.user.v1.UserAPI
     description: |-
       UserAPI provides operations for the currently authenticated user, including

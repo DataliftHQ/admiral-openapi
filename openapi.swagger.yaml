@@ -1,13 +1,12 @@
 swagger: "2.0"
 info:
-  title: authz/v1/annotations.proto
+  title: application/v1/application.proto
   version: version not set
 tags:
-  - name: AgentAPI
+  - name: ApplicationAPI
   - name: ClusterAPI
+  - name: EnvironmentAPI
   - name: HealthcheckAPI
-  - name: RunnerAPI
-  - name: ServiceAccountAPI
   - name: UserAPI
 consumes:
   - application/json
@@ -32,26 +31,30 @@ paths:
             $ref: '#/definitions/rpcStatus'
       tags:
         - HealthcheckAPI
-  /v1/agents:
+  /v1/applications:
     get:
       summary: |-
-        ListAgents returns a paginated list of agents within the caller's tenant.
-        Use the filter parameter to scope results by resource binding
-        (e.g., `cluster_id = "uuid"` or `runner_id = "uuid"`).
-      description: 'Scope: `agents:read`'
-      operationId: AgentAPI_ListAgents
+        ListApplications returns a paginated list of applications within the
+        caller's tenant.
+      description: 'Scope: `app:read`'
+      operationId: ApplicationAPI_ListApplications
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1ListAgentsResponse'
+            $ref: '#/definitions/v1ListApplicationsResponse'
         default:
           description: An unexpected error response.
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
         - name: pageSize
-          description: Maximum number of agents to return per page.
+          description: Maximum number of applications to return per page.
           in: query
           required: false
           type: integer
@@ -61,113 +64,108 @@ paths:
           in: query
           required: false
           type: string
-        - name: filter
-          description: |-
-            Filter expression using the PEG filter DSL. Supported fields include
-            `cluster_id`, `runner_id`, and `status`.
-            Examples: `cluster_id = "uuid"`, `runner_id = "uuid"`, `status = "ONLINE"`.
-          in: query
-          required: false
-          type: string
       tags:
-        - AgentAPI
-  /v1/agents/{agentId}:
+        - ApplicationAPI
+    post:
+      summary: CreateApplication creates a new application within the caller's tenant.
+      description: 'Scope: `app:write`'
+      operationId: ApplicationAPI_CreateApplication
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateApplicationResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateApplicationRequest contains the parameters for creating a new application.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateApplicationRequest'
+      tags:
+        - ApplicationAPI
+  /v1/applications/{application.id}:
+    patch:
+      summary: |-
+        UpdateApplication updates an application's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `app:write`'
+      operationId: ApplicationAPI_UpdateApplication
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateApplicationResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: application.id
+          description: Unique identifier for the application (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ApplicationAPIUpdateApplicationBody'
+      tags:
+        - ApplicationAPI
+  /v1/applications/{applicationId}:
     get:
-      summary: |-
-        GetAgent retrieves an agent by ID, including its current connectivity
-        status and resource binding.
-      description: 'Scope: `agents:read`'
-      operationId: AgentAPI_GetAgent
+      summary: GetApplication retrieves an application by ID.
+      description: 'Scope: `app:read`'
+      operationId: ApplicationAPI_GetApplication
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1GetAgentResponse'
+            $ref: '#/definitions/v1GetApplicationResponse'
         default:
           description: An unexpected error response.
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: agentId
-          description: The unique identifier of the agent (UUID).
+        - name: applicationId
+          description: The unique identifier of the application (UUID).
           in: path
           required: true
           type: string
       tags:
-        - AgentAPI
-  /v1/agents/{agentId}/heartbeat:
-    post:
+        - ApplicationAPI
+    delete:
       summary: |-
-        Heartbeat sends a liveness signal from the agent to the control plane.
-        If no heartbeat is received within 3x the poll interval (default 90s),
-        the agent transitions to UNREACHABLE status.
-      description: 'Scope: `agents:heartbeat` | Token types: `agt`'
-      operationId: AgentAPI_Heartbeat
+        DeleteApplication permanently deletes an application and all of its
+        associated environments. This action cannot be undone.
+      description: 'Scope: `app:write`'
+      operationId: ApplicationAPI_DeleteApplication
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1HeartbeatResponse'
+            $ref: '#/definitions/v1DeleteApplicationResponse'
         default:
           description: An unexpected error response.
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: agentId
-          description: The agent sending the heartbeat (UUID).
+        - name: applicationId
+          description: The unique identifier of the application to delete (UUID).
           in: path
           required: true
           type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/AgentAPIHeartbeatBody'
       tags:
-        - AgentAPI
-  /v1/agents:register:
-    post:
-      summary: |-
-        RegisterAgent registers a new agent, binding it to its parent resource
-        (Cluster or Runner). The binding is derived from the AGT used to
-        authenticate — the request does not specify which resource to bind to.
-      description: |-
-        For Kubernetes agents, the request must include `cluster_uid` (the
-        kube-system namespace UID). This value is written to the Cluster record
-        using a first-write-wins strategy. Subsequent registrations with a
-        different UID return 409 Conflict.
-
-        Registration is idempotent: if the agent restarts and calls RegisterAgent
-        with the same AGT and matching metadata, the existing agent record is
-        returned and its status is set to ONLINE.
-
-        Scope: `agents:write` | Token types: `agt`
-      operationId: AgentAPI_RegisterAgent
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1RegisterAgentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: body
-          description: |-
-            RegisterAgentRequest contains the parameters for registering a new agent.
-            The parent resource binding (Cluster or Runner) is derived from the AGT
-            used to authenticate — it does not need to be specified in the request.
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/v1RegisterAgentRequest'
-      tags:
-        - AgentAPI
+        - ApplicationAPI
   /v1/clusters:
     get:
       summary: ListClusters returns a paginated list of clusters within the caller's tenant.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_ListClusters
       responses:
         "200":
@@ -179,6 +177,11 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
+        - name: filter
+          description: Filter expression using the PEG filter DSL
+          in: query
+          required: false
+          type: string
         - name: pageSize
           description: Maximum number of clusters to return per page.
           in: query
@@ -187,13 +190,6 @@ paths:
           format: int32
         - name: pageToken
           description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-        - name: filter
-          description: |-
-            Filter expression using the PEG filter DSL
-            (e.g., `health_status = "healthy"` or `labels.region = "us-east-1"`).
           in: query
           required: false
           type: string
@@ -210,7 +206,7 @@ paths:
         or a Kubernetes Secret). The agent uses it to authenticate with
         AgentAPI.RegisterAgent on first boot.
 
-        Scope: `clusters:write`
+        Scope: `cluster:write`
       operationId: ClusterAPI_CreateCluster
       responses:
         "200":
@@ -233,9 +229,9 @@ paths:
   /v1/clusters/{cluster.id}:
     patch:
       summary: |-
-        UpdateCluster updates a cluster's mutable fields (display name, labels).
+        UpdateCluster updates a cluster's mutable fields.
         Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `clusters:write`'
+      description: 'Scope: `cluster:write`'
       operationId: ClusterAPI_UpdateCluster
       responses:
         "200":
@@ -267,7 +263,7 @@ paths:
         detailed telemetry (node counts, resource usage, workload summary), use
         GetClusterStatus instead.
 
-        Scope: `clusters:read`
+        Scope: `cluster:read`
       operationId: ClusterAPI_GetCluster
       responses:
         "200":
@@ -290,7 +286,7 @@ paths:
       summary: |-
         DeleteCluster permanently deletes a cluster record and revokes all
         associated agent tokens. This action cannot be undone.
-      description: 'Scope: `clusters:write`'
+      description: 'Scope: `cluster:write`'
       operationId: ClusterAPI_DeleteCluster
       responses:
         "200":
@@ -322,7 +318,7 @@ paths:
         no agent has reported telemetry yet, the response will have health_status
         PENDING and no status message.
 
-        Scope: `clusters:read`
+        Scope: `cluster:read`
       operationId: ClusterAPI_GetClusterStatus
       responses:
         "200":
@@ -349,7 +345,7 @@ paths:
       description: |-
         This endpoint is agent-facing and restricted to agent tokens.
 
-        Scope: `clusters:status` | Token types: `agt`
+        Scope: `cluster:status` | Token types: `agt`
       operationId: ClusterAPI_ReportClusterStatus
       responses:
         "200":
@@ -378,7 +374,7 @@ paths:
       summary: |-
         ListClusterTokens returns a paginated list of AGTs bound to the specified
         cluster. Token secrets are never included.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_ListClusterTokens
       responses:
         "200":
@@ -423,7 +419,7 @@ paths:
         zero-downtime token rotation). The initial AGT is created automatically
         by CreateCluster.
 
-        Scope: `clusters:write`
+        Scope: `cluster:write`
       operationId: ClusterAPI_CreateClusterToken
       responses:
         "200":
@@ -452,7 +448,7 @@ paths:
       summary: |-
         GetClusterToken retrieves a single AGT by ID.
         Returns metadata only — the token secret is never included.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_GetClusterToken
       responses:
         "200":
@@ -482,7 +478,7 @@ paths:
         RevokeClusterToken permanently revokes an AGT bound to this cluster.
         The agent will receive a 401 on its next request. If this is the only
         active AGT for the cluster, the agent will become disconnected.
-      description: 'Scope: `clusters:write`'
+      description: 'Scope: `cluster:write`'
       operationId: ClusterAPI_RevokeClusterToken
       responses:
         "200":
@@ -514,7 +510,7 @@ paths:
   /v1/clusters/{clusterId}/workloads:
     get:
       summary: ListWorkloads returns a paginated list of workloads running in a specific cluster.
-      description: 'Scope: `clusters:read`'
+      description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_ListWorkloads
       responses:
         "200":
@@ -531,6 +527,11 @@ paths:
           in: path
           required: true
           type: string
+        - name: filter
+          description: Filter expression using the PEG filter DSL
+          in: query
+          required: false
+          type: string
         - name: pageSize
           description: Maximum number of workloads to return per page.
           in: query
@@ -539,13 +540,6 @@ paths:
           format: int32
         - name: pageToken
           description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-        - name: filter
-          description: |-
-            Filter expression using the PEG filter DSL
-            (e.g., `namespace = "production"` or `health_status = "degraded"`).
           in: query
           required: false
           type: string
@@ -559,7 +553,7 @@ paths:
       description: |-
         This endpoint is agent-facing and restricted to agent tokens.
 
-        Scope: `clusters:status` | Token types: `agt`
+        Scope: `cluster:status` | Token types: `agt`
       operationId: ClusterAPI_ReportWorkloadStatus
       responses:
         "200":
@@ -583,6 +577,138 @@ paths:
             $ref: '#/definitions/ClusterAPIReportWorkloadStatusBody'
       tags:
         - ClusterAPI
+  /v1/environments:
+    get:
+      summary: |-
+        ListEnvironments returns a paginated list of environments. Use the filter
+        to scope by application, cluster, or labels.
+      description: 'Scope: `env:read`'
+      operationId: EnvironmentAPI_ListEnvironments
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListEnvironmentsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of environments to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - EnvironmentAPI
+    post:
+      summary: CreateEnvironment creates a new environment for the specified application.
+      description: 'Scope: `env:write`'
+      operationId: EnvironmentAPI_CreateEnvironment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateEnvironmentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateEnvironmentRequest contains the parameters for creating a new environment.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateEnvironmentRequest'
+      tags:
+        - EnvironmentAPI
+  /v1/environments/{environment.id}:
+    patch:
+      summary: |-
+        UpdateEnvironment updates an environment's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `env:write`'
+      operationId: EnvironmentAPI_UpdateEnvironment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateEnvironmentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: environment.id
+          description: Unique identifier for the environment (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/EnvironmentAPIUpdateEnvironmentBody'
+      tags:
+        - EnvironmentAPI
+  /v1/environments/{environmentId}:
+    get:
+      summary: GetEnvironment retrieves an environment by ID.
+      description: 'Scope: `env:read`'
+      operationId: EnvironmentAPI_GetEnvironment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetEnvironmentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: environmentId
+          description: The unique identifier of the environment (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - EnvironmentAPI
+    delete:
+      summary: |-
+        DeleteEnvironment permanently deletes an environment. This does not affect
+        the underlying cluster or namespace — only the Admiral environment record
+        is removed. This action cannot be undone.
+      description: 'Scope: `env:write`'
+      operationId: EnvironmentAPI_DeleteEnvironment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteEnvironmentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: environmentId
+          description: The unique identifier of the environment to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - EnvironmentAPI
   /v1/healthcheck:
     get:
       summary: |-
@@ -601,555 +727,6 @@ paths:
             $ref: '#/definitions/rpcStatus'
       tags:
         - HealthcheckAPI
-  /v1/runners:
-    get:
-      summary: ListRunners returns a paginated list of runners within the caller's tenant.
-      description: 'Scope: `runners:read`'
-      operationId: RunnerAPI_ListRunners
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1ListRunnersResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: pageSize
-          description: Maximum number of runners to return per page.
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: pageToken
-          description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-        - name: filter
-          description: |-
-            Filter expression using the PEG filter DSL.
-            Examples: `kind = "TERRAFORM"`, `labels.team = "platform"`.
-          in: query
-          required: false
-          type: string
-      tags:
-        - RunnerAPI
-    post:
-      summary: |-
-        CreateRunner creates a new runner within the caller's tenant and generates
-        an initial Agent Token (AGT) for the controller. The response includes a
-        `plain_text_token` — the raw AGT secret shown exactly once.
-      description: |-
-        Deploy this token to the controller (e.g., via Helm values or a Kubernetes
-        Secret). The controller uses it to authenticate with AgentAPI.RegisterAgent
-        on first boot.
-
-        Scope: `runners:write`
-      operationId: RunnerAPI_CreateRunner
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1CreateRunnerResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: body
-          description: CreateRunnerRequest contains the parameters for creating a new runner.
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/v1CreateRunnerRequest'
-      tags:
-        - RunnerAPI
-  /v1/runners/{runner.id}:
-    patch:
-      summary: |-
-        UpdateRunner updates a runner's mutable fields (display name, labels).
-        Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `runners:write`'
-      operationId: RunnerAPI_UpdateRunner
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateRunnerResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runner.id
-          description: Unique identifier for the runner (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
-      tags:
-        - RunnerAPI
-  /v1/runners/{runnerId}:
-    get:
-      summary: GetRunner retrieves a runner by ID.
-      description: 'Scope: `runners:read`'
-      operationId: RunnerAPI_GetRunner
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1GetRunnerResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runnerId
-          description: The unique identifier of the runner (UUID).
-          in: path
-          required: true
-          type: string
-      tags:
-        - RunnerAPI
-    delete:
-      summary: |-
-        DeleteRunner permanently deletes a runner, revokes all associated Agent
-        Tokens, and removes the agent record. Running jobs are not interrupted
-        but no new jobs will be assigned to this runner.
-      description: 'Scope: `runners:write`'
-      operationId: RunnerAPI_DeleteRunner
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1DeleteRunnerResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runnerId
-          description: |-
-            The unique identifier of the runner to delete (UUID).
-            All associated Agent Tokens will be revoked and the agent record removed.
-          in: path
-          required: true
-          type: string
-      tags:
-        - RunnerAPI
-  /v1/runners/{runnerId}/tokens:
-    get:
-      summary: |-
-        ListRunnerTokens returns a paginated list of AGTs bound to the specified
-        runner. Token secrets are never included.
-      description: 'Scope: `runners:read`'
-      operationId: RunnerAPI_ListRunnerTokens
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1ListRunnerTokensResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runnerId
-          description: The runner whose tokens to list (UUID).
-          in: path
-          required: true
-          type: string
-        - name: pageSize
-          description: Maximum number of tokens to return per page.
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: pageToken
-          description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-        - name: filter
-          description: Filter expression using the PEG filter DSL.
-          in: query
-          required: false
-          type: string
-      tags:
-        - RunnerAPI
-    post:
-      summary: |-
-        CreateRunnerToken creates a new Agent Token (AGT) bound to the specified
-        runner. Scopes are auto-assigned and cannot be overridden. The response
-        includes the raw token secret, which is shown exactly once.
-      description: |-
-        Use this to create additional AGTs for an existing runner (e.g., for
-        zero-downtime token rotation). The initial AGT is created automatically
-        by CreateRunner.
-
-        Scope: `runners:write`
-      operationId: RunnerAPI_CreateRunnerToken
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1CreateRunnerTokenResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runnerId
-          description: The runner to bind this token to (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/RunnerAPICreateRunnerTokenBody'
-      tags:
-        - RunnerAPI
-  /v1/runners/{runnerId}/tokens/{tokenId}:
-    get:
-      summary: |-
-        GetRunnerToken retrieves a single AGT by ID.
-        Returns metadata only — the token secret is never included.
-      description: 'Scope: `runners:read`'
-      operationId: RunnerAPI_GetRunnerToken
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1GetRunnerTokenResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runnerId
-          description: The runner the token belongs to (UUID).
-          in: path
-          required: true
-          type: string
-        - name: tokenId
-          description: The unique identifier of the token (UUID).
-          in: path
-          required: true
-          type: string
-      tags:
-        - RunnerAPI
-  /v1/runners/{runnerId}/tokens/{tokenId}/revoke:
-    post:
-      summary: |-
-        RevokeRunnerToken permanently revokes an AGT bound to this runner.
-        The agent will receive a 401 on its next request. If this is the only
-        active AGT for the runner, the agent will become disconnected.
-      description: 'Scope: `runners:write`'
-      operationId: RunnerAPI_RevokeRunnerToken
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1RevokeRunnerTokenResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runnerId
-          description: The runner the token belongs to (UUID).
-          in: path
-          required: true
-          type: string
-        - name: tokenId
-          description: The unique identifier of the token to revoke (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/RunnerAPIRevokeRunnerTokenBody'
-      tags:
-        - RunnerAPI
-  /v1/service-accounts:
-    get:
-      summary: |-
-        ListServiceAccounts returns a paginated list of service accounts
-        within the caller's tenant.
-      description: 'Scope: `sa:read`'
-      operationId: ServiceAccountAPI_ListServiceAccounts
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1ListServiceAccountsResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: pageSize
-          description: Maximum number of service accounts to return per page.
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: pageToken
-          description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-        - name: filter
-          description: |-
-            Filter expression using the PEG filter DSL
-            (e.g., `status = "active"` or `display_name = "ci-*"`).
-          in: query
-          required: false
-          type: string
-      tags:
-        - ServiceAccountAPI
-    post:
-      summary: CreateServiceAccount creates a new service account within the caller's tenant.
-      description: 'Scope: `sa:write`'
-      operationId: ServiceAccountAPI_CreateServiceAccount
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1CreateServiceAccountResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: body
-          description: CreateServiceAccountRequest contains the parameters for creating a new service account.
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/v1CreateServiceAccountRequest'
-      tags:
-        - ServiceAccountAPI
-  /v1/service-accounts/{serviceAccount.id}:
-    patch:
-      summary: |-
-        UpdateServiceAccount updates a service account's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-        Setting status to DISABLED invalidates all associated SATs.
-      description: 'Scope: `sa:write`'
-      operationId: ServiceAccountAPI_UpdateServiceAccount
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateServiceAccountResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccount.id
-          description: Unique identifier for the service account (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ServiceAccountAPIUpdateServiceAccountBody'
-      tags:
-        - ServiceAccountAPI
-  /v1/service-accounts/{serviceAccountId}:
-    get:
-      summary: GetServiceAccount retrieves a service account by ID.
-      description: 'Scope: `sa:read`'
-      operationId: ServiceAccountAPI_GetServiceAccount
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1GetServiceAccountResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccountId
-          description: The unique identifier of the service account (UUID).
-          in: path
-          required: true
-          type: string
-      tags:
-        - ServiceAccountAPI
-    delete:
-      summary: |-
-        DeleteServiceAccount permanently deletes a service account and revokes
-        all associated SATs. This action cannot be undone.
-      description: 'Scope: `sa:write`'
-      operationId: ServiceAccountAPI_DeleteServiceAccount
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1DeleteServiceAccountResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccountId
-          description: |-
-            The unique identifier of the service account to delete (UUID).
-            All associated SATs will be revoked.
-          in: path
-          required: true
-          type: string
-      tags:
-        - ServiceAccountAPI
-  /v1/service-accounts/{serviceAccountId}/tokens:
-    get:
-      summary: |-
-        ListServiceAccountTokens returns a paginated list of tokens for a
-        service account. Token secrets are never included.
-      description: 'Scope: `sa:read`'
-      operationId: ServiceAccountAPI_ListServiceAccountTokens
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1ListServiceAccountTokensResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccountId
-          description: The service account whose tokens to list (UUID).
-          in: path
-          required: true
-          type: string
-        - name: pageSize
-          description: Maximum number of tokens to return per page.
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: pageToken
-          description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-        - name: filter
-          description: Filter expression using the PEG filter DSL.
-          in: query
-          required: false
-          type: string
-      tags:
-        - ServiceAccountAPI
-    post:
-      summary: |-
-        CreateServiceAccountToken creates a new SAT under the specified service
-        account. The token's scopes must be a subset of the parent service
-        account's allowed scopes. The response includes the raw token secret,
-        which is shown exactly once.
-      description: 'Scope: `sa:write`'
-      operationId: ServiceAccountAPI_CreateServiceAccountToken
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1CreateServiceAccountTokenResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccountId
-          description: The service account to create the token under (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ServiceAccountAPICreateServiceAccountTokenBody'
-      tags:
-        - ServiceAccountAPI
-  /v1/service-accounts/{serviceAccountId}/tokens/{tokenId}:
-    get:
-      summary: |-
-        GetServiceAccountToken retrieves a single SAT by ID.
-        Returns metadata only — the token secret is never included.
-      description: 'Scope: `sa:read`'
-      operationId: ServiceAccountAPI_GetServiceAccountToken
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1GetServiceAccountTokenResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccountId
-          description: The service account the token belongs to (UUID).
-          in: path
-          required: true
-          type: string
-        - name: tokenId
-          description: The unique identifier of the token (UUID).
-          in: path
-          required: true
-          type: string
-      tags:
-        - ServiceAccountAPI
-  /v1/service-accounts/{serviceAccountId}/tokens/{tokenId}/revoke:
-    post:
-      summary: |-
-        RevokeServiceAccountToken permanently revokes a SAT. The token becomes
-        immediately unusable and cannot be restored.
-      description: 'Scope: `sa:write`'
-      operationId: ServiceAccountAPI_RevokeServiceAccountToken
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1RevokeServiceAccountTokenResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: serviceAccountId
-          description: The service account the token belongs to (UUID).
-          in: path
-          required: true
-          type: string
-        - name: tokenId
-          description: The unique identifier of the token to revoke (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ServiceAccountAPIRevokeServiceAccountTokenBody'
-      tags:
-        - ServiceAccountAPI
   /v1/user:
     get:
       summary: |-
@@ -1172,7 +749,7 @@ paths:
       summary: |-
         ListPersonalAccessTokens returns a paginated list of the authenticated
         user's PATs. Token secrets are never included.
-      description: 'Scope: `tokens:read`'
+      description: 'Scope: `token:read`'
       operationId: UserAPI_ListPersonalAccessTokens
       responses:
         "200":
@@ -1209,7 +786,7 @@ paths:
         CreatePersonalAccessToken creates a new PAT for the authenticated user.
         The response includes the raw token secret, which is shown exactly once
         and cannot be retrieved again.
-      description: 'Scope: `tokens:write`'
+      description: 'Scope: `token:write`'
       operationId: UserAPI_CreatePersonalAccessToken
       responses:
         "200":
@@ -1234,7 +811,7 @@ paths:
       summary: |-
         GetPersonalAccessToken retrieves a single PAT by ID.
         Returns metadata only — the token secret is never included.
-      description: 'Scope: `tokens:read`'
+      description: 'Scope: `token:read`'
       operationId: UserAPI_GetPersonalAccessToken
       responses:
         "200":
@@ -1258,7 +835,7 @@ paths:
       summary: |-
         RevokePersonalAccessToken permanently revokes a PAT. The token becomes
         immediately unusable and cannot be restored.
-      description: 'Scope: `tokens:write`'
+      description: 'Scope: `token:write`'
       operationId: UserAPI_RevokePersonalAccessToken
       responses:
         "200":
@@ -1283,17 +860,50 @@ paths:
       tags:
         - UserAPI
 definitions:
-  AgentAPIHeartbeatBody:
+  ApplicationAPIUpdateApplicationBody:
     type: object
     properties:
-      version:
+      application:
+        type: object
+        properties:
+          tenantId:
+            type: string
+            description: Tenant this application belongs to (UUID).
+          name:
+            type: string
+            description: |-
+              URL-safe, human-readable identifier (e.g., "billing-api"). Unique within
+              the tenant. Lowercase alphanumeric and hyphens only, must start with a
+              letter and end with an alphanumeric character (1-63 chars).
+          description:
+            type: string
+            description: |-
+              Optional longer-form description of the application's purpose
+              (e.g., "Handles invoice generation and payment processing").
+          labels:
+            type: object
+            additionalProperties:
+              type: string
+            description: |-
+              Arbitrary key-value labels for organizing and filtering applications
+              (e.g., `{"team": "payments", "tier": "critical"}`).
+          createdAt:
+            type: string
+            format: date-time
+            description: When the application was created.
+          updatedAt:
+            type: string
+            format: date-time
+            description: When the application was last updated.
+        description: |-
+          The application with updated fields. The `id` field is required.
+          Only fields specified in `update_mask` are updated.
+      updateMask:
         type: string
-        description: Current agent software version.
-      uptimeSeconds:
-        type: string
-        format: int64
-        description: How long the agent process has been running, in seconds.
-    description: HeartbeatRequest contains a liveness signal from the agent.
+        description: |-
+          The set of fields to update. If unset, all mutable fields are updated.
+          Supported fields: `name`, `description`, `labels`.
+    description: UpdateApplicationRequest contains the application fields to update.
   ClusterAPICreateClusterTokenBody:
     type: object
     properties:
@@ -1359,9 +969,17 @@ definitions:
           tenantId:
             type: string
             description: Tenant this cluster belongs to (UUID).
-          displayName:
+          name:
             type: string
-            description: Human-readable name (e.g., "prod-us-east-1"). Unique within the tenant.
+            description: |-
+              URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Unique
+              within the tenant. Lowercase alphanumeric and hyphens only, must start
+              with a letter and end with an alphanumeric character (1-63 chars).
+          description:
+            type: string
+            description: |-
+              Optional longer-form description of the cluster's purpose
+              (e.g., "Primary production cluster serving US East traffic").
           labels:
             type: object
             additionalProperties:
@@ -1393,136 +1011,57 @@ definitions:
         type: string
         description: |-
           The set of fields to update. If unset, all mutable fields are updated.
-          Supported fields: `display_name`, `labels`.
+          Supported fields: `name`, `description`, `labels`.
     description: UpdateClusterRequest contains the cluster fields to update.
-  RunnerAPICreateRunnerTokenBody:
+  EnvironmentAPIUpdateEnvironmentBody:
     type: object
     properties:
-      displayName:
-        type: string
-        description: Human-readable name for the token (e.g., "team1-terraform-agent-key").
-      expiresAt:
-        type: string
-        format: date-time
-        description: Optional expiration time. If unset, the token does not expire.
-    description: |-
-      CreateRunnerTokenRequest contains the parameters for creating a new AGT
-      bound to a runner.
-  RunnerAPIRevokeRunnerTokenBody:
-    type: object
-    description: RevokeRunnerTokenRequest identifies a runner AGT to revoke.
-  RunnerAPIUpdateRunnerBody:
-    type: object
-    properties:
-      runner:
+      environment:
         type: object
         properties:
-          tenantId:
+          applicationId:
             type: string
-            description: Tenant this runner belongs to (UUID).
-          displayName:
+            description: The application this environment belongs to (UUID).
+          name:
             type: string
-            description: Human-readable name (e.g., "team1-terraform"). Unique within the tenant.
-          kind:
-            $ref: '#/definitions/v1RunnerKind'
-            description: The type of jobs this runner can execute.
+            description: |-
+              URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+              Unique within the application. Lowercase alphanumeric and hyphens only,
+              must start with a letter and end with an alphanumeric character (1-63 chars).
+          clusterId:
+            type: string
+            description: |-
+              The cluster this environment deploys to (UUID). Optional — can be assigned
+              after creation.
+          namespace:
+            type: string
+            description: |-
+              The Kubernetes namespace for this environment's workloads. Optional —
+              defaults to the environment name if not specified at deploy time.
           labels:
             type: object
             additionalProperties:
               type: string
             description: |-
-              Arbitrary key-value labels for organizing, filtering, and job routing.
-              Labels are set by admins and used in the UI to select which runner should
-              execute a given module or workflow (e.g., `{"team": "platform", "env": "prod"}`).
+              Arbitrary key-value labels for organizing and filtering environments
+              (e.g., `{"region": "us-east-1", "tier": "production"}`).
           createdAt:
             type: string
             format: date-time
-            description: When the runner was created.
+            description: When the environment was created.
           updatedAt:
             type: string
             format: date-time
-            description: When the runner was last updated.
+            description: When the environment was last updated.
         description: |-
-          The runner with updated fields. The `id` field is required.
+          The environment with updated fields. The `id` field is required.
           Only fields specified in `update_mask` are updated.
       updateMask:
         type: string
         description: |-
           The set of fields to update. If unset, all mutable fields are updated.
-          Supported fields: `display_name`, `labels`.
-    description: UpdateRunnerRequest contains the runner fields to update.
-  ServiceAccountAPICreateServiceAccountTokenBody:
-    type: object
-    properties:
-      displayName:
-        type: string
-        description: |-
-          Human-readable name for the token (e.g., "github-actions-key").
-          Must be unique per service account.
-      scopes:
-        type: array
-        items:
-          type: string
-        description: |-
-          The scopes to grant this token. Must be a subset of the parent service
-          account's allowed scopes.
-      expiresAt:
-        type: string
-        format: date-time
-        description: Optional expiration time. If unset, the token does not expire.
-    description: CreateServiceAccountTokenRequest contains the parameters for creating a new SAT.
-  ServiceAccountAPIRevokeServiceAccountTokenBody:
-    type: object
-    description: RevokeServiceAccountTokenRequest identifies a SAT to revoke.
-  ServiceAccountAPIUpdateServiceAccountBody:
-    type: object
-    properties:
-      serviceAccount:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this service account belongs to (UUID).
-          displayName:
-            type: string
-            description: Human-readable name, unique within the tenant (e.g., "ci-pipeline").
-          description:
-            type: string
-            description: |-
-              Optional description of the service account's purpose
-              (e.g., "GitHub Actions deployment automation").
-          scopes:
-            type: array
-            items:
-              type: string
-            description: |-
-              The set of scopes this service account is allowed to use.
-              SATs created under this account can only request a subset of these scopes.
-          status:
-            $ref: '#/definitions/v1ServiceAccountStatus'
-            description: Current lifecycle status.
-          createdBy:
-            type: string
-            description: |-
-              The user who created this service account (UUID). For audit purposes only —
-              the service account is not bound to this user's access.
-          createdAt:
-            type: string
-            format: date-time
-            description: When the service account was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the service account was last updated.
-        description: |-
-          The service account with updated fields. The `id` field is required
-          to identify the resource. Only fields specified in `update_mask` are updated.
-      updateMask:
-        type: string
-        description: |-
-          The set of fields to update. If unset, all mutable fields are updated.
-          Supported fields: `display_name`, `description`, `scopes`, `status`.
-    description: UpdateServiceAccountRequest contains the service account fields to update.
+          Supported fields: `name`, `cluster_id`, `namespace`, `labels`.
+    description: UpdateEnvironmentRequest contains the environment fields to update.
   UserAPIRevokePersonalAccessTokenBody:
     type: object
     description: RevokePersonalAccessTokenRequest identifies a PAT to revoke.
@@ -1685,7 +1224,7 @@ definitions:
         items:
           type: string
         description: |-
-          The scopes granted to this token. For PATs and SATs, these are user-selected.
+          The scopes granted to this token. For PATs, these are user-selected.
           For AGTs, these are auto-assigned based on the resource type.
       status:
         $ref: '#/definitions/v1AccessTokenStatus'
@@ -1694,27 +1233,22 @@ definitions:
         type: string
         description: |-
           The user this token is bound to (UUID). Set when token_type is
-          PERSONAL_ACCESS_TOKEN.
-      serviceAccountId:
-        type: string
-        description: |-
-          The service account this token is bound to (UUID). Set when token_type is
-          SERVICE_ACCOUNT_TOKEN.
+          TOKEN_TYPE_PAT.
       clusterId:
         type: string
         description: |-
           The cluster this token is bound to (UUID). Set when token_type is
-          AGENT_TOKEN and the token is bound to a cluster.
+          TOKEN_TYPE_AGT and the token is bound to a cluster.
       runnerId:
         type: string
         description: |-
           The runner this token is bound to (UUID). Set when token_type is
-          AGENT_TOKEN and the token is bound to a runner.
+          TOKEN_TYPE_AGT and the token is bound to a runner.
       createdBy:
         type: string
         description: |-
           The user who created this token (UUID). For PATs, this is the token owner.
-          For SATs and AGTs, this is the administrator who issued the token.
+          For AGTs, this is the administrator who issued the token.
       expiresAt:
         type: string
         format: date-time
@@ -1732,15 +1266,13 @@ definitions:
         format: date-time
         description: When the token was revoked. Only set when status is REVOKED.
     description: |-
-      AccessToken contains token metadata common to all token types (PAT, SAT, AGT).
+      AccessToken contains token metadata common to all token types (PAT, AGT).
       The raw token secret is never included in this message — it is only returned
       once at creation time via the `plain_text_token` field in Create responses.
 
       Token CRUD is managed by each parent resource's API:
-        - PATs:         UserAPI            (/v1/user/tokens)
-        - SATs:         ServiceAccountAPI  (/v1/service-accounts/{id}/tokens)
-        - Cluster AGTs: ClusterAPI         (/v1/clusters/{id}/tokens)
-        - Runner AGTs:  RunnerAPI          (/v1/runners/{id}/tokens)
+        - PATs:         UserAPI    (/v1/user/tokens)
+        - Cluster AGTs: ClusterAPI (/v1/clusters/{id}/tokens)
   v1AccessTokenStatus:
     type: string
     enum:
@@ -1757,69 +1289,45 @@ definitions:
        - ACCESS_TOKEN_STATUS_REVOKED: The token has been permanently revoked and cannot be used.
        - ACCESS_TOKEN_STATUS_ROTATING: The token is being rotated. Both old and new tokens are valid
       until the grace period expires.
-  v1Agent:
+  v1Application:
     type: object
     properties:
       id:
         type: string
-        description: Unique identifier for the agent (UUID).
+        description: Unique identifier for the application (UUID).
       tenantId:
         type: string
-        description: Tenant this agent belongs to (UUID).
-      clusterId:
+        description: Tenant this application belongs to (UUID).
+      name:
         type: string
         description: |-
-          The cluster this agent is bound to (UUID). Set for Kubernetes agents.
-          Mutually exclusive with runner_id.
-      runnerId:
+          URL-safe, human-readable identifier (e.g., "billing-api"). Unique within
+          the tenant. Lowercase alphanumeric and hyphens only, must start with a
+          letter and end with an alphanumeric character (1-63 chars).
+      description:
         type: string
         description: |-
-          The runner this agent is bound to (UUID). Set for runner agents.
-          Mutually exclusive with cluster_id.
-      displayName:
-        type: string
-        description: Human-readable name for the agent (e.g., "prod-us-east-1-agent").
-      version:
-        type: string
-        description: Agent software version (e.g., "0.1.0").
-      status:
-        $ref: '#/definitions/v1AgentStatus'
-        description: Current connectivity status.
-      lastHeartbeatAt:
-        type: string
-        format: date-time
-        description: When the agent last sent a heartbeat.
+          Optional longer-form description of the application's purpose
+          (e.g., "Handles invoice generation and payment processing").
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: |-
+          Arbitrary key-value labels for organizing and filtering applications
+          (e.g., `{"team": "payments", "tier": "critical"}`).
       createdAt:
         type: string
         format: date-time
-        description: When the agent was registered.
+        description: When the application was created.
       updatedAt:
         type: string
         format: date-time
-        description: When the agent record was last updated.
+        description: When the application was last updated.
     description: |-
-      Agent represents a registered agent process connected to Admiral's control
-      plane. Each agent is bound to exactly one parent resource (Cluster or Runner)
-      and tracks the connection state of the deployed agent binary.
-
-      Agent records are system-managed — they are created by RegisterAgent and
-      deleted when the parent resource is removed. Admins observe agents via
-      GetAgent and ListAgents but do not create, update, or delete them directly.
-  v1AgentStatus:
-    type: string
-    enum:
-      - AGENT_STATUS_UNSPECIFIED
-      - AGENT_STATUS_ONLINE
-      - AGENT_STATUS_OFFLINE
-      - AGENT_STATUS_UNREACHABLE
-    default: AGENT_STATUS_UNSPECIFIED
-    description: |-
-      AgentStatus represents the connectivity state of an agent.
-
-       - AGENT_STATUS_UNSPECIFIED: Default value. Must not be used.
-       - AGENT_STATUS_ONLINE: The agent is connected and sending heartbeats.
-       - AGENT_STATUS_OFFLINE: The agent has gracefully disconnected.
-       - AGENT_STATUS_UNREACHABLE: No heartbeat received within 3x the poll interval.
+      Application represents a deployable unit within a tenant. An application
+      groups manifests, dependencies, and environment configuration into a single
+      entity that Admiral orchestrates across environments.
   v1Cluster:
     type: object
     properties:
@@ -1829,9 +1337,17 @@ definitions:
       tenantId:
         type: string
         description: Tenant this cluster belongs to (UUID).
-      displayName:
+      name:
         type: string
-        description: Human-readable name (e.g., "prod-us-east-1"). Unique within the tenant.
+        description: |-
+          URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Unique
+          within the tenant. Lowercase alphanumeric and hyphens only, must start
+          with a letter and end with an alphanumeric character (1-63 chars).
+      description:
+        type: string
+        description: |-
+          Optional longer-form description of the cluster's purpose
+          (e.g., "Primary production cluster serving US East traffic").
       labels:
         type: object
         additionalProperties:
@@ -1971,14 +1487,41 @@ definitions:
         type: boolean
         description: Whether the container's readiness probe is passing.
     description: ContainerStatus describes the current state of a single container.
+  v1CreateApplicationRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "billing-api"). Must be unique
+          within the tenant. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the application's purpose.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering applications.
+    description: CreateApplicationRequest contains the parameters for creating a new application.
+  v1CreateApplicationResponse:
+    type: object
+    properties:
+      application:
+        $ref: '#/definitions/v1Application'
+        description: The created application.
+    description: CreateApplicationResponse contains the newly created application.
   v1CreateClusterRequest:
     type: object
     properties:
-      displayName:
+      name:
         type: string
         description: |-
-          Human-readable name for the cluster (e.g., "prod-us-east-1").
-          Must be unique within the tenant.
+          URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Must be
+          unique within the tenant. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the cluster's purpose.
       labels:
         type: object
         additionalProperties:
@@ -2019,6 +1562,38 @@ definitions:
           The raw token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value is
           shown exactly once and cannot be retrieved again. Store it securely.
     description: CreateClusterTokenResponse contains the newly created AGT.
+  v1CreateEnvironmentRequest:
+    type: object
+    properties:
+      applicationId:
+        type: string
+        description: The application to create this environment for (UUID).
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+          Must be unique within the application. Lowercase alphanumeric and hyphens only.
+      clusterId:
+        type: string
+        description: |-
+          The cluster to deploy this environment to (UUID). Optional — can be
+          assigned later via UpdateEnvironment.
+      namespace:
+        type: string
+        description: The Kubernetes namespace for this environment's workloads.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering environments.
+    description: CreateEnvironmentRequest contains the parameters for creating a new environment.
+  v1CreateEnvironmentResponse:
+    type: object
+    properties:
+      environment:
+        $ref: '#/definitions/v1Environment'
+        description: The created environment.
+    description: CreateEnvironmentResponse contains the newly created environment.
   v1CreatePersonalAccessTokenRequest:
     type: object
     properties:
@@ -2042,116 +1617,76 @@ definitions:
   v1CreatePersonalAccessTokenResponse:
     type: object
     properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The created token metadata.
       plainTextToken:
         type: string
         description: |-
           The raw token secret (e.g., "adm_pat_7kH3mNqR2xFb..."). This value is
           shown exactly once and cannot be retrieved again. Store it securely.
-    description: CreatePersonalAccessTokenResponse contains the newly created PAT.
-  v1CreateRunnerRequest:
+    description: |-
+      CreatePersonalAccessTokenResponse contains the newly created PAT.
+
+      The created token metadata.
+        admiral.common.v1.AccessToken access_token = 1;
+  v1DeleteApplicationResponse:
+    type: object
+    description: DeleteApplicationResponse is empty on success.
+  v1DeleteClusterResponse:
+    type: object
+    description: DeleteClusterResponse is empty on success.
+  v1DeleteEnvironmentResponse:
+    type: object
+    description: DeleteEnvironmentResponse is empty on success.
+  v1Environment:
     type: object
     properties:
-      displayName:
+      id:
+        type: string
+        description: Unique identifier for the environment (UUID).
+      applicationId:
+        type: string
+        description: The application this environment belongs to (UUID).
+      name:
         type: string
         description: |-
-          Human-readable name for the runner (e.g., "team1-terraform").
-          Must be unique within the tenant.
-      kind:
-        $ref: '#/definitions/v1RunnerKind'
-        description: The type of jobs this runner will execute.
+          URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+          Unique within the application. Lowercase alphanumeric and hyphens only,
+          must start with a letter and end with an alphanumeric character (1-63 chars).
+      clusterId:
+        type: string
+        description: |-
+          The cluster this environment deploys to (UUID). Optional — can be assigned
+          after creation.
+      namespace:
+        type: string
+        description: |-
+          The Kubernetes namespace for this environment's workloads. Optional —
+          defaults to the environment name if not specified at deploy time.
       labels:
         type: object
         additionalProperties:
           type: string
-        description: Arbitrary key-value labels for organizing and job routing.
-    description: CreateRunnerRequest contains the parameters for creating a new runner.
-  v1CreateRunnerResponse:
-    type: object
-    properties:
-      runner:
-        $ref: '#/definitions/v1Runner'
-        description: The created runner.
-      plainTextToken:
-        type: string
         description: |-
-          The raw Agent Token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value
-          is shown exactly once and cannot be retrieved again. Deploy this token to
-          the controller for authentication.
-
-          To create additional tokens (e.g., for rotation), use
-          AccessTokenAPI.CreateAgentToken.
+          Arbitrary key-value labels for organizing and filtering environments
+          (e.g., `{"region": "us-east-1", "tier": "production"}`).
+      createdAt:
+        type: string
+        format: date-time
+        description: When the environment was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the environment was last updated.
     description: |-
-      CreateRunnerResponse contains the newly created runner and its initial
-      Agent Token (AGT).
-  v1CreateRunnerTokenResponse:
+      Environment represents a named deployment target for an application. Each
+      environment binds an application to a cluster and namespace where its
+      workloads are deployed.
+  v1GetApplicationResponse:
     type: object
     properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The created token metadata. Scopes are auto-assigned for runner AGTs.
-      plainTextToken:
-        type: string
-        description: |-
-          The raw token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value is
-          shown exactly once and cannot be retrieved again. Store it securely.
-    description: CreateRunnerTokenResponse contains the newly created AGT.
-  v1CreateServiceAccountRequest:
-    type: object
-    properties:
-      displayName:
-        type: string
-        description: |-
-          Human-readable name for the service account (e.g., "ci-pipeline").
-          Must be unique within the tenant.
-      description:
-        type: string
-        description: Optional description of the service account's purpose.
-      scopes:
-        type: array
-        items:
-          type: string
-        description: |-
-          The scopes this service account is allowed to use. SATs created under
-          this account can only request a subset of these scopes.
-    description: CreateServiceAccountRequest contains the parameters for creating a new service account.
-  v1CreateServiceAccountResponse:
-    type: object
-    properties:
-      serviceAccount:
-        $ref: '#/definitions/v1ServiceAccount'
-        description: The created service account.
-    description: CreateServiceAccountResponse contains the newly created service account.
-  v1CreateServiceAccountTokenResponse:
-    type: object
-    properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The created token metadata.
-      plainTextToken:
-        type: string
-        description: |-
-          The raw token secret (e.g., "adm_sat_mJ4nP7qR9sT2..."). This value is
-          shown exactly once and cannot be retrieved again. Store it securely.
-    description: CreateServiceAccountTokenResponse contains the newly created SAT.
-  v1DeleteClusterResponse:
-    type: object
-    description: DeleteClusterResponse is empty on success.
-  v1DeleteRunnerResponse:
-    type: object
-    description: DeleteRunnerResponse is empty on success.
-  v1DeleteServiceAccountResponse:
-    type: object
-    description: DeleteServiceAccountResponse is empty on success.
-  v1GetAgentResponse:
-    type: object
-    properties:
-      agent:
-        $ref: '#/definitions/v1Agent'
-        description: The agent.
-    description: GetAgentResponse contains the requested agent.
+      application:
+        $ref: '#/definitions/v1Application'
+        description: The application record.
+    description: GetApplicationResponse contains the application record.
   v1GetClusterResponse:
     type: object
     properties:
@@ -2187,6 +1722,13 @@ definitions:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata. The token secret is never included.
     description: GetClusterTokenResponse contains the requested cluster AGT metadata.
+  v1GetEnvironmentResponse:
+    type: object
+    properties:
+      environment:
+        $ref: '#/definitions/v1Environment'
+        description: The environment record.
+    description: GetEnvironmentResponse contains the environment record.
   v1GetPersonalAccessTokenResponse:
     type: object
     properties:
@@ -2194,34 +1736,6 @@ definitions:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata. The token secret is never included.
     description: GetPersonalAccessTokenResponse contains the requested PAT metadata.
-  v1GetRunnerResponse:
-    type: object
-    properties:
-      runner:
-        $ref: '#/definitions/v1Runner'
-        description: The runner.
-    description: GetRunnerResponse contains the requested runner.
-  v1GetRunnerTokenResponse:
-    type: object
-    properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The token metadata. The token secret is never included.
-    description: GetRunnerTokenResponse contains the requested runner AGT metadata.
-  v1GetServiceAccountResponse:
-    type: object
-    properties:
-      serviceAccount:
-        $ref: '#/definitions/v1ServiceAccount'
-        description: The service account.
-    description: GetServiceAccountResponse contains the requested service account.
-  v1GetServiceAccountTokenResponse:
-    type: object
-    properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The token metadata. The token secret is never included.
-    description: GetServiceAccountTokenResponse contains the requested SAT metadata.
   v1GetUserResponse:
     type: object
     properties:
@@ -2252,54 +1766,19 @@ definitions:
     description: |-
       HealthcheckResponse is returned when the service is healthy.
       An empty response indicates the service is operating normally.
-  v1HeartbeatResponse:
+  v1ListApplicationsResponse:
     type: object
     properties:
-      ok:
-        type: boolean
-        description: Whether the heartbeat was accepted.
-      pollIntervalSeconds:
-        type: integer
-        format: int32
-        description: |-
-          Server-controlled heartbeat interval in seconds. The agent should use
-          this value for its next heartbeat cycle. Allows the server to dynamically
-          adjust frequency (e.g., faster when changes are pending).
-      statusPushIntervalSeconds:
-        type: integer
-        format: int32
-        description: Server-controlled status push interval in seconds.
-    description: |-
-      HeartbeatResponse acknowledges the heartbeat and provides server-controlled
-      configuration for the agent's polling behavior.
-  v1KubernetesAgentMetadata:
-    type: object
-    properties:
-      clusterUid:
-        type: string
-        description: |-
-          The UID of the kube-system namespace, used as a stable physical cluster
-          identifier. Written to the Cluster record on first registration using a
-          first-write-wins strategy. If a subsequent registration presents a
-          different UID, the server returns 409 Conflict.
-    description: |-
-      KubernetesAgentMetadata contains registration-time metadata for a Kubernetes
-      cluster agent. This is sent once during RegisterAgent, not on every heartbeat.
-      Dynamic telemetry (k8s version, node count, etc.) is reported separately via
-      ClusterAPI.ReportClusterStatus.
-  v1ListAgentsResponse:
-    type: object
-    properties:
-      agents:
+      applications:
         type: array
         items:
           type: object
-          $ref: '#/definitions/v1Agent'
-        description: The list of agents.
+          $ref: '#/definitions/v1Application'
+        description: The list of applications.
       nextPageToken:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
-    description: ListAgentsResponse contains a page of agents.
+    description: ListApplicationsResponse contains a page of applications.
   v1ListClusterTokensResponse:
     type: object
     properties:
@@ -2326,6 +1805,19 @@ definitions:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
     description: ListClustersResponse contains a page of clusters.
+  v1ListEnvironmentsResponse:
+    type: object
+    properties:
+      environments:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Environment'
+        description: The list of environments.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListEnvironmentsResponse contains a page of environments.
   v1ListPersonalAccessTokensResponse:
     type: object
     properties:
@@ -2339,58 +1831,6 @@ definitions:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
     description: ListPersonalAccessTokensResponse contains a page of PAT metadata.
-  v1ListRunnerTokensResponse:
-    type: object
-    properties:
-      accessTokens:
-        type: array
-        items:
-          type: object
-          $ref: '#/definitions/v1AccessToken'
-        description: The list of tokens. Token secrets are never included.
-      nextPageToken:
-        type: string
-        description: Pagination token for the next page. Empty when there are no more results.
-    description: ListRunnerTokensResponse contains a page of runner AGT metadata.
-  v1ListRunnersResponse:
-    type: object
-    properties:
-      runners:
-        type: array
-        items:
-          type: object
-          $ref: '#/definitions/v1Runner'
-        description: The list of runners.
-      nextPageToken:
-        type: string
-        description: Pagination token for the next page. Empty when there are no more results.
-    description: ListRunnersResponse contains a page of runners.
-  v1ListServiceAccountTokensResponse:
-    type: object
-    properties:
-      accessTokens:
-        type: array
-        items:
-          type: object
-          $ref: '#/definitions/v1AccessToken'
-        description: The list of tokens. Token secrets are never included.
-      nextPageToken:
-        type: string
-        description: Pagination token for the next page. Empty when there are no more results.
-    description: ListServiceAccountTokensResponse contains a page of SAT metadata.
-  v1ListServiceAccountsResponse:
-    type: object
-    properties:
-      serviceAccounts:
-        type: array
-        items:
-          type: object
-          $ref: '#/definitions/v1ServiceAccount'
-        description: The list of service accounts.
-      nextPageToken:
-        type: string
-        description: Pagination token for the next page. Empty when there are no more results.
-    description: ListServiceAccountsResponse contains a page of service accounts.
   v1ListWorkloadsResponse:
     type: object
     properties:
@@ -2417,54 +1857,6 @@ definitions:
         type: string
         description: Object name.
     description: ObjectReference is a lightweight reference to a Kubernetes object.
-  v1RegisterAgentRequest:
-    type: object
-    properties:
-      displayName:
-        type: string
-        description: Human-readable name for the agent.
-      version:
-        type: string
-        description: Agent software version (e.g., "0.1.0").
-      kubernetes:
-        $ref: '#/definitions/v1KubernetesAgentMetadata'
-        description: |-
-          Registration metadata for Kubernetes cluster agents. Required when the
-          AGT is bound to a Cluster.
-      runner:
-        $ref: '#/definitions/v1RunnerAgentMetadata'
-        description: |-
-          Registration metadata for runner agents. Required when the AGT is
-          bound to a Runner.
-    description: |-
-      RegisterAgentRequest contains the parameters for registering a new agent.
-      The parent resource binding (Cluster or Runner) is derived from the AGT
-      used to authenticate — it does not need to be specified in the request.
-  v1RegisterAgentResponse:
-    type: object
-    properties:
-      agent:
-        $ref: '#/definitions/v1Agent'
-        description: |-
-          The registered agent. On first registration, a new record is created with
-          status ONLINE. On re-registration (agent restart), the existing record is
-          returned with status set to ONLINE.
-      pollIntervalSeconds:
-        type: integer
-        format: int32
-        description: |-
-          Server-controlled heartbeat interval in seconds. The agent should send
-          heartbeats at this frequency. If no heartbeat is received within 3x this
-          interval, the agent transitions to UNREACHABLE.
-      statusPushIntervalSeconds:
-        type: integer
-        format: int32
-        description: |-
-          Server-controlled status push interval in seconds. For Kubernetes agents,
-          this controls how often to push cluster telemetry via ReportClusterStatus.
-    description: |-
-      RegisterAgentResponse contains the registered agent and server-controlled
-      configuration for the agent's polling behavior.
   v1ReportClusterStatusResponse:
     type: object
     properties:
@@ -2499,149 +1891,29 @@ definitions:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata with updated status.
     description: RevokePersonalAccessTokenResponse contains the revoked PAT metadata.
-  v1RevokeRunnerTokenResponse:
-    type: object
-    properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The token metadata with updated status.
-    description: RevokeRunnerTokenResponse contains the revoked runner AGT metadata.
-  v1RevokeServiceAccountTokenResponse:
-    type: object
-    properties:
-      accessToken:
-        $ref: '#/definitions/v1AccessToken'
-        description: The token metadata with updated status.
-    description: RevokeServiceAccountTokenResponse contains the revoked SAT metadata.
-  v1Runner:
-    type: object
-    properties:
-      id:
-        type: string
-        description: Unique identifier for the runner (UUID).
-      tenantId:
-        type: string
-        description: Tenant this runner belongs to (UUID).
-      displayName:
-        type: string
-        description: Human-readable name (e.g., "team1-terraform"). Unique within the tenant.
-      kind:
-        $ref: '#/definitions/v1RunnerKind'
-        description: The type of jobs this runner can execute.
-      labels:
-        type: object
-        additionalProperties:
-          type: string
-        description: |-
-          Arbitrary key-value labels for organizing, filtering, and job routing.
-          Labels are set by admins and used in the UI to select which runner should
-          execute a given module or workflow (e.g., `{"team": "platform", "env": "prod"}`).
-      createdAt:
-        type: string
-        format: date-time
-        description: When the runner was created.
-      updatedAt:
-        type: string
-        format: date-time
-        description: When the runner was last updated.
-    description: |-
-      Runner represents an execution environment for IaC or workflow jobs within a
-      tenant. Each runner is backed by a controller process that holds an AGT,
-      registers as an agent, and spawns ephemeral pods to execute work.
-
-      Runners serve as credential boundaries — different teams or cloud accounts
-      should use separate runners to maintain isolation (e.g., via Workload Identity
-      in GKE where each controller runs under a distinct K8s ServiceAccount).
-  v1RunnerAgentMetadata:
-    type: object
-    description: |-
-      RunnerAgentMetadata contains registration-time metadata for a runner agent.
-      Currently empty — runner configuration is managed on the Runner resource by
-      admins, not self-reported by the agent at registration.
-  v1RunnerKind:
-    type: string
-    enum:
-      - RUNNER_KIND_UNSPECIFIED
-      - RUNNER_KIND_TERRAFORM
-      - RUNNER_KIND_WORKFLOW
-    default: RUNNER_KIND_UNSPECIFIED
-    description: |-
-      RunnerKind identifies the type of jobs a runner can execute.
-
-       - RUNNER_KIND_UNSPECIFIED: Default value. Must not be used.
-       - RUNNER_KIND_TERRAFORM: Terraform / OpenTofu runner. Executes plan and apply operations.
-       - RUNNER_KIND_WORKFLOW: Workflow runner. Executes custom workflow steps.
-  v1ServiceAccount:
-    type: object
-    properties:
-      id:
-        type: string
-        description: Unique identifier for the service account (UUID).
-      tenantId:
-        type: string
-        description: Tenant this service account belongs to (UUID).
-      displayName:
-        type: string
-        description: Human-readable name, unique within the tenant (e.g., "ci-pipeline").
-      description:
-        type: string
-        description: |-
-          Optional description of the service account's purpose
-          (e.g., "GitHub Actions deployment automation").
-      scopes:
-        type: array
-        items:
-          type: string
-        description: |-
-          The set of scopes this service account is allowed to use.
-          SATs created under this account can only request a subset of these scopes.
-      status:
-        $ref: '#/definitions/v1ServiceAccountStatus'
-        description: Current lifecycle status.
-      createdBy:
-        type: string
-        description: |-
-          The user who created this service account (UUID). For audit purposes only —
-          the service account is not bound to this user's access.
-      createdAt:
-        type: string
-        format: date-time
-        description: When the service account was created.
-      updatedAt:
-        type: string
-        format: date-time
-        description: When the service account was last updated.
-    description: |-
-      ServiceAccount is a first-class non-human identity within a tenant.
-      It represents a machine identity (e.g., CI/CD pipeline, external integration)
-      and can have multiple SATs (credentials) attached for key rotation.
-  v1ServiceAccountStatus:
-    type: string
-    enum:
-      - SERVICE_ACCOUNT_STATUS_UNSPECIFIED
-      - SERVICE_ACCOUNT_STATUS_ACTIVE
-      - SERVICE_ACCOUNT_STATUS_DISABLED
-    default: SERVICE_ACCOUNT_STATUS_UNSPECIFIED
-    description: |-
-      ServiceAccountStatus represents the lifecycle state of a service account.
-
-       - SERVICE_ACCOUNT_STATUS_UNSPECIFIED: Default value. Must not be used.
-       - SERVICE_ACCOUNT_STATUS_ACTIVE: The service account is active and its SATs can be used for authentication.
-       - SERVICE_ACCOUNT_STATUS_DISABLED: The service account is disabled. All associated SATs are invalidated
-      and cannot be used until the account is re-enabled.
   v1TokenType:
     type: string
     enum:
       - TOKEN_TYPE_UNSPECIFIED
-      - PERSONAL_ACCESS_TOKEN
-      - SERVICE_ACCOUNT_TOKEN
-      - AGENT_TOKEN
+      - TOKEN_TYPE_PAT
+      - TOKEN_TYPE_AGT
     default: TOKEN_TYPE_UNSPECIFIED
     description: |-
       TokenType identifies the category of an access token issued by Admiral's token system.
       IDP-issued JWTs (OAuth2/OIDC sessions) are NOT represented here — they are
       resolved by separate middleware and can be referenced as "session" in
       AuthRule.allowed_token_types when needed.
+
+       - TOKEN_TYPE_UNSPECIFIED: Default value. Must not be used.
+       - TOKEN_TYPE_PAT: Personal Access Token, bound to a user.
+       - TOKEN_TYPE_AGT: Agent Token, bound to a cluster or runner.
+  v1UpdateApplicationResponse:
+    type: object
+    properties:
+      application:
+        $ref: '#/definitions/v1Application'
+        description: The updated application.
+    description: UpdateApplicationResponse contains the updated application.
   v1UpdateClusterResponse:
     type: object
     properties:
@@ -2649,20 +1921,13 @@ definitions:
         $ref: '#/definitions/v1Cluster'
         description: The updated cluster.
     description: UpdateClusterResponse contains the updated cluster.
-  v1UpdateRunnerResponse:
+  v1UpdateEnvironmentResponse:
     type: object
     properties:
-      runner:
-        $ref: '#/definitions/v1Runner'
-        description: The updated runner.
-    description: UpdateRunnerResponse contains the updated runner.
-  v1UpdateServiceAccountResponse:
-    type: object
-    properties:
-      serviceAccount:
-        $ref: '#/definitions/v1ServiceAccount'
-        description: The updated service account.
-    description: UpdateServiceAccountResponse contains the updated service account.
+      environment:
+        $ref: '#/definitions/v1Environment'
+        description: The updated environment.
+    description: UpdateEnvironmentResponse contains the updated environment.
   v1Workload:
     type: object
     properties:
