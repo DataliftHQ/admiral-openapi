@@ -525,12 +525,16 @@ paths:
             schema:
               type: object
               properties:
-                displayName:
+                name:
                   type: string
-                  title: display_name
+                  title: name
                   maxLength: 255
                   minLength: 1
-                  description: Human-readable name for the token (e.g., "prod-us-east-1-agent-key").
+                  pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+                  description: |-
+                    URL-safe, human-readable identifier for the token (e.g., "prod-agent-key").
+                     Must be unique within the cluster's tokens. Lowercase alphanumeric and
+                     hyphens only.
                 expiresAt:
                   title: expires_at
                   description: Optional expiration time. If unset, the token does not expire.
@@ -720,7 +724,7 @@ paths:
         - admiral.api.environment.v1.EnvironmentAPI
       summary: |-
         ListEnvironments returns a paginated list of environments. Use the filter
-         to scope by application, cluster, or labels.
+         to scope by application, runtime type, or labels.
       description: 'Scope: `env:read`'
       operationId: admiral.api.environment.v1.EnvironmentAPI.ListEnvironments
       parameters:
@@ -807,7 +811,7 @@ paths:
                   title: update_mask
                   description: |-
                     The set of fields to update. If unset, all mutable fields are updated.
-                     Supported fields: `name`, `cluster_id`, `namespace`, `labels`.
+                     Supported fields: `name`, `runtime_type`, `kubernetes`, `labels`.
                   $ref: '#/components/schemas/google.protobuf.FieldMask'
               title: UpdateEnvironmentRequest
               required:
@@ -851,8 +855,8 @@ paths:
         - admiral.api.environment.v1.EnvironmentAPI
       summary: |-
         DeleteEnvironment permanently deletes an environment. This does not affect
-         the underlying cluster or namespace — only the Admiral environment record
-         is removed. This action cannot be undone.
+         the underlying runtime — only the Admiral environment record is removed.
+         This action cannot be undone.
       description: 'Scope: `env:write`'
       operationId: admiral.api.environment.v1.EnvironmentAPI.DeleteEnvironment
       parameters:
@@ -934,13 +938,13 @@ paths:
           in: query
           description: |-
             Filter expression using the PEG filter DSL
-             (e.g., `status = "active"` or `display_name = "ci-*"`).
+             (e.g., `status = "active"` or `name = "ci-*"`).
           schema:
             type: string
             title: filter
             description: |-
               Filter expression using the PEG filter DSL
-               (e.g., `status = "active"` or `display_name = "ci-*"`).
+               (e.g., `status = "active"` or `name = "ci-*"`).
       responses:
         "200":
           description: Success
@@ -1522,12 +1526,16 @@ components:
           title: cluster_id
           format: uuid
           description: The cluster to bind this token to (UUID).
-        displayName:
+        name:
           type: string
-          title: display_name
+          title: name
           maxLength: 255
           minLength: 1
-          description: Human-readable name for the token (e.g., "prod-us-east-1-agent-key").
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+          description: |-
+            URL-safe, human-readable identifier for the token (e.g., "prod-agent-key").
+             Must be unique within the cluster's tokens. Lowercase alphanumeric and
+             hyphens only.
         expiresAt:
           title: expires_at
           description: Optional expiration time. If unset, the token does not expire.
@@ -2207,42 +2215,44 @@ components:
       additionalProperties: false
     admiral.api.environment.v1.CreateEnvironmentRequest:
       type: object
-      properties:
-        applicationId:
-          type: string
-          title: application_id
-          format: uuid
-          description: The application to create this environment for (UUID).
-        name:
-          type: string
-          title: name
-          maxLength: 255
-          minLength: 1
-          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-          description: |-
-            URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
-             Must be unique within the application. Lowercase alphanumeric and hyphens only.
-        clusterId:
-          type:
-            - string
-            - "null"
-          title: cluster_id
-          description: |-
-            The cluster to deploy this environment to (UUID). Optional — can be
-             assigned later via UpdateEnvironment.
-        namespace:
-          type:
-            - string
-            - "null"
-          title: namespace
-          description: The Kubernetes namespace for this environment's workloads.
-        labels:
-          type: object
-          title: labels
-          additionalProperties:
-            type: string
-            title: value
-          description: Arbitrary key-value labels for organizing and filtering environments.
+      allOf:
+        - properties:
+            applicationId:
+              type: string
+              title: application_id
+              format: uuid
+              description: The application to create this environment for (UUID).
+            name:
+              type: string
+              title: name
+              maxLength: 255
+              minLength: 1
+              pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+              description: |-
+                URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+                 Must be unique within the application. Lowercase alphanumeric and hyphens only.
+            runtimeType:
+              title: runtime_type
+              description: |-
+                The kind of runtime this environment targets. Optional — can be assigned
+                 later via UpdateEnvironment.
+              $ref: '#/components/schemas/admiral.api.environment.v1.RuntimeType'
+            labels:
+              type: object
+              title: labels
+              additionalProperties:
+                type: string
+                title: value
+              description: Arbitrary key-value labels for organizing and filtering environments.
+        - oneOf:
+            - properties:
+                kubernetes:
+                  title: kubernetes
+                  description: Kubernetes-specific settings (cluster, namespace).
+                  $ref: '#/components/schemas/admiral.api.environment.v1.KubernetesConfig'
+              title: kubernetes
+              required:
+                - kubernetes
       title: CreateEnvironmentRequest
       additionalProperties: false
       description: CreateEnvironmentRequest contains the parameters for creating a new environment.
@@ -2285,66 +2295,65 @@ components:
       description: DeleteEnvironmentResponse is empty on success.
     admiral.api.environment.v1.Environment:
       type: object
-      properties:
-        id:
-          type: string
-          title: id
-          format: uuid
-          description: Unique identifier for the environment (UUID).
-        applicationId:
-          type: string
-          title: application_id
-          format: uuid
-          description: The application this environment belongs to (UUID).
-        name:
-          type: string
-          title: name
-          maxLength: 255
-          minLength: 1
-          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-          description: |-
-            URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
-             Unique within the application. Lowercase alphanumeric and hyphens only,
-             must start with a letter and end with an alphanumeric character (1-63 chars).
-        clusterId:
-          type:
-            - string
-            - "null"
-          title: cluster_id
-          description: |-
-            The cluster this environment deploys to (UUID). Optional — can be assigned
-             after creation.
-        namespace:
-          type:
-            - string
-            - "null"
-          title: namespace
-          description: |-
-            The Kubernetes namespace for this environment's workloads. Optional —
-             defaults to the environment name if not specified at deploy time.
-        labels:
-          type: object
-          title: labels
-          additionalProperties:
-            type: string
-            title: value
-          description: |-
-            Arbitrary key-value labels for organizing and filtering environments
-             (e.g., `{"region": "us-east-1", "tier": "production"}`).
-        createdAt:
-          title: created_at
-          description: When the environment was created.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
-        updatedAt:
-          title: updated_at
-          description: When the environment was last updated.
-          $ref: '#/components/schemas/google.protobuf.Timestamp'
+      allOf:
+        - properties:
+            id:
+              type: string
+              title: id
+              format: uuid
+              description: Unique identifier for the environment (UUID).
+            applicationId:
+              type: string
+              title: application_id
+              format: uuid
+              description: The application this environment belongs to (UUID).
+            name:
+              type: string
+              title: name
+              maxLength: 255
+              minLength: 1
+              pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
+              description: |-
+                URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
+                 Unique within the application. Lowercase alphanumeric and hyphens only,
+                 must start with a letter and end with an alphanumeric character (1-63 chars).
+            runtimeType:
+              title: runtime_type
+              description: |-
+                The kind of runtime this environment targets. Optional — can be assigned
+                 after creation.
+              $ref: '#/components/schemas/admiral.api.environment.v1.RuntimeType'
+            labels:
+              type: object
+              title: labels
+              additionalProperties:
+                type: string
+                title: value
+              description: |-
+                Arbitrary key-value labels for organizing and filtering environments
+                 (e.g., `{"region": "us-east-1", "tier": "production"}`).
+            createdAt:
+              title: created_at
+              description: When the environment was created.
+              $ref: '#/components/schemas/google.protobuf.Timestamp'
+            updatedAt:
+              title: updated_at
+              description: When the environment was last updated.
+              $ref: '#/components/schemas/google.protobuf.Timestamp'
+        - oneOf:
+            - properties:
+                kubernetes:
+                  title: kubernetes
+                  description: Kubernetes-specific settings (cluster, namespace).
+                  $ref: '#/components/schemas/admiral.api.environment.v1.KubernetesConfig'
+              title: kubernetes
+              required:
+                - kubernetes
       title: Environment
       additionalProperties: false
       description: |-
         Environment represents a named deployment target for an application. Each
-         environment binds an application to a cluster and namespace where its
-         workloads are deployed.
+         environment binds an application to a runtime where its workloads are deployed.
     admiral.api.environment.v1.Environment.LabelsEntry:
       type: object
       properties:
@@ -2377,6 +2386,25 @@ components:
       title: GetEnvironmentResponse
       additionalProperties: false
       description: GetEnvironmentResponse contains the environment record.
+    admiral.api.environment.v1.KubernetesConfig:
+      type: object
+      properties:
+        clusterId:
+          type: string
+          title: cluster_id
+          format: uuid
+          description: The cluster this environment deploys to (UUID).
+        namespace:
+          type:
+            - string
+            - "null"
+          title: namespace
+          description: |-
+            The Kubernetes namespace for this environment's workloads.
+             Defaults to the environment name if not specified at deploy time.
+      title: KubernetesConfig
+      additionalProperties: false
+      description: KubernetesConfig contains Kubernetes-specific settings for an environment.
     admiral.api.environment.v1.ListEnvironmentsRequest:
       type: object
       properties:
@@ -2412,6 +2440,13 @@ components:
       title: ListEnvironmentsResponse
       additionalProperties: false
       description: ListEnvironmentsResponse contains a page of environments.
+    admiral.api.environment.v1.RuntimeType:
+      type: string
+      title: RuntimeType
+      enum:
+        - RUNTIME_TYPE_UNSPECIFIED
+        - RUNTIME_TYPE_KUBERNETES
+      description: RuntimeType identifies the kind of runtime an environment targets.
     admiral.api.environment.v1.UpdateEnvironmentRequest:
       type: object
       properties:
@@ -2425,7 +2460,7 @@ components:
           title: update_mask
           description: |-
             The set of fields to update. If unset, all mutable fields are updated.
-             Supported fields: `name`, `cluster_id`, `namespace`, `labels`.
+             Supported fields: `name`, `runtime_type`, `kubernetes`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
       title: UpdateEnvironmentRequest
       required:
@@ -2459,14 +2494,16 @@ components:
     admiral.api.user.v1.CreatePersonalAccessTokenRequest:
       type: object
       properties:
-        displayName:
+        name:
           type: string
-          title: display_name
+          title: name
           maxLength: 255
           minLength: 1
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
           description: |-
-            Human-readable name for the token (e.g., "postman-testing").
-             Must be unique per user within the tenant.
+            URL-safe, human-readable identifier for the token (e.g., "postman-testing").
+             Must be unique per user within the tenant. Lowercase alphanumeric and
+             hyphens only.
         scopes:
           type: array
           items:
@@ -2485,6 +2522,10 @@ components:
     admiral.api.user.v1.CreatePersonalAccessTokenResponse:
       type: object
       properties:
+        accessToken:
+          title: access_token
+          description: The created token metadata.
+          $ref: '#/components/schemas/admiral.common.v1.AccessToken'
         plainTextToken:
           type: string
           title: plain_text_token
@@ -2493,9 +2534,7 @@ components:
              shown exactly once and cannot be retrieved again. Store it securely.
       title: CreatePersonalAccessTokenResponse
       additionalProperties: false
-      description: |-
-        CreatePersonalAccessTokenResponse contains the newly created PAT. The created token metadata.
-          admiral.common.v1.AccessToken access_token = 1;
+      description: CreatePersonalAccessTokenResponse contains the newly created PAT.
     admiral.api.user.v1.GetPersonalAccessTokenRequest:
       type: object
       properties:
@@ -2583,7 +2622,7 @@ components:
           title: filter
           description: |-
             Filter expression using the PEG filter DSL
-             (e.g., `status = "active"` or `display_name = "ci-*"`).
+             (e.g., `status = "active"` or `name = "ci-*"`).
       title: ListPersonalAccessTokensRequest
       additionalProperties: false
       description: ListPersonalAccessTokensRequest contains pagination and filter parameters.
@@ -2637,16 +2676,16 @@ components:
           title: tenant_id
           format: uuid
           description: Tenant this token belongs to (UUID).
-        displayName:
+        name:
           type: string
-          title: display_name
-          description: Human-readable name for the token (e.g., "postman-testing", "ci-deploy-key").
-        tokenPrefix:
-          type: string
-          title: token_prefix
+          title: name
+          maxLength: 255
+          minLength: 1
+          pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
           description: |-
-            Display-safe prefix for identifying the token without exposing the secret
-             (e.g., "adm_pat_7kH3").
+            URL-safe, human-readable identifier for the token (e.g., "ci-deploy-key").
+             Unique within the parent resource. Lowercase alphanumeric and hyphens only,
+             must start with a letter and end with an alphanumeric character (1-63 chars).
         tokenType:
           title: token_type
           description: The category of this token.
@@ -2663,24 +2702,14 @@ components:
           title: status
           description: Current lifecycle status of the token.
           $ref: '#/components/schemas/admiral.common.v1.AccessTokenStatus'
-        userId:
+        bindingType:
+          title: binding_type
+          description: The kind of resource this token is bound to.
+          $ref: '#/components/schemas/admiral.common.v1.BindingType'
+        bindingId:
           type: string
-          title: user_id
-          description: |-
-            The user this token is bound to (UUID). Set when token_type is
-             TOKEN_TYPE_PAT.
-        clusterId:
-          type: string
-          title: cluster_id
-          description: |-
-            The cluster this token is bound to (UUID). Set when token_type is
-             TOKEN_TYPE_AGT and the token is bound to a cluster.
-        runnerId:
-          type: string
-          title: runner_id
-          description: |-
-            The runner this token is bound to (UUID). Set when token_type is
-             TOKEN_TYPE_AGT and the token is bound to a runner.
+          title: binding_id
+          description: The ID of the resource this token is bound to (UUID).
         createdBy:
           type: string
           title: created_by
@@ -2722,6 +2751,14 @@ components:
         - ACCESS_TOKEN_STATUS_REVOKED
         - ACCESS_TOKEN_STATUS_ROTATING
       description: AccessTokenStatus represents the lifecycle state of an access token.
+    admiral.common.v1.BindingType:
+      type: string
+      title: BindingType
+      enum:
+        - BINDING_TYPE_UNSPECIFIED
+        - BINDING_TYPE_USER
+        - BINDING_TYPE_CLUSTER
+      description: BindingType identifies the kind of resource an access token is bound to.
     admiral.common.v1.TokenType:
       type: string
       title: TokenType
@@ -3059,9 +3096,9 @@ tags:
       EnvironmentAPI manages environments within an application.
 
        An environment is a named deployment target (e.g., dev, staging, prod) that
-       binds an application to a specific cluster and namespace. Each environment
-       carries its own configuration, credentials, and compute targets. Promotion
-       between environments is explicit — Admiral never auto-promotes.
+       binds an application to a runtime where its workloads are deployed. Each
+       environment carries its own configuration, credentials, and compute targets.
+       Promotion between environments is explicit — Admiral never auto-promotes.
   - name: admiral.api.healthcheck.v1.HealthcheckAPI
     description: HealthcheckAPI provides health check operations for monitoring service availability.
   - name: admiral.api.user.v1.UserAPI

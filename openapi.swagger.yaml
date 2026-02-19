@@ -581,7 +581,7 @@ paths:
     get:
       summary: |-
         ListEnvironments returns a paginated list of environments. Use the filter
-        to scope by application, cluster, or labels.
+        to scope by application, runtime type, or labels.
       description: 'Scope: `env:read`'
       operationId: EnvironmentAPI_ListEnvironments
       responses:
@@ -688,8 +688,8 @@ paths:
     delete:
       summary: |-
         DeleteEnvironment permanently deletes an environment. This does not affect
-        the underlying cluster or namespace — only the Admiral environment record
-        is removed. This action cannot be undone.
+        the underlying runtime — only the Admiral environment record is removed.
+        This action cannot be undone.
       description: 'Scope: `env:write`'
       operationId: EnvironmentAPI_DeleteEnvironment
       responses:
@@ -775,7 +775,7 @@ paths:
         - name: filter
           description: |-
             Filter expression using the PEG filter DSL
-            (e.g., `status = "active"` or `display_name = "ci-*"`).
+            (e.g., `status = "active"` or `name = "ci-*"`).
           in: query
           required: false
           type: string
@@ -907,9 +907,12 @@ definitions:
   ClusterAPICreateClusterTokenBody:
     type: object
     properties:
-      displayName:
+      name:
         type: string
-        description: Human-readable name for the token (e.g., "prod-us-east-1-agent-key").
+        description: |-
+          URL-safe, human-readable identifier for the token (e.g., "prod-agent-key").
+          Must be unique within the cluster's tokens. Lowercase alphanumeric and
+          hyphens only.
       expiresAt:
         type: string
         format: date-time
@@ -1028,16 +1031,14 @@ definitions:
               URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
               Unique within the application. Lowercase alphanumeric and hyphens only,
               must start with a letter and end with an alphanumeric character (1-63 chars).
-          clusterId:
-            type: string
+          runtimeType:
+            $ref: '#/definitions/v1RuntimeType'
             description: |-
-              The cluster this environment deploys to (UUID). Optional — can be assigned
+              The kind of runtime this environment targets. Optional — can be assigned
               after creation.
-          namespace:
-            type: string
-            description: |-
-              The Kubernetes namespace for this environment's workloads. Optional —
-              defaults to the environment name if not specified at deploy time.
+          kubernetes:
+            $ref: '#/definitions/v1KubernetesConfig'
+            description: Kubernetes-specific settings (cluster, namespace).
           labels:
             type: object
             additionalProperties:
@@ -1060,7 +1061,7 @@ definitions:
         type: string
         description: |-
           The set of fields to update. If unset, all mutable fields are updated.
-          Supported fields: `name`, `cluster_id`, `namespace`, `labels`.
+          Supported fields: `name`, `runtime_type`, `kubernetes`, `labels`.
     description: UpdateEnvironmentRequest contains the environment fields to update.
   UserAPIRevokePersonalAccessTokenBody:
     type: object
@@ -1208,14 +1209,12 @@ definitions:
       tenantId:
         type: string
         description: Tenant this token belongs to (UUID).
-      displayName:
-        type: string
-        description: Human-readable name for the token (e.g., "postman-testing", "ci-deploy-key").
-      tokenPrefix:
+      name:
         type: string
         description: |-
-          Display-safe prefix for identifying the token without exposing the secret
-          (e.g., "adm_pat_7kH3").
+          URL-safe, human-readable identifier for the token (e.g., "ci-deploy-key").
+          Unique within the parent resource. Lowercase alphanumeric and hyphens only,
+          must start with a letter and end with an alphanumeric character (1-63 chars).
       tokenType:
         $ref: '#/definitions/v1TokenType'
         description: The category of this token.
@@ -1229,21 +1228,12 @@ definitions:
       status:
         $ref: '#/definitions/v1AccessTokenStatus'
         description: Current lifecycle status of the token.
-      userId:
+      bindingType:
+        $ref: '#/definitions/v1BindingType'
+        description: The kind of resource this token is bound to.
+      bindingId:
         type: string
-        description: |-
-          The user this token is bound to (UUID). Set when token_type is
-          TOKEN_TYPE_PAT.
-      clusterId:
-        type: string
-        description: |-
-          The cluster this token is bound to (UUID). Set when token_type is
-          TOKEN_TYPE_AGT and the token is bound to a cluster.
-      runnerId:
-        type: string
-        description: |-
-          The runner this token is bound to (UUID). Set when token_type is
-          TOKEN_TYPE_AGT and the token is bound to a runner.
+        description: The ID of the resource this token is bound to (UUID).
       createdBy:
         type: string
         description: |-
@@ -1328,6 +1318,19 @@ definitions:
       Application represents a deployable unit within a tenant. An application
       groups manifests, dependencies, and environment configuration into a single
       entity that Admiral orchestrates across environments.
+  v1BindingType:
+    type: string
+    enum:
+      - BINDING_TYPE_UNSPECIFIED
+      - BINDING_TYPE_USER
+      - BINDING_TYPE_CLUSTER
+    default: BINDING_TYPE_UNSPECIFIED
+    description: |-
+      BindingType identifies the kind of resource an access token is bound to.
+
+       - BINDING_TYPE_UNSPECIFIED: Default value. Must not be used.
+       - BINDING_TYPE_USER: Token is bound to a user (PATs).
+       - BINDING_TYPE_CLUSTER: Token is bound to a cluster (AGTs).
   v1Cluster:
     type: object
     properties:
@@ -1573,14 +1576,14 @@ definitions:
         description: |-
           URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
           Must be unique within the application. Lowercase alphanumeric and hyphens only.
-      clusterId:
-        type: string
+      runtimeType:
+        $ref: '#/definitions/v1RuntimeType'
         description: |-
-          The cluster to deploy this environment to (UUID). Optional — can be
-          assigned later via UpdateEnvironment.
-      namespace:
-        type: string
-        description: The Kubernetes namespace for this environment's workloads.
+          The kind of runtime this environment targets. Optional — can be assigned
+          later via UpdateEnvironment.
+      kubernetes:
+        $ref: '#/definitions/v1KubernetesConfig'
+        description: Kubernetes-specific settings (cluster, namespace).
       labels:
         type: object
         additionalProperties:
@@ -1597,11 +1600,12 @@ definitions:
   v1CreatePersonalAccessTokenRequest:
     type: object
     properties:
-      displayName:
+      name:
         type: string
         description: |-
-          Human-readable name for the token (e.g., "postman-testing").
-          Must be unique per user within the tenant.
+          URL-safe, human-readable identifier for the token (e.g., "postman-testing").
+          Must be unique per user within the tenant. Lowercase alphanumeric and
+          hyphens only.
       scopes:
         type: array
         items:
@@ -1617,16 +1621,15 @@ definitions:
   v1CreatePersonalAccessTokenResponse:
     type: object
     properties:
+      accessToken:
+        $ref: '#/definitions/v1AccessToken'
+        description: The created token metadata.
       plainTextToken:
         type: string
         description: |-
           The raw token secret (e.g., "adm_pat_7kH3mNqR2xFb..."). This value is
           shown exactly once and cannot be retrieved again. Store it securely.
-    description: |-
-      CreatePersonalAccessTokenResponse contains the newly created PAT.
-
-      The created token metadata.
-        admiral.common.v1.AccessToken access_token = 1;
+    description: CreatePersonalAccessTokenResponse contains the newly created PAT.
   v1DeleteApplicationResponse:
     type: object
     description: DeleteApplicationResponse is empty on success.
@@ -1651,16 +1654,14 @@ definitions:
           URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
           Unique within the application. Lowercase alphanumeric and hyphens only,
           must start with a letter and end with an alphanumeric character (1-63 chars).
-      clusterId:
-        type: string
+      runtimeType:
+        $ref: '#/definitions/v1RuntimeType'
         description: |-
-          The cluster this environment deploys to (UUID). Optional — can be assigned
+          The kind of runtime this environment targets. Optional — can be assigned
           after creation.
-      namespace:
-        type: string
-        description: |-
-          The Kubernetes namespace for this environment's workloads. Optional —
-          defaults to the environment name if not specified at deploy time.
+      kubernetes:
+        $ref: '#/definitions/v1KubernetesConfig'
+        description: Kubernetes-specific settings (cluster, namespace).
       labels:
         type: object
         additionalProperties:
@@ -1678,8 +1679,7 @@ definitions:
         description: When the environment was last updated.
     description: |-
       Environment represents a named deployment target for an application. Each
-      environment binds an application to a cluster and namespace where its
-      workloads are deployed.
+      environment binds an application to a runtime where its workloads are deployed.
   v1GetApplicationResponse:
     type: object
     properties:
@@ -1766,6 +1766,18 @@ definitions:
     description: |-
       HealthcheckResponse is returned when the service is healthy.
       An empty response indicates the service is operating normally.
+  v1KubernetesConfig:
+    type: object
+    properties:
+      clusterId:
+        type: string
+        description: The cluster this environment deploys to (UUID).
+      namespace:
+        type: string
+        description: |-
+          The Kubernetes namespace for this environment's workloads.
+          Defaults to the environment name if not specified at deploy time.
+    description: KubernetesConfig contains Kubernetes-specific settings for an environment.
   v1ListApplicationsResponse:
     type: object
     properties:
@@ -1891,6 +1903,17 @@ definitions:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata with updated status.
     description: RevokePersonalAccessTokenResponse contains the revoked PAT metadata.
+  v1RuntimeType:
+    type: string
+    enum:
+      - RUNTIME_TYPE_UNSPECIFIED
+      - RUNTIME_TYPE_KUBERNETES
+    default: RUNTIME_TYPE_UNSPECIFIED
+    description: |-
+      RuntimeType identifies the kind of runtime an environment targets.
+
+       - RUNTIME_TYPE_UNSPECIFIED: Default value. Must not be used.
+       - RUNTIME_TYPE_KUBERNETES: Kubernetes cluster managed via Admiral's K8s agent.
   v1TokenType:
     type: string
     enum:
