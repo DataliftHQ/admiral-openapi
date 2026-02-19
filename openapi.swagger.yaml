@@ -8,6 +8,7 @@ tags:
   - name: EnvironmentAPI
   - name: HealthcheckAPI
   - name: UserAPI
+  - name: VariableAPI
 consumes:
   - application/json
 produces:
@@ -859,6 +860,168 @@ paths:
             $ref: '#/definitions/UserAPIRevokePersonalAccessTokenBody'
       tags:
         - UserAPI
+  /v1/variables:
+    get:
+      summary: ListVariables returns a merged, paginated list of variables.
+      description: |-
+        The returned list is a resolved view based on the provided filters:
+          - No application_id or environment_id: global variables only.
+          - application_id only: global + app-level variables merged.
+          - application_id + environment_id: global + app + environment variables merged.
+
+        When variables with the same key exist at multiple levels, all are returned
+        so clients can determine precedence.
+
+        Scope: `var:read`
+      operationId: VariableAPI_ListVariables
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListVariablesResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: applicationId
+          description: |-
+            Filter to an application (UUID). When set, app-level variables for this
+            application are included in the merged result alongside global variables.
+          in: query
+          required: false
+          type: string
+        - name: environmentId
+          description: |-
+            Filter to an environment (UUID). Requires application_id. When set,
+            environment-level variables are included alongside global and app variables.
+          in: query
+          required: false
+          type: string
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of variables to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - VariableAPI
+    post:
+      summary: CreateVariable creates a new variable.
+      description: |-
+        Fails if a variable with the same key already exists at the same level
+        (same key + application_id + environment_id combination).
+
+        Scope: `var:write`
+      operationId: VariableAPI_CreateVariable
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateVariableResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: |-
+            CreateVariableRequest contains the parameters for creating a new variable.
+            The variable's scope is derived from the presence of application_id and
+            environment_id: neither means global, application_id only means app-scoped,
+            both means environment-scoped.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateVariableRequest'
+      tags:
+        - VariableAPI
+  /v1/variables/{variable.id}:
+    patch:
+      summary: |-
+        UpdateVariable updates a variable's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+        Only `value` and `sensitive` are mutable — key is immutable.
+      description: 'Scope: `var:write`'
+      operationId: VariableAPI_UpdateVariable
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateVariableResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: variable.id
+          description: Unique identifier for the variable (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/VariableAPIUpdateVariableBody'
+      tags:
+        - VariableAPI
+  /v1/variables/{variableId}:
+    get:
+      summary: GetVariable retrieves a variable by ID.
+      description: |-
+        Sensitive variable values are masked in the response.
+
+        Scope: `var:read`
+      operationId: VariableAPI_GetVariable
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetVariableResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: variableId
+          description: The unique identifier of the variable (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - VariableAPI
+    delete:
+      summary: DeleteVariable permanently deletes a variable. This action cannot be undone.
+      description: 'Scope: `var:write`'
+      operationId: VariableAPI_DeleteVariable
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteVariableResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: variableId
+          description: The unique identifier of the variable to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - VariableAPI
 definitions:
   ApplicationAPIUpdateApplicationBody:
     type: object
@@ -1066,6 +1229,60 @@ definitions:
   UserAPIRevokePersonalAccessTokenBody:
     type: object
     description: RevokePersonalAccessTokenRequest identifies a PAT to revoke.
+  VariableAPIUpdateVariableBody:
+    type: object
+    properties:
+      variable:
+        type: object
+        properties:
+          tenantId:
+            type: string
+            description: Tenant this variable belongs to (UUID).
+          key:
+            type: string
+            description: |-
+              The variable name. Must be a valid environment variable identifier
+              (e.g., "DATABASE_URL", "API_KEY"). Uppercase alphanumeric and underscores,
+              must start with a letter or underscore (max 255 chars).
+          value:
+            type: string
+            description: The variable value. Masked or empty for sensitive variables in responses.
+          sensitive:
+            type: boolean
+            description: Whether the variable value is encrypted at rest and masked in API responses.
+          applicationId:
+            type: string
+            description: |-
+              The application this variable is scoped to (UUID). When set, the variable
+              is scoped to this application. When both application_id and environment_id
+              are set, the variable is scoped to that specific environment.
+              Absent means the variable is global (tenant-wide).
+          environmentId:
+            type: string
+            description: |-
+              The environment this variable is scoped to (UUID). Requires application_id.
+              When set alongside application_id, the variable applies only to this
+              specific environment within the application.
+          createdBy:
+            type: string
+            description: User ID who created or last updated the variable.
+          createdAt:
+            type: string
+            format: date-time
+            description: When the variable was created.
+          updatedAt:
+            type: string
+            format: date-time
+            description: When the variable was last updated.
+        description: |-
+          The variable with updated fields. The `id` field is required.
+          Only fields specified in `update_mask` are updated.
+      updateMask:
+        type: string
+        description: |-
+          The set of fields to update. If unset, all mutable fields are updated.
+          Supported fields: `value`, `sensitive`.
+    description: UpdateVariableRequest contains the variable fields to update.
   protobufAny:
     type: object
     properties:
@@ -1630,6 +1847,44 @@ definitions:
           The raw token secret (e.g., "adm_pat_7kH3mNqR2xFb..."). This value is
           shown exactly once and cannot be retrieved again. Store it securely.
     description: CreatePersonalAccessTokenResponse contains the newly created PAT.
+  v1CreateVariableRequest:
+    type: object
+    properties:
+      key:
+        type: string
+        description: |-
+          The variable name. Must be a valid environment variable identifier
+          (e.g., "DATABASE_URL", "API_KEY").
+      value:
+        type: string
+        description: The variable value.
+      sensitive:
+        type: boolean
+        description: |-
+          Whether the variable value should be encrypted at rest and masked in
+          API responses.
+      applicationId:
+        type: string
+        description: |-
+          The application to scope this variable to (UUID). When set without
+          environment_id, the variable applies to all environments in the app.
+      environmentId:
+        type: string
+        description: |-
+          The environment to scope this variable to (UUID). Requires application_id.
+          When set, the variable applies only to this specific environment.
+    description: |-
+      CreateVariableRequest contains the parameters for creating a new variable.
+      The variable's scope is derived from the presence of application_id and
+      environment_id: neither means global, application_id only means app-scoped,
+      both means environment-scoped.
+  v1CreateVariableResponse:
+    type: object
+    properties:
+      variable:
+        $ref: '#/definitions/v1Variable'
+        description: The created variable.
+    description: CreateVariableResponse contains the newly created variable.
   v1DeleteApplicationResponse:
     type: object
     description: DeleteApplicationResponse is empty on success.
@@ -1639,6 +1894,9 @@ definitions:
   v1DeleteEnvironmentResponse:
     type: object
     description: DeleteEnvironmentResponse is empty on success.
+  v1DeleteVariableResponse:
+    type: object
+    description: DeleteVariableResponse is empty on success.
   v1Environment:
     type: object
     properties:
@@ -1761,6 +2019,13 @@ definitions:
         type: string
         description: URL to the user's avatar image.
     description: GetUserResponse contains the authenticated user's profile information.
+  v1GetVariableResponse:
+    type: object
+    properties:
+      variable:
+        $ref: '#/definitions/v1Variable'
+        description: The variable record. Sensitive variable values are masked.
+    description: GetVariableResponse contains the variable record.
   v1HealthcheckResponse:
     type: object
     description: |-
@@ -1843,6 +2108,19 @@ definitions:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
     description: ListPersonalAccessTokensResponse contains a page of PAT metadata.
+  v1ListVariablesResponse:
+    type: object
+    properties:
+      variables:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Variable'
+        description: The list of variables from all applicable levels.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListVariablesResponse contains a page of variables.
   v1ListWorkloadsResponse:
     type: object
     properties:
@@ -1951,6 +2229,62 @@ definitions:
         $ref: '#/definitions/v1Environment'
         description: The updated environment.
     description: UpdateEnvironmentResponse contains the updated environment.
+  v1UpdateVariableResponse:
+    type: object
+    properties:
+      variable:
+        $ref: '#/definitions/v1Variable'
+        description: The updated variable.
+    description: UpdateVariableResponse contains the updated variable.
+  v1Variable:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the variable (UUID).
+      tenantId:
+        type: string
+        description: Tenant this variable belongs to (UUID).
+      key:
+        type: string
+        description: |-
+          The variable name. Must be a valid environment variable identifier
+          (e.g., "DATABASE_URL", "API_KEY"). Uppercase alphanumeric and underscores,
+          must start with a letter or underscore (max 255 chars).
+      value:
+        type: string
+        description: The variable value. Masked or empty for sensitive variables in responses.
+      sensitive:
+        type: boolean
+        description: Whether the variable value is encrypted at rest and masked in API responses.
+      applicationId:
+        type: string
+        description: |-
+          The application this variable is scoped to (UUID). When set, the variable
+          is scoped to this application. When both application_id and environment_id
+          are set, the variable is scoped to that specific environment.
+          Absent means the variable is global (tenant-wide).
+      environmentId:
+        type: string
+        description: |-
+          The environment this variable is scoped to (UUID). Requires application_id.
+          When set alongside application_id, the variable applies only to this
+          specific environment within the application.
+      createdBy:
+        type: string
+        description: User ID who created or last updated the variable.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the variable was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the variable was last updated.
+    description: |-
+      Variable represents a configuration key-value pair scoped to a tenant,
+      application, or application+environment. Variables are resolved at deployment
+      time into immutable deployment snapshots.
   v1Workload:
     type: object
     properties:

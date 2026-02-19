@@ -1026,6 +1026,200 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.user.v1.RevokePersonalAccessTokenResponse'
+  /v1/variables:
+    get:
+      tags:
+        - admiral.api.variable.v1.VariableAPI
+      summary: ListVariables returns a merged, paginated list of variables.
+      description: |-
+        The returned list is a resolved view based on the provided filters:
+           - No application_id or environment_id: global variables only.
+           - application_id only: global + app-level variables merged.
+           - application_id + environment_id: global + app + environment variables merged.
+
+         When variables with the same key exist at multiple levels, all are returned
+         so clients can determine precedence.
+
+         Scope: `var:read`
+      operationId: admiral.api.variable.v1.VariableAPI.ListVariables
+      parameters:
+        - name: applicationId
+          in: query
+          description: |-
+            Filter to an application (UUID). When set, app-level variables for this
+             application are included in the merged result alongside global variables.
+          schema:
+            type: string
+            title: application_id
+            format: uuid
+            description: |-
+              Filter to an application (UUID). When set, app-level variables for this
+               application are included in the merged result alongside global variables.
+        - name: environmentId
+          in: query
+          description: |-
+            Filter to an environment (UUID). Requires application_id. When set,
+             environment-level variables are included alongside global and app variables.
+          schema:
+            type: string
+            title: environment_id
+            format: uuid
+            description: |-
+              Filter to an environment (UUID). Requires application_id. When set,
+               environment-level variables are included alongside global and app variables.
+        - name: filter
+          in: query
+          description: Filter expression using the PEG filter DSL.
+          schema:
+            type: string
+            title: filter
+            description: Filter expression using the PEG filter DSL.
+        - name: pageSize
+          in: query
+          description: Maximum number of variables to return per page.
+          schema:
+            type: integer
+            title: page_size
+            format: int32
+            description: Maximum number of variables to return per page.
+        - name: pageToken
+          in: query
+          description: Opaque pagination token from a previous response.
+          schema:
+            type: string
+            title: page_token
+            description: Opaque pagination token from a previous response.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.ListVariablesResponse'
+    post:
+      tags:
+        - admiral.api.variable.v1.VariableAPI
+      summary: CreateVariable creates a new variable.
+      description: |-
+        Fails if a variable with the same key already exists at the same level
+         (same key + application_id + environment_id combination).
+
+         Scope: `var:write`
+      operationId: admiral.api.variable.v1.VariableAPI.CreateVariable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/admiral.api.variable.v1.CreateVariableRequest'
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.CreateVariableResponse'
+  /v1/variables/{variable.id}:
+    patch:
+      tags:
+        - admiral.api.variable.v1.VariableAPI
+      summary: |-
+        UpdateVariable updates a variable's mutable fields.
+         Use the `update_mask` to specify which fields to update.
+         Only `value` and `sensitive` are mutable — key is immutable.
+      description: 'Scope: `var:write`'
+      operationId: admiral.api.variable.v1.VariableAPI.UpdateVariable
+      parameters:
+        - name: variable.id
+          in: path
+          description: Unique identifier for the variable (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier for the variable (UUID).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variable:
+                  title: variable
+                  description: |-
+                    The variable with updated fields. The `id` field is required.
+                     Only fields specified in `update_mask` are updated.
+                  $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
+                updateMask:
+                  title: update_mask
+                  description: |-
+                    The set of fields to update. If unset, all mutable fields are updated.
+                     Supported fields: `value`, `sensitive`.
+                  $ref: '#/components/schemas/google.protobuf.FieldMask'
+              title: UpdateVariableRequest
+              required:
+                - variable
+              additionalProperties: false
+              description: UpdateVariableRequest contains the variable fields to update.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.UpdateVariableResponse'
+  /v1/variables/{variable_id}:
+    get:
+      tags:
+        - admiral.api.variable.v1.VariableAPI
+      summary: GetVariable retrieves a variable by ID.
+      description: |-
+        Sensitive variable values are masked in the response.
+
+         Scope: `var:read`
+      operationId: admiral.api.variable.v1.VariableAPI.GetVariable
+      parameters:
+        - name: variable_id
+          in: path
+          description: The unique identifier of the variable (UUID).
+          required: true
+          schema:
+            type: string
+            title: variable_id
+            format: uuid
+            description: The unique identifier of the variable (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.GetVariableResponse'
+    delete:
+      tags:
+        - admiral.api.variable.v1.VariableAPI
+      summary: DeleteVariable permanently deletes a variable. This action cannot be undone.
+      description: 'Scope: `var:write`'
+      operationId: admiral.api.variable.v1.VariableAPI.DeleteVariable
+      parameters:
+        - name: variable_id
+          in: path
+          description: The unique identifier of the variable to delete (UUID).
+          required: true
+          schema:
+            type: string
+            title: variable_id
+            format: uuid
+            description: The unique identifier of the variable to delete (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.DeleteVariableResponse'
 components:
   schemas:
     admiral.api.application.v1.Application:
@@ -2663,6 +2857,260 @@ components:
       title: RevokePersonalAccessTokenResponse
       additionalProperties: false
       description: RevokePersonalAccessTokenResponse contains the revoked PAT metadata.
+    admiral.api.variable.v1.CreateVariableRequest:
+      type: object
+      properties:
+        key:
+          type: string
+          title: key
+          maxLength: 255
+          minLength: 1
+          pattern: ^[A-Za-z_][A-Za-z0-9_]{0,254}$
+          description: |-
+            The variable name. Must be a valid environment variable identifier
+             (e.g., "DATABASE_URL", "API_KEY").
+        value:
+          type: string
+          title: value
+          minLength: 1
+          description: The variable value.
+        sensitive:
+          type: boolean
+          title: sensitive
+          description: |-
+            Whether the variable value should be encrypted at rest and masked in
+             API responses.
+        applicationId:
+          type:
+            - string
+            - "null"
+          title: application_id
+          format: uuid
+          description: |-
+            The application to scope this variable to (UUID). When set without
+             environment_id, the variable applies to all environments in the app.
+        environmentId:
+          type:
+            - string
+            - "null"
+          title: environment_id
+          format: uuid
+          description: |-
+            The environment to scope this variable to (UUID). Requires application_id.
+             When set, the variable applies only to this specific environment.
+      title: CreateVariableRequest
+      additionalProperties: false
+      description: |-
+        CreateVariableRequest contains the parameters for creating a new variable.
+         The variable's scope is derived from the presence of application_id and
+         environment_id: neither means global, application_id only means app-scoped,
+         both means environment-scoped.
+    admiral.api.variable.v1.CreateVariableResponse:
+      type: object
+      properties:
+        variable:
+          title: variable
+          description: The created variable.
+          $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
+      title: CreateVariableResponse
+      additionalProperties: false
+      description: CreateVariableResponse contains the newly created variable.
+    admiral.api.variable.v1.DeleteVariableRequest:
+      type: object
+      properties:
+        variableId:
+          type: string
+          title: variable_id
+          format: uuid
+          description: The unique identifier of the variable to delete (UUID).
+      title: DeleteVariableRequest
+      additionalProperties: false
+      description: DeleteVariableRequest identifies a variable to delete.
+    admiral.api.variable.v1.DeleteVariableResponse:
+      type: object
+      title: DeleteVariableResponse
+      additionalProperties: false
+      description: DeleteVariableResponse is empty on success.
+    admiral.api.variable.v1.GetVariableRequest:
+      type: object
+      properties:
+        variableId:
+          type: string
+          title: variable_id
+          format: uuid
+          description: The unique identifier of the variable (UUID).
+      title: GetVariableRequest
+      additionalProperties: false
+      description: GetVariableRequest identifies a variable to retrieve.
+    admiral.api.variable.v1.GetVariableResponse:
+      type: object
+      properties:
+        variable:
+          title: variable
+          description: The variable record. Sensitive variable values are masked.
+          $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
+      title: GetVariableResponse
+      additionalProperties: false
+      description: GetVariableResponse contains the variable record.
+    admiral.api.variable.v1.ListVariablesRequest:
+      type: object
+      properties:
+        applicationId:
+          type:
+            - string
+            - "null"
+          title: application_id
+          format: uuid
+          description: |-
+            Filter to an application (UUID). When set, app-level variables for this
+             application are included in the merged result alongside global variables.
+        environmentId:
+          type:
+            - string
+            - "null"
+          title: environment_id
+          format: uuid
+          description: |-
+            Filter to an environment (UUID). Requires application_id. When set,
+             environment-level variables are included alongside global and app variables.
+        filter:
+          type: string
+          title: filter
+          description: Filter expression using the PEG filter DSL.
+        pageSize:
+          type: integer
+          title: page_size
+          format: int32
+          description: Maximum number of variables to return per page.
+        pageToken:
+          type: string
+          title: page_token
+          description: Opaque pagination token from a previous response.
+      title: ListVariablesRequest
+      additionalProperties: false
+      description: |-
+        ListVariablesRequest contains filters and pagination parameters.
+
+         The filters determine which variables are included in the merged view:
+           - No application_id or environment_id: global variables only.
+           - application_id only: global + app-level variables merged.
+           - application_id + environment_id: global + app + environment variables merged.
+    admiral.api.variable.v1.ListVariablesResponse:
+      type: object
+      properties:
+        variables:
+          type: array
+          items:
+            $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
+          title: variables
+          description: The list of variables from all applicable levels.
+        nextPageToken:
+          type: string
+          title: next_page_token
+          description: Pagination token for the next page. Empty when there are no more results.
+      title: ListVariablesResponse
+      additionalProperties: false
+      description: ListVariablesResponse contains a page of variables.
+    admiral.api.variable.v1.UpdateVariableRequest:
+      type: object
+      properties:
+        variable:
+          title: variable
+          description: |-
+            The variable with updated fields. The `id` field is required.
+             Only fields specified in `update_mask` are updated.
+          $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
+        updateMask:
+          title: update_mask
+          description: |-
+            The set of fields to update. If unset, all mutable fields are updated.
+             Supported fields: `value`, `sensitive`.
+          $ref: '#/components/schemas/google.protobuf.FieldMask'
+      title: UpdateVariableRequest
+      required:
+        - variable
+      additionalProperties: false
+      description: UpdateVariableRequest contains the variable fields to update.
+    admiral.api.variable.v1.UpdateVariableResponse:
+      type: object
+      properties:
+        variable:
+          title: variable
+          description: The updated variable.
+          $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
+      title: UpdateVariableResponse
+      additionalProperties: false
+      description: UpdateVariableResponse contains the updated variable.
+    admiral.api.variable.v1.Variable:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: Unique identifier for the variable (UUID).
+        tenantId:
+          type: string
+          title: tenant_id
+          format: uuid
+          description: Tenant this variable belongs to (UUID).
+        key:
+          type: string
+          title: key
+          maxLength: 255
+          minLength: 1
+          pattern: ^[A-Za-z_][A-Za-z0-9_]{0,254}$
+          description: |-
+            The variable name. Must be a valid environment variable identifier
+             (e.g., "DATABASE_URL", "API_KEY"). Uppercase alphanumeric and underscores,
+             must start with a letter or underscore (max 255 chars).
+        value:
+          type: string
+          title: value
+          description: The variable value. Masked or empty for sensitive variables in responses.
+        sensitive:
+          type: boolean
+          title: sensitive
+          description: Whether the variable value is encrypted at rest and masked in API responses.
+        applicationId:
+          type:
+            - string
+            - "null"
+          title: application_id
+          format: uuid
+          description: |-
+            The application this variable is scoped to (UUID). When set, the variable
+             is scoped to this application. When both application_id and environment_id
+             are set, the variable is scoped to that specific environment.
+             Absent means the variable is global (tenant-wide).
+        environmentId:
+          type:
+            - string
+            - "null"
+          title: environment_id
+          format: uuid
+          description: |-
+            The environment this variable is scoped to (UUID). Requires application_id.
+             When set alongside application_id, the variable applies only to this
+             specific environment within the application.
+        createdBy:
+          type: string
+          title: created_by
+          description: User ID who created or last updated the variable.
+        createdAt:
+          title: created_at
+          description: When the variable was created.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+        updatedAt:
+          title: updated_at
+          description: When the variable was last updated.
+          $ref: '#/components/schemas/google.protobuf.Timestamp'
+      title: Variable
+      additionalProperties: false
+      description: |-
+        Variable represents a configuration key-value pair scoped to a tenant,
+         application, or application+environment. Variables are resolved at deployment
+         time into immutable deployment snapshots.
     admiral.common.v1.AccessToken:
       type: object
       properties:
@@ -3109,3 +3557,15 @@ tags:
        PATs allow users to authenticate with the Admiral API from scripts, CI
        pipelines, and other programmatic contexts. Each PAT has user-selected
        scopes and an optional expiration.
+  - name: admiral.api.variable.v1.VariableAPI
+    description: |-
+      VariableAPI manages configuration variables within a tenant.
+
+       Variables provide key-value configuration at three levels: global
+       (tenant-wide), per application, or per application+environment. When listing
+       variables for a specific application and environment, Admiral merges variables
+       from all applicable levels, with narrower levels taking precedence.
+
+       Sensitive variables have their values encrypted at rest and masked in API
+       responses. The actual value is only resolved at deployment time into the
+       immutable deployment snapshot.
