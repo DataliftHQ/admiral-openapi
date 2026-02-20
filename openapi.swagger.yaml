@@ -1,6 +1,6 @@
 swagger: "2.0"
 info:
-  title: application/v1/application.proto
+  title: admiral/api/application/v1/application.proto
   version: version not set
 tags:
   - name: ApplicationAPI
