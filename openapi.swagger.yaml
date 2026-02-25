@@ -1,13 +1,19 @@
 swagger: "2.0"
 info:
-  title: admiral/api/application/v1/application.proto
+  title: admiral/cluster/v1/cluster.proto
   version: version not set
 tags:
-  - name: ApplicationAPI
   - name: ClusterAPI
+  - name: RunnerAPI
+  - name: UserAPI
+  - name: ApplicationAPI
+  - name: ComponentAPI
+  - name: ConnectionAPI
+  - name: DeploymentAPI
   - name: EnvironmentAPI
   - name: HealthcheckAPI
-  - name: UserAPI
+  - name: SourceAPI
+  - name: StateAPI
   - name: VariableAPI
 consumes:
   - application/json
@@ -20,6 +26,7 @@ paths:
         Healthcheck verifies that the service is running and healthy.
         Returns an empty response on success. Use this endpoint for load balancer
         health checks and monitoring systems.
+      description: No authentication required — this is a public endpoint.
       operationId: HealthcheckAPI_Healthcheck2
       responses:
         "200":
@@ -50,7 +57,9 @@ paths:
             $ref: '#/definitions/rpcStatus'
       parameters:
         - name: filter
-          description: Filter expression using the PEG filter DSL.
+          description: |-
+            Filter expression using the PEG filter DSL. Supported fields include
+            `tenant_id`, `name`, and label selectors.
           in: query
           required: false
           type: string
@@ -92,7 +101,7 @@ paths:
   /v1/applications/{application.id}:
     patch:
       summary: |-
-        UpdateApplication updates an application's mutable fields.
+        UpdateApplication updates an application's mutable fields (name, description, labels).
         Use the `update_mask` to specify which fields to update.
       description: 'Scope: `app:write`'
       operationId: ApplicationAPI_UpdateApplication
@@ -172,14 +181,14 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1ListClustersResponse'
+            $ref: '#/definitions/admiralApiClusterV1ListClustersResponse'
         default:
           description: An unexpected error response.
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
         - name: filter
-          description: Filter expression using the PEG filter DSL
+          description: Filter expression using the PEG filter DSL.
           in: query
           required: false
           type: string
@@ -202,7 +211,7 @@ paths:
         generates an initial Agent Token (AGT) for the K8s agent. The cluster
         starts in PENDING status until an agent registers against it.
       description: |-
-        The response includes a `plain_text_token` — the raw AGT secret shown
+        The response includes a `plain_text_token` -- the raw AGT secret shown
         exactly once. Deploy this token to the K8s agent (e.g., via Helm values
         or a Kubernetes Secret). The agent uses it to authenticate with
         AgentAPI.RegisterAgent on first boot.
@@ -213,7 +222,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1CreateClusterResponse'
+            $ref: '#/definitions/admiralApiClusterV1CreateClusterResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -224,7 +233,7 @@ paths:
           in: body
           required: true
           schema:
-            $ref: '#/definitions/v1CreateClusterRequest'
+            $ref: '#/definitions/admiralApiClusterV1CreateClusterRequest'
       tags:
         - ClusterAPI
   /v1/clusters/{cluster.id}:
@@ -238,7 +247,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1UpdateClusterResponse'
+            $ref: '#/definitions/admiralApiClusterV1UpdateClusterResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -270,7 +279,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1GetClusterResponse'
+            $ref: '#/definitions/admiralApiClusterV1GetClusterResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -293,7 +302,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1DeleteClusterResponse'
+            $ref: '#/definitions/admiralApiClusterV1DeleteClusterResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -325,7 +334,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1GetClusterStatusResponse'
+            $ref: '#/definitions/admiralApiClusterV1GetClusterStatusResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -448,7 +457,7 @@ paths:
     get:
       summary: |-
         GetClusterToken retrieves a single AGT by ID.
-        Returns metadata only — the token secret is never included.
+        Returns metadata only -- the token secret is never included.
       description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_GetClusterToken
       responses:
@@ -517,7 +526,7 @@ paths:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1ListWorkloadsResponse'
+            $ref: '#/definitions/admiralApiClusterV1ListWorkloadsResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -529,7 +538,7 @@ paths:
           required: true
           type: string
         - name: filter
-          description: Filter expression using the PEG filter DSL
+          description: Filter expression using the PEG filter DSL.
           in: query
           required: false
           type: string
@@ -578,6 +587,629 @@ paths:
             $ref: '#/definitions/ClusterAPIReportWorkloadStatusBody'
       tags:
         - ClusterAPI
+  /v1/components:
+    get:
+      summary: |-
+        ListComponents returns a paginated list of components. When the filter
+        includes an environment_id, the response contains the resolved view with
+        overrides applied and disabled/has_override flags set.
+      description: 'Scope: `app:read`'
+      operationId: ComponentAPI_ListComponents
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListComponentsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: |-
+            Filter expression using the PEG filter DSL. Supported fields include
+            `tenant_id`, `application_id`, `environment_id`, `component_category`,
+            `source_id`, `name`, and label selectors.
+
+            When `environment_id` is present in the filter, the response contains the
+            resolved view with overrides applied and disabled/has_override flags set.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of components to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - ComponentAPI
+    post:
+      summary: CreateComponent creates a new component within an application.
+      description: 'Scope: `app:write`'
+      operationId: ComponentAPI_CreateComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateComponentRequest contains the parameters for creating a new component.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateComponentRequest'
+      tags:
+        - ComponentAPI
+  /v1/components/{component.id}:
+    patch:
+      summary: |-
+        UpdateComponent updates a component's mutable fields. Server validates
+        component rename against values_template references in other components.
+      description: 'Scope: `app:write`'
+      operationId: ComponentAPI_UpdateComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: component.id
+          description: Unique identifier for the component (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ComponentAPIUpdateComponentBody'
+      tags:
+        - ComponentAPI
+  /v1/components/{componentId}:
+    get:
+      summary: GetComponent retrieves a component by ID.
+      description: 'Scope: `app:read`'
+      operationId: ComponentAPI_GetComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The unique identifier of the component (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ComponentAPI
+    delete:
+      summary: |-
+        DeleteComponent permanently deletes a component. Fails if other components
+        reference this component via depends_on or template expressions. This
+        action cannot be undone.
+      description: 'Scope: `app:write`'
+      operationId: ComponentAPI_DeleteComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The unique identifier of the component to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ComponentAPI
+  /v1/components/{componentId}/overrides:
+    get:
+      summary: ListComponentOverrides returns all environment-level overrides for a component.
+      description: 'Scope: `env:read`'
+      operationId: ComponentAPI_ListComponentOverrides
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListComponentOverridesResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The component whose overrides to list (UUID).
+          in: path
+          required: true
+          type: string
+        - name: pageSize
+          description: Maximum number of overrides to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - ComponentAPI
+  /v1/components/{componentId}/overrides/{environmentId}:
+    get:
+      summary: GetComponentOverride retrieves an environment-level override for a component.
+      description: 'Scope: `env:read`'
+      operationId: ComponentAPI_GetComponentOverride
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetComponentOverrideResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The component the override belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: environmentId
+          description: The environment the override applies to (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ComponentAPI
+    delete:
+      summary: DeleteComponentOverride removes an environment-level override for a component.
+      description: 'Scope: `env:write`'
+      operationId: ComponentAPI_DeleteComponentOverride
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteComponentOverrideResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The component the override belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: environmentId
+          description: The environment the override applies to (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ComponentAPI
+    put:
+      summary: |-
+        SetComponentOverride creates or replaces an environment-level override for
+        a component. Override is full replace (no merge) — the entire override
+        replaces the base component's fields for that environment.
+      description: 'Scope: `env:write`'
+      operationId: ComponentAPI_SetComponentOverride
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1SetComponentOverrideResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The component to override (UUID).
+          in: path
+          required: true
+          type: string
+        - name: environmentId
+          description: The environment this override applies to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ComponentAPISetComponentOverrideBody'
+      tags:
+        - ComponentAPI
+  /v1/connections:
+    get:
+      summary: |-
+        ListConnections returns a paginated list of connections within the caller's
+        tenant. Sensitive fields are masked.
+      description: 'Scope: `connection:read`'
+      operationId: ConnectionAPI_ListConnections
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListConnectionsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: |-
+            Filter expression using the PEG filter DSL. Supported fields include
+            `tenant_id`, `connection_type`, `status`, `name`, and label selectors.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of connections to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - ConnectionAPI
+    post:
+      summary: CreateConnection creates a new connection within the caller's tenant.
+      description: 'Scope: `connection:write`'
+      operationId: ConnectionAPI_CreateConnection
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateConnectionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateConnectionRequest contains the parameters for creating a new connection.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateConnectionRequest'
+      tags:
+        - ConnectionAPI
+  /v1/connections/{connection.id}:
+    patch:
+      summary: |-
+        UpdateConnection updates a connection's mutable fields. The auth config
+        oneof is replaced entirely — partial auth updates are not supported.
+      description: 'Scope: `connection:write`'
+      operationId: ConnectionAPI_UpdateConnection
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateConnectionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: connection.id
+          description: Unique identifier for the connection (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ConnectionAPIUpdateConnectionBody'
+      tags:
+        - ConnectionAPI
+  /v1/connections/{connectionId}:
+    get:
+      summary: GetConnection retrieves a connection by ID. Sensitive fields are masked.
+      description: 'Scope: `connection:read`'
+      operationId: ConnectionAPI_GetConnection
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetConnectionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: connectionId
+          description: The unique identifier of the connection (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ConnectionAPI
+    delete:
+      summary: |-
+        DeleteConnection permanently deletes a connection. Fails if any sources
+        still reference this connection. This action cannot be undone.
+      description: 'Scope: `connection:write`'
+      operationId: ConnectionAPI_DeleteConnection
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteConnectionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: connectionId
+          description: The unique identifier of the connection to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ConnectionAPI
+  /v1/connections/{connectionId}/test:
+    post:
+      summary: TestConnection validates credentials against the remote system.
+      description: 'Scope: `connection:write`'
+      operationId: ConnectionAPI_TestConnection
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1TestConnectionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: connectionId
+          description: The unique identifier of the connection to test (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ConnectionAPITestConnectionBody'
+      tags:
+        - ConnectionAPI
+  /v1/deployments:
+    get:
+      summary: |-
+        ListDeployments returns a paginated list of deployments within the caller's
+        tenant.
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_ListDeployments
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListDeploymentsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: |-
+            Filter expression using the PEG filter DSL. Supported fields include
+            `tenant_id`, `application_id`, `environment_id`, `status`, and `created_by`.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of deployments to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - DeploymentAPI
+    post:
+      summary: |-
+        CreateDeployment creates a new deployment for an application+environment pair.
+        If another deployment is active, the new one is queued.
+      description: 'Scope: `deploy:write`'
+      operationId: DeploymentAPI_CreateDeployment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateDeploymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateDeploymentRequest contains the parameters for creating a new deployment.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateDeploymentRequest'
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{deploymentId}:
+    get:
+      summary: GetDeployment retrieves a deployment by ID.
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_GetDeployment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetDeploymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: deploymentId
+          description: The unique identifier of the deployment (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{deploymentId}/cancel:
+    post:
+      summary: |-
+        CancelDeployment cancels a pending, queued, or running deployment. Already
+        completed or failed deployments cannot be cancelled.
+      description: 'Scope: `deploy:write`'
+      operationId: DeploymentAPI_CancelDeployment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CancelDeploymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: deploymentId
+          description: The unique identifier of the deployment to cancel (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/DeploymentAPICancelDeploymentBody'
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{deploymentId}/revisions:
+    get:
+      summary: ListRevisions returns all revisions for a deployment.
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_ListRevisions
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListRevisionsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: deploymentId
+          description: The deployment whose revisions to list (UUID).
+          in: path
+          required: true
+          type: string
+        - name: pageSize
+          description: Maximum number of revisions to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{deploymentId}/revisions/{revisionId}:
+    get:
+      summary: GetRevision retrieves a single revision within a deployment.
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_GetRevision
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetRevisionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: deploymentId
+          description: The deployment the revision belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: revisionId
+          description: The unique identifier of the revision (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{deploymentId}/revisions/{revisionId}/retry:
+    post:
+      summary: RetryRevision retries a failed revision within a deployment.
+      description: 'Scope: `deploy:write`'
+      operationId: DeploymentAPI_RetryRevision
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1RetryRevisionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: deploymentId
+          description: The deployment the revision belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: revisionId
+          description: The unique identifier of the revision to retry (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/DeploymentAPIRetryRevisionBody'
+      tags:
+        - DeploymentAPI
   /v1/environments:
     get:
       summary: |-
@@ -596,7 +1228,9 @@ paths:
             $ref: '#/definitions/rpcStatus'
       parameters:
         - name: filter
-          description: Filter expression using the PEG filter DSL.
+          description: |-
+            Filter expression using the PEG filter DSL. Supported fields include
+            `tenant_id`, `application_id`, `name`, `runtime_type`, and label selectors.
           in: query
           required: false
           type: string
@@ -690,7 +1324,8 @@ paths:
       summary: |-
         DeleteEnvironment permanently deletes an environment. This does not affect
         the underlying runtime — only the Admiral environment record is removed.
-        This action cannot be undone.
+        Fails if the environment has an active deployment — must run destroy
+        deployment first. This action cannot be undone.
       description: 'Scope: `env:write`'
       operationId: EnvironmentAPI_DeleteEnvironment
       responses:
@@ -716,6 +1351,7 @@ paths:
         Healthcheck verifies that the service is running and healthy.
         Returns an empty response on success. Use this endpoint for load balancer
         health checks and monitoring systems.
+      description: No authentication required — this is a public endpoint.
       operationId: HealthcheckAPI_Healthcheck
       responses:
         "200":
@@ -728,17 +1364,981 @@ paths:
             $ref: '#/definitions/rpcStatus'
       tags:
         - HealthcheckAPI
+  /v1/runner/heartbeat:
+    post:
+      summary: |-
+        Heartbeat sends a periodic health signal from the runner process. Updates
+        the runner's status snapshot and resets the health timeout.
+      description: 'Scope: `runner:status` | Token types: `agt`'
+      operationId: RunnerAPI_Heartbeat
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1HeartbeatResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: HeartbeatRequest contains the runner's periodic health signal.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1HeartbeatRequest'
+      tags:
+        - RunnerAPI
+  /v1/runner/jobs/claim:
+    post:
+      summary: |-
+        ClaimJob attempts to claim the next available job for this runner. Returns
+        an empty job if no jobs are available.
+      description: 'Scope: `runner:execute` | Token types: `agt`'
+      operationId: RunnerAPI_ClaimJob
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1ClaimJobResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: ClaimJobRequest attempts to claim the next available job for a runner.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1ClaimJobRequest'
+      tags:
+        - RunnerAPI
+  /v1/runner/jobs/{jobId}/bundle:
+    get:
+      summary: |-
+        GetJobBundle retrieves the full execution bundle for a claimed job,
+        including the source archive URL, rendered values, state configuration,
+        and environment variables.
+      description: 'Scope: `runner:execute` | Token types: `agt`'
+      operationId: RunnerAPI_GetJobBundle
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1GetJobBundleResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The job to retrieve the bundle for (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - RunnerAPI
+  /v1/runner/jobs/{jobId}/result:
+    post:
+      summary: ReportJobResult reports the outcome of a job execution.
+      description: 'Scope: `runner:execute` | Token types: `agt`'
+      operationId: RunnerAPI_ReportJobResult
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1ReportJobResultResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The job being reported on (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RunnerAPIReportJobResultBody'
+      tags:
+        - RunnerAPI
+  /v1/runner/jobs/{jobId}/state:
+    get:
+      summary: |-
+        GetState retrieves the current state data for a component+environment pair.
+        Called by the runner's Terraform backend during `terraform init`.
+      description: 'Scope: `state:read` | Token types: `agt`'
+      operationId: StateAPI_GetState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The job whose component+environment state to retrieve (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - StateAPI
+    post:
+      summary: |-
+        PushState stores a new state version for a component+environment pair.
+        Called by the runner's Terraform backend after a successful apply.
+      description: 'Scope: `state:write` | Token types: `agt`'
+      operationId: StateAPI_PushState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1PushStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The job whose component+environment state to update (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/StateAPIPushStateBody'
+      tags:
+        - StateAPI
+  /v1/runner/jobs/{jobId}/state/lock:
+    post:
+      summary: |-
+        LockState acquires a lock on a state for a component+environment pair.
+        Called by the runner's Terraform backend before plan/apply.
+      description: 'Scope: `state:write` | Token types: `agt`'
+      operationId: StateAPI_LockState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1LockStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The job whose component+environment state to lock (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/StateAPILockStateBody'
+      tags:
+        - StateAPI
+  /v1/runner/jobs/{jobId}/state/unlock:
+    post:
+      summary: |-
+        UnlockState releases a lock on a state for a component+environment pair.
+        Called by the runner's Terraform backend after plan/apply completes.
+      description: 'Scope: `state:write` | Token types: `agt`'
+      operationId: StateAPI_UnlockState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UnlockStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The job whose component+environment state to unlock (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/StateAPIUnlockStateBody'
+      tags:
+        - StateAPI
+  /v1/runners:
+    get:
+      summary: ListRunners returns a paginated list of runners within the caller's tenant.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_ListRunners
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1ListRunnersResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of runners to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - RunnerAPI
+    post:
+      summary: |-
+        CreateRunner creates a new runner within the caller's tenant and generates
+        an initial Agent Token (AGT). The runner starts in PENDING status until
+        the runner agent connects and begins sending heartbeats.
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_CreateRunner
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1CreateRunnerResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateRunnerRequest contains the parameters for creating a new runner.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1CreateRunnerRequest'
+      tags:
+        - RunnerAPI
+  /v1/runners/jobs:
+    get:
+      summary: ListJobs returns a paginated list of jobs matching the filter.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_ListJobs
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1ListJobsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of jobs to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - RunnerAPI
+  /v1/runners/jobs/{jobId}:
+    get:
+      summary: GetJob retrieves a job by ID.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_GetJob
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1GetJobResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: jobId
+          description: The unique identifier of the job (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - RunnerAPI
+  /v1/runners/{runner.id}:
+    patch:
+      summary: UpdateRunner updates a runner's mutable fields (name, description, labels).
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_UpdateRunner
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1UpdateRunnerResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runner.id
+          description: Unique identifier for the runner (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
+      tags:
+        - RunnerAPI
+  /v1/runners/{runnerId}:
+    get:
+      summary: GetRunner retrieves a runner by ID.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_GetRunner
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1GetRunnerResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The unique identifier of the runner (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - RunnerAPI
+    delete:
+      summary: |-
+        DeleteRunner permanently deletes a runner and revokes all associated tokens.
+        This action cannot be undone.
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_DeleteRunner
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1DeleteRunnerResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The unique identifier of the runner to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - RunnerAPI
+  /v1/runners/{runnerId}/status:
+    get:
+      summary: GetRunnerStatus retrieves the current status snapshot for a runner.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_GetRunnerStatus
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/admiralApiRunnerV1GetRunnerStatusResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The unique identifier of the runner (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - RunnerAPI
+  /v1/runners/{runnerId}/tokens:
+    get:
+      summary: |-
+        ListRunnerTokens returns a paginated list of AGTs bound to the specified
+        runner. Token secrets are never included.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_ListRunnerTokens
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListRunnerTokensResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The runner whose tokens to list (UUID).
+          in: path
+          required: true
+          type: string
+        - name: pageSize
+          description: Maximum number of tokens to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
+      tags:
+        - RunnerAPI
+    post:
+      summary: |-
+        CreateRunnerToken creates a new Agent Token (AGT) bound to the specified
+        runner. Scopes are auto-assigned. The response includes the raw token
+        secret, which is shown exactly once.
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_CreateRunnerToken
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateRunnerTokenResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The runner to bind this token to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RunnerAPICreateRunnerTokenBody'
+      tags:
+        - RunnerAPI
+  /v1/runners/{runnerId}/tokens/{tokenId}:
+    get:
+      summary: |-
+        GetRunnerToken retrieves a single AGT by ID.
+        Returns metadata only — the token secret is never included.
+      description: 'Scope: `runner:read`'
+      operationId: RunnerAPI_GetRunnerToken
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetRunnerTokenResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The runner the token belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: tokenId
+          description: The unique identifier of the token (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - RunnerAPI
+  /v1/runners/{runnerId}/tokens/{tokenId}/revoke:
+    post:
+      summary: RevokeRunnerToken permanently revokes an AGT bound to this runner.
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_RevokeRunnerToken
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1RevokeRunnerTokenResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: runnerId
+          description: The runner the token belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: tokenId
+          description: The unique identifier of the token to revoke (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RunnerAPIRevokeRunnerTokenBody'
+      tags:
+        - RunnerAPI
+  /v1/sources:
+    get:
+      summary: ListSources returns a paginated list of sources within the caller's tenant.
+      description: 'Scope: `source:read`'
+      operationId: SourceAPI_ListSources
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListSourcesResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: |-
+            Filter expression using the PEG filter DSL. Supported fields include
+            `tenant_id`, `source_type`, `catalog`, `name`, and label selectors.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of sources to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - SourceAPI
+    post:
+      summary: CreateSource creates a new source within the caller's tenant.
+      description: 'Scope: `source:write`'
+      operationId: SourceAPI_CreateSource
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CreateSourceResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: body
+          description: CreateSourceRequest contains the parameters for creating a new source.
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/v1CreateSourceRequest'
+      tags:
+        - SourceAPI
+  /v1/sources/{source.id}:
+    patch:
+      summary: UpdateSource updates a source's mutable fields.
+      description: 'Scope: `source:write`'
+      operationId: SourceAPI_UpdateSource
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateSourceResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: source.id
+          description: Unique identifier for the source (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/SourceAPIUpdateSourceBody'
+      tags:
+        - SourceAPI
+  /v1/sources/{sourceId}:
+    get:
+      summary: GetSource retrieves a source by ID.
+      description: 'Scope: `source:read`'
+      operationId: SourceAPI_GetSource
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetSourceResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: sourceId
+          description: The unique identifier of the source (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - SourceAPI
+    delete:
+      summary: |-
+        DeleteSource permanently deletes a source. Fails if any application
+        components still reference this source. This action cannot be undone.
+      description: 'Scope: `source:write`'
+      operationId: SourceAPI_DeleteSource
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteSourceResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: sourceId
+          description: The unique identifier of the source to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - SourceAPI
+  /v1/sources/{sourceId}/sync:
+    post:
+      summary: SyncSource triggers a metadata refresh for a source.
+      description: 'Scope: `source:write`'
+      operationId: SourceAPI_SyncSource
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1SyncSourceResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: sourceId
+          description: The unique identifier of the source to sync (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/SourceAPISyncSourceBody'
+      tags:
+        - SourceAPI
+  /v1/sources/{sourceId}/versions:
+    get:
+      summary: |-
+        ListSourceVersions queries the external system for available versions of a
+        source (registry API, OCI tags, git ls-remote).
+      description: 'Scope: `source:read`'
+      operationId: SourceAPI_ListSourceVersions
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListSourceVersionsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: sourceId
+          description: The unique identifier of the source (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - SourceAPI
+  /v1/sources/{sourceId}/versions/{version}/inputs:
+    get:
+      summary: |-
+        GetSourceInputs fetches the source artifact at a specific version and
+        parses its inputs (Terraform variables, Helm values.yaml + values.schema.json).
+      description: 'Scope: `source:read`'
+      operationId: SourceAPI_GetSourceInputs
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetSourceInputsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: sourceId
+          description: The unique identifier of the source (UUID).
+          in: path
+          required: true
+          type: string
+        - name: version
+          description: The version to fetch and parse (e.g., "1.2.3", "v2.0.0", commit SHA).
+          in: path
+          required: true
+          type: string
+      tags:
+        - SourceAPI
+  /v1/sources/{sourceId}/versions/{version}/outputs:
+    get:
+      summary: |-
+        GetSourceOutputs parses output definitions from a source at a specific
+        version. Only applicable to Terraform sources — workload sources have no
+        formal outputs (user-declared at the component level).
+      description: 'Scope: `source:read`'
+      operationId: SourceAPI_GetSourceOutputs
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetSourceOutputsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: sourceId
+          description: The unique identifier of the source (UUID).
+          in: path
+          required: true
+          type: string
+        - name: version
+          description: The version to fetch and parse (e.g., "1.2.3", "v2.0.0", commit SHA).
+          in: path
+          required: true
+          type: string
+      tags:
+        - SourceAPI
+  /v1/states:
+    get:
+      summary: ListStates returns a paginated list of states within the caller's tenant.
+      description: 'Scope: `state:read`'
+      operationId: StateAPI_ListStates
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListStatesResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: filter
+          description: Filter expression using the PEG filter DSL.
+          in: query
+          required: false
+          type: string
+        - name: pageSize
+          description: Maximum number of states to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - StateAPI
+  /v1/states/current:
+    get:
+      summary: |-
+        GetCurrentState retrieves the current state metadata for a
+        component+environment pair.
+      description: 'Scope: `state:read`'
+      operationId: StateAPI_GetCurrentState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetCurrentStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: componentId
+          description: The component whose state to retrieve (UUID).
+          in: query
+          required: false
+          type: string
+        - name: environmentId
+          description: The environment whose state to retrieve (UUID).
+          in: query
+          required: false
+          type: string
+      tags:
+        - StateAPI
+  /v1/states/{stateId}:
+    delete:
+      summary: |-
+        DeleteState permanently deletes a state and all its versions. This is a
+        privileged operation. This action cannot be undone.
+      description: 'Scope: `state:admin`'
+      operationId: StateAPI_DeleteState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: stateId
+          description: The unique identifier of the state to delete (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - StateAPI
+  /v1/states/{stateId}/force-unlock:
+    post:
+      summary: |-
+        ForceUnlockState forcibly releases a lock on a state. This is a privileged
+        operation for operational recovery.
+      description: 'Scope: `state:admin`'
+      operationId: StateAPI_ForceUnlockState
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ForceUnlockStateResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: stateId
+          description: The state to force-unlock (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/StateAPIForceUnlockStateBody'
+      tags:
+        - StateAPI
+  /v1/states/{stateId}/versions:
+    get:
+      summary: ListStateVersions returns a paginated list of versions for a state.
+      description: 'Scope: `state:read`'
+      operationId: StateAPI_ListStateVersions
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListStateVersionsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: stateId
+          description: The state whose versions to list (UUID).
+          in: path
+          required: true
+          type: string
+        - name: pageSize
+          description: Maximum number of versions to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - StateAPI
+  /v1/states/{stateId}/versions/{versionId}:
+    get:
+      summary: GetStateVersion retrieves a specific state version with its metadata.
+      description: 'Scope: `state:read`'
+      operationId: StateAPI_GetStateVersion
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetStateVersionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: stateId
+          description: The state the version belongs to (UUID).
+          in: path
+          required: true
+          type: string
+        - name: versionId
+          description: The unique identifier of the version (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - StateAPI
   /v1/user:
     get:
       summary: |-
         GetUser retrieves the profile of the currently authenticated user.
         The user is identified by the authentication token provided in the request.
+      description: 'Scope: any authenticated request'
       operationId: UserAPI_GetUser
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1GetUserResponse'
+            $ref: '#/definitions/apiUserV1GetUserResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -748,15 +2348,15 @@ paths:
   /v1/user/tokens:
     get:
       summary: |-
-        ListPersonalAccessTokens returns a paginated list of the authenticated
-        user's PATs. Token secrets are never included.
+        ListUserTokens returns a paginated list of the authenticated user's PATs.
+        Token secrets are never included.
       description: 'Scope: `token:read`'
-      operationId: UserAPI_ListPersonalAccessTokens
+      operationId: UserAPI_ListUserTokens
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1ListPersonalAccessTokensResponse'
+            $ref: '#/definitions/v1ListUserTokensResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -784,41 +2384,41 @@ paths:
         - UserAPI
     post:
       summary: |-
-        CreatePersonalAccessToken creates a new PAT for the authenticated user.
+        CreateUserToken creates a new PAT for the authenticated user.
         The response includes the raw token secret, which is shown exactly once
         and cannot be retrieved again.
       description: 'Scope: `token:write`'
-      operationId: UserAPI_CreatePersonalAccessToken
+      operationId: UserAPI_CreateUserToken
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1CreatePersonalAccessTokenResponse'
+            $ref: '#/definitions/v1CreateUserTokenResponse'
         default:
           description: An unexpected error response.
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
         - name: body
-          description: CreatePersonalAccessTokenRequest contains the parameters for creating a new PAT.
+          description: CreateUserTokenRequest contains the parameters for creating a new PAT.
           in: body
           required: true
           schema:
-            $ref: '#/definitions/v1CreatePersonalAccessTokenRequest'
+            $ref: '#/definitions/v1CreateUserTokenRequest'
       tags:
         - UserAPI
   /v1/user/tokens/{tokenId}:
     get:
       summary: |-
-        GetPersonalAccessToken retrieves a single PAT by ID.
+        GetUserToken retrieves a single PAT by ID.
         Returns metadata only — the token secret is never included.
       description: 'Scope: `token:read`'
-      operationId: UserAPI_GetPersonalAccessToken
+      operationId: UserAPI_GetUserToken
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1GetPersonalAccessTokenResponse'
+            $ref: '#/definitions/v1GetUserTokenResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -834,15 +2434,15 @@ paths:
   /v1/user/tokens/{tokenId}/revoke:
     post:
       summary: |-
-        RevokePersonalAccessToken permanently revokes a PAT. The token becomes
+        RevokeUserToken permanently revokes a PAT. The token becomes
         immediately unusable and cannot be restored.
       description: 'Scope: `token:write`'
-      operationId: UserAPI_RevokePersonalAccessToken
+      operationId: UserAPI_RevokeUserToken
       responses:
         "200":
           description: A successful response.
           schema:
-            $ref: '#/definitions/v1RevokePersonalAccessTokenResponse'
+            $ref: '#/definitions/v1RevokeUserTokenResponse'
         default:
           description: An unexpected error response.
           schema:
@@ -857,7 +2457,7 @@ paths:
           in: body
           required: true
           schema:
-            $ref: '#/definitions/UserAPIRevokePersonalAccessTokenBody'
+            $ref: '#/definitions/UserAPIRevokeUserTokenBody'
       tags:
         - UserAPI
   /v1/variables:
@@ -1029,9 +2629,6 @@ definitions:
       application:
         type: object
         properties:
-          tenantId:
-            type: string
-            description: Tenant this application belongs to (UUID).
           name:
             type: string
             description: |-
@@ -1059,14 +2656,14 @@ definitions:
             format: date-time
             description: When the application was last updated.
         description: |-
-          The application with updated fields. The `id` field is required.
-          Only fields specified in `update_mask` are updated.
+          The application with updated fields. The application's id field is required
+          to identify which application to update.
       updateMask:
         type: string
         description: |-
           The set of fields to update. If unset, all mutable fields are updated.
           Supported fields: `name`, `description`, `labels`.
-    description: UpdateApplicationRequest contains the application fields to update.
+    description: UpdateApplicationRequest contains the application with updated fields.
   ClusterAPICreateClusterTokenBody:
     type: object
     properties:
@@ -1132,9 +2729,6 @@ definitions:
       cluster:
         type: object
         properties:
-          tenantId:
-            type: string
-            description: Tenant this cluster belongs to (UUID).
           name:
             type: string
             description: |-
@@ -1179,6 +2773,200 @@ definitions:
           The set of fields to update. If unset, all mutable fields are updated.
           Supported fields: `name`, `description`, `labels`.
     description: UpdateClusterRequest contains the cluster fields to update.
+  ComponentAPISetComponentOverrideBody:
+    type: object
+    properties:
+      override:
+        $ref: '#/definitions/v1ComponentOverride'
+        description: |-
+          The override to set. component_id and environment_id in the override body
+          must match the URL parameters.
+    description: |-
+      SetComponentOverrideRequest creates or replaces an environment-level override
+      for a component. The override is full replace — no merge with the base.
+  ComponentAPIUpdateComponentBody:
+    type: object
+    properties:
+      component:
+        type: object
+        properties:
+          applicationId:
+            type: string
+            description: The application this component belongs to (UUID).
+          name:
+            type: string
+            description: |-
+              URL-safe, human-readable identifier (e.g., "vpc", "api-server"). Unique
+              within the application. Lowercase alphanumeric and hyphens only, must
+              start with a letter and end with an alphanumeric character (1-63 chars).
+          description:
+            type: string
+            description: Optional longer-form description of the component's purpose.
+          sourceId:
+            type: string
+            description: The source artifact this component uses (UUID).
+          version:
+            type: string
+            description: Pinned version of the source artifact (e.g., "1.2.3", "v2.0.0").
+          componentCategory:
+            $ref: '#/definitions/v1ComponentCategory'
+            description: Derived category based on the source type (infrastructure or workload).
+          valuesTemplate:
+            type: string
+            description: |-
+              JSON-encoded values object with template expressions. Templates reference
+              variables (`{{ .var.X }}`), other component outputs
+              (`{{ .component.Y.Z }}`), and environment context (`{{ .env.name }}`).
+          dependsOn:
+            type: array
+            items:
+              type: string
+            description: |-
+              UUIDs of components this component depends on. Admiral ensures dependent
+              components are deployed in topological order.
+          outputs:
+            type: array
+            items:
+              type: object
+              $ref: '#/definitions/v1ComponentOutput'
+            description: |-
+              Named outputs from this component. For workload components, user-declared
+              with value_template expressions. For Terraform, auto-discovered from
+              output blocks.
+          labels:
+            type: object
+            additionalProperties:
+              type: string
+            description: Arbitrary key-value labels for organizing and filtering components.
+          disabled:
+            type: boolean
+            description: |-
+              Whether this component is disabled in the resolved environment view.
+              Only populated when ListComponents filter includes an environment_id.
+          hasOverride:
+            type: boolean
+            description: |-
+              Whether this component has an override for the resolved environment.
+              Only populated when ListComponents filter includes an environment_id.
+          createdAt:
+            type: string
+            format: date-time
+            description: When the component was created.
+          updatedAt:
+            type: string
+            format: date-time
+            description: When the component was last updated.
+        description: |-
+          The component with updated fields. The component's id field is required
+          to identify which component to update.
+      updateMask:
+        type: string
+        description: |-
+          The set of fields to update. If unset, all mutable fields are updated.
+          Supported fields: `name`, `description`, `source_id`, `version`,
+          `values_template`, `depends_on`, `outputs`, `labels`.
+    description: UpdateComponentRequest contains the component with updated fields.
+  ConnectionAPITestConnectionBody:
+    type: object
+    description: TestConnectionRequest identifies a connection to validate against the remote system.
+  ConnectionAPIUpdateConnectionBody:
+    type: object
+    properties:
+      connection:
+        type: object
+        properties:
+          name:
+            type: string
+            description: |-
+              URL-safe, human-readable identifier (e.g., "github-main", "aws-prod").
+              Unique within the tenant. Lowercase alphanumeric and hyphens only, must
+              start with a letter and end with an alphanumeric character (1-63 chars).
+          description:
+            type: string
+            description: Optional longer-form description of the connection's purpose.
+          connectionType:
+            $ref: '#/definitions/v1ConnectionType'
+            description: The type of external system this connection targets.
+          gitToken:
+            $ref: '#/definitions/v1GitTokenConfig'
+            description: Git token authentication.
+          gitSsh:
+            $ref: '#/definitions/v1GitSSHConfig'
+            description: Git SSH key authentication.
+          gitGithubApp:
+            $ref: '#/definitions/v1GitHubAppConfig'
+            description: GitHub App authentication.
+          helmHttp:
+            $ref: '#/definitions/v1HelmHTTPConfig'
+            description: Helm HTTP basic auth.
+          ociBasic:
+            $ref: '#/definitions/v1OCIBasicConfig'
+            description: OCI registry basic auth.
+          cloudOidcAws:
+            $ref: '#/definitions/v1CloudOIDCAWSConfig'
+            description: AWS OIDC federation.
+          cloudOidcGcp:
+            $ref: '#/definitions/v1CloudOIDCGCPConfig'
+            description: GCP OIDC federation via Workload Identity.
+          cloudOidcAzure:
+            $ref: '#/definitions/v1CloudOIDCAzureConfig'
+            description: Azure OIDC federation.
+          cloudStaticAws:
+            $ref: '#/definitions/v1CloudStaticAWSConfig'
+            description: AWS static credentials (deprecated).
+          cloudStaticGcp:
+            $ref: '#/definitions/v1CloudStaticGCPConfig'
+            description: GCP static credentials (deprecated).
+          cloudStaticAzure:
+            $ref: '#/definitions/v1CloudStaticAzureConfig'
+            description: Azure static credentials (deprecated).
+          terraformRegistry:
+            $ref: '#/definitions/admiralConnectionV1TerraformRegistryConfig'
+            description: Terraform registry credentials.
+          s3:
+            $ref: '#/definitions/v1S3Config'
+            description: Amazon S3 bucket configuration.
+          gcs:
+            $ref: '#/definitions/v1GCSConfig'
+            description: Google Cloud Storage bucket configuration.
+          status:
+            $ref: '#/definitions/v1ConnectionStatus'
+            description: Current validation status of the connection.
+          labels:
+            type: object
+            additionalProperties:
+              type: string
+            description: Arbitrary key-value labels for organizing and filtering connections.
+          createdBy:
+            type: string
+            description: User ID who created the connection.
+          updatedBy:
+            type: string
+            description: User ID who last updated the connection.
+          createdAt:
+            type: string
+            format: date-time
+            description: When the connection was created.
+          updatedAt:
+            type: string
+            format: date-time
+            description: When the connection was last updated.
+        description: |-
+          The connection with updated fields. The connection's id field is required
+          to identify which connection to update. The auth_config oneof is replaced
+          entirely — partial auth updates are not supported.
+      updateMask:
+        type: string
+        description: |-
+          The set of fields to update. If unset, all mutable fields are updated.
+          Supported fields: `name`, `description`, `connection_type`, `auth_config`, `labels`.
+    description: UpdateConnectionRequest contains the connection with updated fields.
+  DeploymentAPICancelDeploymentBody:
+    type: object
+    description: CancelDeploymentRequest identifies a deployment to cancel.
+  DeploymentAPIRetryRevisionBody:
+    type: object
+    description: RetryRevisionRequest identifies a failed revision to retry.
   EnvironmentAPIUpdateEnvironmentBody:
     type: object
     properties:
@@ -1218,26 +3006,221 @@ definitions:
             format: date-time
             description: When the environment was last updated.
         description: |-
-          The environment with updated fields. The `id` field is required.
-          Only fields specified in `update_mask` are updated.
+          The environment with updated fields. The environment's id field is required
+          to identify which environment to update.
       updateMask:
         type: string
         description: |-
           The set of fields to update. If unset, all mutable fields are updated.
           Supported fields: `name`, `runtime_type`, `kubernetes`, `labels`.
-    description: UpdateEnvironmentRequest contains the environment fields to update.
-  UserAPIRevokePersonalAccessTokenBody:
+    description: UpdateEnvironmentRequest contains the environment with updated fields.
+  RunnerAPICreateRunnerTokenBody:
     type: object
-    description: RevokePersonalAccessTokenRequest identifies a PAT to revoke.
+    properties:
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier for the token (e.g., "prod-runner-key").
+          Must be unique within the runner's tokens. Lowercase alphanumeric and
+          hyphens only.
+      expiresAt:
+        type: string
+        format: date-time
+        description: Optional expiration time. If unset, the token does not expire.
+    description: |-
+      CreateRunnerTokenRequest contains the parameters for creating a new AGT
+      bound to a runner.
+  RunnerAPIReportJobResultBody:
+    type: object
+    properties:
+      status:
+        $ref: '#/definitions/v1JobStatus'
+        description: Final status of the job execution.
+      output:
+        type: string
+        description: Output or error message from the job execution.
+    description: ReportJobResultRequest reports the outcome of a job execution.
+  RunnerAPIRevokeRunnerTokenBody:
+    type: object
+    description: RevokeRunnerTokenRequest identifies a runner AGT to revoke.
+  RunnerAPIUpdateRunnerBody:
+    type: object
+    properties:
+      runner:
+        type: object
+        properties:
+          tenantId:
+            type: string
+            description: Tenant this runner belongs to (UUID).
+          name:
+            type: string
+            description: |-
+              URL-safe, human-readable identifier (e.g., "terraform-prod", "workflow-ci").
+              Unique within the tenant. Lowercase alphanumeric and hyphens only, must
+              start with a letter and end with an alphanumeric character (1-63 chars).
+          description:
+            type: string
+            description: Optional longer-form description of the runner's purpose.
+          runnerKind:
+            $ref: '#/definitions/v1RunnerKind'
+            description: The kind of operations this runner executes.
+          healthStatus:
+            $ref: '#/definitions/v1RunnerHealthStatus'
+            description: Derived health status based on heartbeat recency.
+          labels:
+            type: object
+            additionalProperties:
+              type: string
+            description: Arbitrary key-value labels for organizing and filtering runners.
+          createdBy:
+            type: string
+            description: User ID who created the runner.
+          updatedBy:
+            type: string
+            description: User ID who last updated the runner.
+          createdAt:
+            type: string
+            format: date-time
+            description: When the runner record was created.
+          updatedAt:
+            type: string
+            format: date-time
+            description: When the runner record was last updated.
+        description: The runner with updated fields. The `id` field is required.
+        title: The runner with updated fields. The `id` field is required.
+      updateMask:
+        type: string
+        description: |-
+          The set of fields to update. If unset, all mutable fields are updated.
+          Supported fields: `name`, `description`, `labels`.
+    description: UpdateRunnerRequest contains the runner fields to update.
+  SourceAPISyncSourceBody:
+    type: object
+    description: SyncSourceRequest triggers a metadata refresh for a source.
+  SourceAPIUpdateSourceBody:
+    type: object
+    properties:
+      source:
+        type: object
+        properties:
+          name:
+            type: string
+            description: |-
+              URL-safe, human-readable identifier (e.g., "vpc-module", "nginx-chart").
+              Unique within the tenant. Lowercase alphanumeric and hyphens only, must
+              start with a letter and end with an alphanumeric character (1-63 chars).
+          description:
+            type: string
+            description: Optional longer-form description of the source's purpose.
+          sourceType:
+            $ref: '#/definitions/v1SourceType'
+            description: The type of artifact this source points to.
+          terraformRegistry:
+            $ref: '#/definitions/admiralSourceV1TerraformRegistryConfig'
+            description: Terraform registry module.
+          terraformGit:
+            $ref: '#/definitions/v1TerraformGitConfig'
+            description: Terraform module in a Git repository.
+          helmRepository:
+            $ref: '#/definitions/v1HelmRepositoryConfig'
+            description: Helm chart from an HTTP(S) repository.
+          helmOci:
+            $ref: '#/definitions/v1HelmOCIConfig'
+            description: Helm chart from an OCI registry.
+          helmGit:
+            $ref: '#/definitions/v1HelmGitConfig'
+            description: Helm chart from a Git repository.
+          kustomizeGit:
+            $ref: '#/definitions/v1KustomizeGitConfig'
+            description: Kustomize overlay from a Git repository.
+          manifestGit:
+            $ref: '#/definitions/v1ManifestGitConfig'
+            description: Raw Kubernetes manifests from a Git repository.
+          archive:
+            $ref: '#/definitions/v1ArchiveConfig'
+            description: Downloadable archive.
+          connectionId:
+            type: string
+            description: |-
+              The connection providing credentials for this source (UUID). Null for
+              public sources that require no authentication.
+          catalog:
+            type: boolean
+            description: |-
+              Whether this source is a curated catalog entry. Platform engineers mark
+              sources as catalog entries for developer self-service consumption.
+          labels:
+            type: object
+            additionalProperties:
+              type: string
+            description: Arbitrary key-value labels for organizing and filtering sources.
+          createdBy:
+            type: string
+            description: User ID who created the source.
+          updatedBy:
+            type: string
+            description: User ID who last updated the source.
+          createdAt:
+            type: string
+            format: date-time
+            description: When the source was created.
+          updatedAt:
+            type: string
+            format: date-time
+            description: When the source was last updated.
+        description: |-
+          The source with updated fields. The source's id field is required to
+          identify which source to update.
+      updateMask:
+        type: string
+        description: |-
+          The set of fields to update. If unset, all mutable fields are updated.
+          Supported fields: `name`, `description`, `source_type`, `source_config`,
+          `connection_id`, `catalog`, `labels`.
+    description: UpdateSourceRequest contains the source with updated fields.
+  StateAPIForceUnlockStateBody:
+    type: object
+    description: |-
+      ForceUnlockStateRequest forcibly releases a lock on a state. This is a
+      privileged operation for operational recovery — requires `state:admin` scope.
+  StateAPILockStateBody:
+    type: object
+    properties:
+      lockId:
+        type: string
+        description: |-
+          A unique lock ID chosen by the caller (e.g., UUID). Returned in the
+          response and required for subsequent PushState and UnlockState calls.
+    description: LockStateRequest acquires a lock on a state.
+  StateAPIPushStateBody:
+    type: object
+    properties:
+      lockId:
+        type: string
+        description: |-
+          The lock ID that must match the current lock. Required to prevent
+          concurrent writes.
+      data:
+        type: string
+        format: byte
+        description: The raw state data (JSON-encoded Terraform state).
+    description: PushStateRequest stores a new state version.
+  StateAPIUnlockStateBody:
+    type: object
+    properties:
+      lockId:
+        type: string
+        description: The lock ID to release. Must match the current lock.
+    description: UnlockStateRequest releases a lock on a state.
+  UserAPIRevokeUserTokenBody:
+    type: object
+    description: RevokeUserTokenRequest identifies a PAT to revoke.
   VariableAPIUpdateVariableBody:
     type: object
     properties:
       variable:
         type: object
         properties:
-          tenantId:
-            type: string
-            description: Tenant this variable belongs to (UUID).
           key:
             type: string
             description: |-
@@ -1263,9 +3246,6 @@ definitions:
               The environment this variable is scoped to (UUID). Requires application_id.
               When set alongside application_id, the variable applies only to this
               specific environment within the application.
-          createdBy:
-            type: string
-            description: User ID who created or last updated the variable.
           createdAt:
             type: string
             format: date-time
@@ -1283,6 +3263,280 @@ definitions:
           The set of fields to update. If unset, all mutable fields are updated.
           Supported fields: `value`, `sensitive`.
     description: UpdateVariableRequest contains the variable fields to update.
+  admiralApiClusterV1CreateClusterRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Must be
+          unique within the tenant. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the cluster's purpose.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: |-
+          Arbitrary key-value labels for organizing and filtering clusters
+          (e.g., `{"region": "us-east-1", "cloud": "aws"}`).
+    description: CreateClusterRequest contains the parameters for creating a new cluster.
+  admiralApiClusterV1CreateClusterResponse:
+    type: object
+    properties:
+      cluster:
+        $ref: '#/definitions/v1Cluster'
+        description: |-
+          The created cluster. Health status will be PENDING until an agent connects
+          and calls AgentAPI.RegisterAgent.
+      plainTextToken:
+        type: string
+        description: |-
+          The raw Agent Token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value
+          is shown exactly once and cannot be retrieved again. Deploy this token to
+          the K8s agent for authentication.
+
+          To create additional tokens (e.g., for rotation), use
+          CreateClusterToken.
+    description: |-
+      CreateClusterResponse contains the newly created cluster and its initial
+      Agent Token (AGT).
+  admiralApiClusterV1DeleteClusterResponse:
+    type: object
+    description: DeleteClusterResponse is empty on success.
+  admiralApiClusterV1GetClusterResponse:
+    type: object
+    properties:
+      cluster:
+        $ref: '#/definitions/v1Cluster'
+        description: The cluster record, including server-derived health_status.
+    description: GetClusterResponse contains the cluster record.
+  admiralApiClusterV1GetClusterStatusResponse:
+    type: object
+    properties:
+      healthStatus:
+        $ref: '#/definitions/v1ClusterHealthStatus'
+        description: |-
+          Server-derived health status based on agent connectivity, node readiness,
+          and workload health.
+      status:
+        $ref: '#/definitions/v1ClusterStatus'
+        description: |-
+          Latest telemetry snapshot from the agent. Absent if no telemetry has
+          been reported yet.
+      reportedAt:
+        type: string
+        format: date-time
+        description: When the latest telemetry was reported by the agent.
+    description: |-
+      GetClusterStatusResponse contains the server-derived health status and the
+      latest telemetry snapshot. If no agent has reported telemetry yet, the
+      health_status will be PENDING and status will be absent.
+  admiralApiClusterV1ListClustersResponse:
+    type: object
+    properties:
+      clusters:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Cluster'
+        description: The list of clusters.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListClustersResponse contains a page of clusters.
+  admiralApiClusterV1ListWorkloadsResponse:
+    type: object
+    properties:
+      workloads:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Workload'
+        description: The list of workloads.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListWorkloadsResponse contains a page of workloads.
+  admiralApiClusterV1UpdateClusterResponse:
+    type: object
+    properties:
+      cluster:
+        $ref: '#/definitions/v1Cluster'
+        description: The updated cluster.
+    description: UpdateClusterResponse contains the updated cluster.
+  admiralApiRunnerV1ClaimJobRequest:
+    type: object
+    properties:
+      runnerId:
+        type: string
+        description: The runner attempting to claim a job (UUID).
+    description: ClaimJobRequest attempts to claim the next available job for a runner.
+  admiralApiRunnerV1ClaimJobResponse:
+    type: object
+    properties:
+      job:
+        $ref: '#/definitions/v1Job'
+        description: The claimed job. Absent if no jobs are available.
+    description: ClaimJobResponse contains the claimed job, if any.
+  admiralApiRunnerV1CreateRunnerRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "terraform-prod"). Must be
+          unique within the tenant. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the runner's purpose.
+      runnerKind:
+        $ref: '#/definitions/v1RunnerKind'
+        description: The kind of operations this runner executes.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering runners.
+    description: CreateRunnerRequest contains the parameters for creating a new runner.
+  admiralApiRunnerV1CreateRunnerResponse:
+    type: object
+    properties:
+      runner:
+        $ref: '#/definitions/v1Runner'
+        description: |-
+          The created runner. Health status will be PENDING until the runner agent
+          connects and begins sending heartbeats.
+      plainTextToken:
+        type: string
+        description: |-
+          The raw Agent Token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value
+          is shown exactly once and cannot be retrieved again. Deploy this token to
+          the runner agent for authentication.
+    description: CreateRunnerResponse contains the newly created runner and its initial AGT.
+  admiralApiRunnerV1DeleteRunnerResponse:
+    type: object
+    description: DeleteRunnerResponse is empty on success.
+  admiralApiRunnerV1GetJobBundleResponse:
+    type: object
+    properties:
+      bundle:
+        $ref: '#/definitions/v1JobBundle'
+        description: The job execution bundle.
+    description: GetJobBundleResponse contains the full execution bundle.
+  admiralApiRunnerV1GetJobResponse:
+    type: object
+    properties:
+      job:
+        $ref: '#/definitions/v1Job'
+        description: The job record.
+    description: GetJobResponse contains the requested job.
+  admiralApiRunnerV1GetRunnerResponse:
+    type: object
+    properties:
+      runner:
+        $ref: '#/definitions/v1Runner'
+        description: The runner record.
+    description: GetRunnerResponse contains the requested runner.
+  admiralApiRunnerV1GetRunnerStatusResponse:
+    type: object
+    properties:
+      healthStatus:
+        $ref: '#/definitions/v1RunnerHealthStatus'
+        description: Server-derived health status.
+      status:
+        $ref: '#/definitions/v1RunnerStatus'
+        description: |-
+          Latest status snapshot from the runner's heartbeat. Absent if no
+          heartbeat has been received yet.
+    description: GetRunnerStatusResponse contains the runner's current status snapshot.
+  admiralApiRunnerV1HeartbeatRequest:
+    type: object
+    properties:
+      runnerId:
+        type: string
+        description: The runner sending the heartbeat (UUID).
+      status:
+        $ref: '#/definitions/v1RunnerStatus'
+        description: Current status snapshot from the runner.
+    description: HeartbeatRequest contains the runner's periodic health signal.
+  admiralApiRunnerV1HeartbeatResponse:
+    type: object
+    properties:
+      nextHeartbeatSeconds:
+        type: integer
+        format: int32
+        description: |-
+          Server-controlled interval (in seconds) before the runner should send
+          its next heartbeat.
+    description: HeartbeatResponse acknowledges the heartbeat.
+  admiralApiRunnerV1ListJobsResponse:
+    type: object
+    properties:
+      jobs:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Job'
+        description: The list of jobs.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListJobsResponse contains a page of jobs.
+  admiralApiRunnerV1ListRunnersResponse:
+    type: object
+    properties:
+      runners:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Runner'
+        description: The list of runners.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListRunnersResponse contains a page of runners.
+  admiralApiRunnerV1ReportJobResultResponse:
+    type: object
+    description: ReportJobResultResponse acknowledges the job result report.
+  admiralApiRunnerV1UpdateRunnerResponse:
+    type: object
+    properties:
+      runner:
+        $ref: '#/definitions/v1Runner'
+        description: The updated runner.
+    description: UpdateRunnerResponse contains the updated runner.
+  admiralConnectionV1TerraformRegistryConfig:
+    type: object
+    properties:
+      hostname:
+        type: string
+        description: Registry hostname (e.g., "app.terraform.io", "registry.terraform.io").
+      token:
+        type: string
+        description: API token for the registry.
+    description: TerraformRegistryConfig contains credentials for a Terraform registry.
+  admiralSourceV1TerraformRegistryConfig:
+    type: object
+    properties:
+      namespace:
+        type: string
+        description: Registry namespace (e.g., "hashicorp").
+      moduleName:
+        type: string
+        description: Module name (e.g., "consul").
+      system:
+        type: string
+        description: Target system (e.g., "aws", "azurerm", "google").
+    description: TerraformRegistryConfig contains settings for a Terraform registry source.
+  apiUserV1GetUserResponse:
+    type: object
+    properties:
+      user:
+        $ref: '#/definitions/v1User'
+        description: The authenticated user's profile.
+    description: GetUserResponse contains the authenticated user's profile information.
   protobufAny:
     type: object
     properties:
@@ -1502,9 +3756,6 @@ definitions:
       id:
         type: string
         description: Unique identifier for the application (UUID).
-      tenantId:
-        type: string
-        description: Tenant this application belongs to (UUID).
       name:
         type: string
         description: |-
@@ -1535,6 +3786,13 @@ definitions:
       Application represents a deployable unit within a tenant. An application
       groups manifests, dependencies, and environment configuration into a single
       entity that Admiral orchestrates across environments.
+  v1ArchiveConfig:
+    type: object
+    properties:
+      url:
+        type: string
+        description: URL to the archive (tar.gz, zip).
+    description: ArchiveConfig contains settings for a downloadable archive source.
   v1BindingType:
     type: string
     enum:
@@ -1548,15 +3806,91 @@ definitions:
        - BINDING_TYPE_UNSPECIFIED: Default value. Must not be used.
        - BINDING_TYPE_USER: Token is bound to a user (PATs).
        - BINDING_TYPE_CLUSTER: Token is bound to a cluster (AGTs).
+  v1CancelDeploymentResponse:
+    type: object
+    properties:
+      deployment:
+        $ref: '#/definitions/v1Deployment'
+        description: The deployment with updated status (CANCELLED).
+    description: CancelDeploymentResponse contains the cancelled deployment.
+  v1CloudOIDCAWSConfig:
+    type: object
+    properties:
+      roleArn:
+        type: string
+        description: The ARN of the IAM role to assume via OIDC.
+      externalId:
+        type: string
+        description: Optional external ID for the STS AssumeRoleWithWebIdentity call.
+    description: |-
+      CloudOIDCAWSConfig contains configuration for AWS OIDC federation.
+      Admiral acts as the OIDC issuer and the customer configures an IAM role
+      trust policy for Admiral's issuer URL.
+  v1CloudOIDCAzureConfig:
+    type: object
+    properties:
+      tenantId:
+        type: string
+        description: Azure AD tenant ID.
+      clientId:
+        type: string
+        description: Azure AD application (client) ID.
+    description: CloudOIDCAzureConfig contains configuration for Azure OIDC federation.
+  v1CloudOIDCGCPConfig:
+    type: object
+    properties:
+      projectId:
+        type: string
+        description: GCP project ID.
+      serviceAccountEmail:
+        type: string
+        description: Service account email to impersonate.
+      workloadIdentityProvider:
+        type: string
+        description: Full resource name of the Workload Identity Provider.
+    description: CloudOIDCGCPConfig contains configuration for GCP Workload Identity federation.
+  v1CloudStaticAWSConfig:
+    type: object
+    properties:
+      accessKeyId:
+        type: string
+        description: AWS access key ID.
+      secretAccessKey:
+        type: string
+        description: AWS secret access key.
+    description: |-
+      CloudStaticAWSConfig contains static AWS credentials.
+      Deprecated: use CloudOIDCAWSConfig with OIDC federation instead.
+  v1CloudStaticAzureConfig:
+    type: object
+    properties:
+      tenantId:
+        type: string
+        description: Azure AD tenant ID.
+      clientId:
+        type: string
+        description: Azure AD application (client) ID.
+      clientSecret:
+        type: string
+        description: Azure AD client secret.
+    description: |-
+      CloudStaticAzureConfig contains static Azure client credentials.
+      Deprecated: use CloudOIDCAzureConfig with OIDC federation instead.
+  v1CloudStaticGCPConfig:
+    type: object
+    properties:
+      serviceAccountJson:
+        type: string
+        description: JSON-encoded service account key.
+    description: |-
+      CloudStaticGCPConfig contains a static GCP service account key.
+      Deprecated: use CloudOIDCGCPConfig with Workload Identity instead.
   v1Cluster:
     type: object
     properties:
       id:
         type: string
         description: Unique identifier for the cluster (UUID).
-      tenantId:
-        type: string
-        description: Tenant this cluster belongs to (UUID).
       name:
         type: string
         description: |-
@@ -1687,6 +4021,297 @@ definitions:
       Server-derived fields (health_status, agent connectivity) are NOT included
       here — they live on the Cluster and Agent records respectively, and are
       returned alongside this message in GetClusterStatusResponse.
+  v1Component:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the component (UUID).
+      applicationId:
+        type: string
+        description: The application this component belongs to (UUID).
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "vpc", "api-server"). Unique
+          within the application. Lowercase alphanumeric and hyphens only, must
+          start with a letter and end with an alphanumeric character (1-63 chars).
+      description:
+        type: string
+        description: Optional longer-form description of the component's purpose.
+      sourceId:
+        type: string
+        description: The source artifact this component uses (UUID).
+      version:
+        type: string
+        description: Pinned version of the source artifact (e.g., "1.2.3", "v2.0.0").
+      componentCategory:
+        $ref: '#/definitions/v1ComponentCategory'
+        description: Derived category based on the source type (infrastructure or workload).
+      valuesTemplate:
+        type: string
+        description: |-
+          JSON-encoded values object with template expressions. Templates reference
+          variables (`{{ .var.X }}`), other component outputs
+          (`{{ .component.Y.Z }}`), and environment context (`{{ .env.name }}`).
+      dependsOn:
+        type: array
+        items:
+          type: string
+        description: |-
+          UUIDs of components this component depends on. Admiral ensures dependent
+          components are deployed in topological order.
+      outputs:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1ComponentOutput'
+        description: |-
+          Named outputs from this component. For workload components, user-declared
+          with value_template expressions. For Terraform, auto-discovered from
+          output blocks.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering components.
+      disabled:
+        type: boolean
+        description: |-
+          Whether this component is disabled in the resolved environment view.
+          Only populated when ListComponents filter includes an environment_id.
+      hasOverride:
+        type: boolean
+        description: |-
+          Whether this component has an override for the resolved environment.
+          Only populated when ListComponents filter includes an environment_id.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the component was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the component was last updated.
+    description: |-
+      Component represents a deployable unit within an application that binds a
+      source artifact to version pinning, values configuration, and dependency
+      ordering. Components are flat standalone resources scoped to an application.
+  v1ComponentCategory:
+    type: string
+    enum:
+      - COMPONENT_CATEGORY_UNSPECIFIED
+      - COMPONENT_CATEGORY_INFRASTRUCTURE
+      - COMPONENT_CATEGORY_WORKLOAD
+    default: COMPONENT_CATEGORY_UNSPECIFIED
+    description: |-
+      ComponentCategory classifies a component based on its source type.
+
+       - COMPONENT_CATEGORY_UNSPECIFIED: Default value. Must not be used.
+       - COMPONENT_CATEGORY_INFRASTRUCTURE: Infrastructure component backed by Terraform.
+       - COMPONENT_CATEGORY_WORKLOAD: Workload component backed by Helm, Kustomize, or raw manifests.
+  v1ComponentOutput:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Output name (e.g., "service_url", "database_host").
+      valueTemplate:
+        type: string
+        description: |-
+          Template expression that resolves the output value
+          (e.g., "{{ .component.api.service_name }}.{{ .env.namespace }}.svc.cluster.local").
+      description:
+        type: string
+        description: Human-readable description of the output.
+    description: |-
+      ComponentOutput defines a named output from a component. For workload
+      components, outputs are user-declared with value_template expressions
+      (e.g., K8s service DNS). For Terraform components, outputs are auto-discovered
+      and this field is ignored.
+  v1ComponentOverride:
+    type: object
+    properties:
+      componentId:
+        type: string
+        description: The component this override applies to (UUID).
+      environmentId:
+        type: string
+        description: The environment this override applies to (UUID).
+      sourceId:
+        type: string
+        description: Override source artifact (UUID). If set, replaces the base source_id.
+      version:
+        type: string
+        description: Override version. If set, replaces the base version.
+      valuesTemplate:
+        type: string
+        description: Override values template (JSON). If set, replaces the base values_template.
+      dependsOn:
+        type: array
+        items:
+          type: string
+        description: Override dependency list (component UUIDs). If set, replaces the base depends_on.
+      outputs:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1ComponentOutput'
+        description: Override outputs. If set, replaces the base outputs.
+      disabled:
+        type: boolean
+        description: Whether the component is disabled for this environment.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the override was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the override was last updated.
+    description: |-
+      ComponentOverride represents an environment-level override for a component.
+      Override is full replace — the entire override replaces the base component's
+      fields for that environment. Source override can change category (Helm to TF
+      or vice versa per environment).
+  v1Connection:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the connection (UUID).
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "github-main", "aws-prod").
+          Unique within the tenant. Lowercase alphanumeric and hyphens only, must
+          start with a letter and end with an alphanumeric character (1-63 chars).
+      description:
+        type: string
+        description: Optional longer-form description of the connection's purpose.
+      connectionType:
+        $ref: '#/definitions/v1ConnectionType'
+        description: The type of external system this connection targets.
+      gitToken:
+        $ref: '#/definitions/v1GitTokenConfig'
+        description: Git token authentication.
+      gitSsh:
+        $ref: '#/definitions/v1GitSSHConfig'
+        description: Git SSH key authentication.
+      gitGithubApp:
+        $ref: '#/definitions/v1GitHubAppConfig'
+        description: GitHub App authentication.
+      helmHttp:
+        $ref: '#/definitions/v1HelmHTTPConfig'
+        description: Helm HTTP basic auth.
+      ociBasic:
+        $ref: '#/definitions/v1OCIBasicConfig'
+        description: OCI registry basic auth.
+      cloudOidcAws:
+        $ref: '#/definitions/v1CloudOIDCAWSConfig'
+        description: AWS OIDC federation.
+      cloudOidcGcp:
+        $ref: '#/definitions/v1CloudOIDCGCPConfig'
+        description: GCP OIDC federation via Workload Identity.
+      cloudOidcAzure:
+        $ref: '#/definitions/v1CloudOIDCAzureConfig'
+        description: Azure OIDC federation.
+      cloudStaticAws:
+        $ref: '#/definitions/v1CloudStaticAWSConfig'
+        description: AWS static credentials (deprecated).
+      cloudStaticGcp:
+        $ref: '#/definitions/v1CloudStaticGCPConfig'
+        description: GCP static credentials (deprecated).
+      cloudStaticAzure:
+        $ref: '#/definitions/v1CloudStaticAzureConfig'
+        description: Azure static credentials (deprecated).
+      terraformRegistry:
+        $ref: '#/definitions/admiralConnectionV1TerraformRegistryConfig'
+        description: Terraform registry credentials.
+      s3:
+        $ref: '#/definitions/v1S3Config'
+        description: Amazon S3 bucket configuration.
+      gcs:
+        $ref: '#/definitions/v1GCSConfig'
+        description: Google Cloud Storage bucket configuration.
+      status:
+        $ref: '#/definitions/v1ConnectionStatus'
+        description: Current validation status of the connection.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering connections.
+      createdBy:
+        type: string
+        description: User ID who created the connection.
+      updatedBy:
+        type: string
+        description: User ID who last updated the connection.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the connection was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the connection was last updated.
+    description: |-
+      Connection represents a tenant-scoped set of credentials for an external
+      system. Connections are referenced by sources to fetch artifacts.
+  v1ConnectionStatus:
+    type: string
+    enum:
+      - CONNECTION_STATUS_UNSPECIFIED
+      - CONNECTION_STATUS_ACTIVE
+      - CONNECTION_STATUS_ERROR
+      - CONNECTION_STATUS_UNTESTED
+    default: CONNECTION_STATUS_UNSPECIFIED
+    description: |-
+      ConnectionStatus represents the current validation state of a connection.
+
+       - CONNECTION_STATUS_UNSPECIFIED: Default value. Must not be used.
+       - CONNECTION_STATUS_ACTIVE: Connection credentials have been validated successfully.
+       - CONNECTION_STATUS_ERROR: Connection credentials failed validation.
+       - CONNECTION_STATUS_UNTESTED: Connection has not been tested yet.
+  v1ConnectionType:
+    type: string
+    enum:
+      - CONNECTION_TYPE_UNSPECIFIED
+      - CONNECTION_TYPE_GIT_TOKEN
+      - CONNECTION_TYPE_GIT_SSH
+      - CONNECTION_TYPE_GIT_GITHUB_APP
+      - CONNECTION_TYPE_HELM_HTTP
+      - CONNECTION_TYPE_OCI_BASIC
+      - CONNECTION_TYPE_CLOUD_OIDC_AWS
+      - CONNECTION_TYPE_CLOUD_OIDC_GCP
+      - CONNECTION_TYPE_CLOUD_OIDC_AZURE
+      - CONNECTION_TYPE_CLOUD_STATIC_AWS
+      - CONNECTION_TYPE_CLOUD_STATIC_GCP
+      - CONNECTION_TYPE_CLOUD_STATIC_AZURE
+      - CONNECTION_TYPE_TERRAFORM_REGISTRY
+      - CONNECTION_TYPE_S3
+      - CONNECTION_TYPE_GCS
+    default: CONNECTION_TYPE_UNSPECIFIED
+    description: |-
+      ConnectionType identifies the kind of external system a connection targets.
+
+       - CONNECTION_TYPE_UNSPECIFIED: Default value. Must not be used.
+       - CONNECTION_TYPE_GIT_TOKEN: Git repository using a personal access token.
+       - CONNECTION_TYPE_GIT_SSH: Git repository using SSH key authentication.
+       - CONNECTION_TYPE_GIT_GITHUB_APP: Git repository using a GitHub App installation.
+       - CONNECTION_TYPE_HELM_HTTP: Helm chart repository over HTTP(S) with basic auth.
+       - CONNECTION_TYPE_OCI_BASIC: OCI-compliant container registry with basic auth.
+       - CONNECTION_TYPE_CLOUD_OIDC_AWS: AWS cloud provider using OIDC federation. Admiral acts as OIDC issuer
+      (https://oidc.admiral.io) and includes tenant_id in the JWT claim.
+       - CONNECTION_TYPE_CLOUD_OIDC_GCP: GCP cloud provider using OIDC federation via Workload Identity.
+       - CONNECTION_TYPE_CLOUD_OIDC_AZURE: Azure cloud provider using OIDC federation.
+       - CONNECTION_TYPE_CLOUD_STATIC_AWS: AWS cloud provider using static access keys. Deprecated: use OIDC instead.
+       - CONNECTION_TYPE_CLOUD_STATIC_GCP: GCP cloud provider using a static service account JSON key. Deprecated: use OIDC instead.
+       - CONNECTION_TYPE_CLOUD_STATIC_AZURE: Azure cloud provider using static client credentials. Deprecated: use OIDC instead.
+       - CONNECTION_TYPE_TERRAFORM_REGISTRY: Terraform registry (public or private).
+       - CONNECTION_TYPE_S3: Amazon S3 bucket for artifact storage.
+       - CONNECTION_TYPE_GCS: Google Cloud Storage bucket for artifact storage.
   v1ContainerStatus:
     type: object
     properties:
@@ -1731,45 +4356,6 @@ definitions:
         $ref: '#/definitions/v1Application'
         description: The created application.
     description: CreateApplicationResponse contains the newly created application.
-  v1CreateClusterRequest:
-    type: object
-    properties:
-      name:
-        type: string
-        description: |-
-          URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Must be
-          unique within the tenant. Lowercase alphanumeric and hyphens only.
-      description:
-        type: string
-        description: Optional longer-form description of the cluster's purpose.
-      labels:
-        type: object
-        additionalProperties:
-          type: string
-        description: |-
-          Arbitrary key-value labels for organizing and filtering clusters
-          (e.g., `{"region": "us-east-1", "cloud": "aws"}`).
-    description: CreateClusterRequest contains the parameters for creating a new cluster.
-  v1CreateClusterResponse:
-    type: object
-    properties:
-      cluster:
-        $ref: '#/definitions/v1Cluster'
-        description: |-
-          The created cluster. Health status will be PENDING until an agent connects
-          and calls AgentAPI.RegisterAgent.
-      plainTextToken:
-        type: string
-        description: |-
-          The raw Agent Token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value
-          is shown exactly once and cannot be retrieved again. Deploy this token to
-          the K8s agent for authentication.
-
-          To create additional tokens (e.g., for rotation), use
-          AccessTokenAPI.CreateAgentToken.
-    description: |-
-      CreateClusterResponse contains the newly created cluster and its initial
-      Agent Token (AGT).
   v1CreateClusterTokenResponse:
     type: object
     properties:
@@ -1782,6 +4368,144 @@ definitions:
           The raw token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value is
           shown exactly once and cannot be retrieved again. Store it securely.
     description: CreateClusterTokenResponse contains the newly created AGT.
+  v1CreateComponentRequest:
+    type: object
+    properties:
+      applicationId:
+        type: string
+        description: The application to create this component for (UUID).
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "vpc", "api-server"). Must be
+          unique within the application. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the component's purpose.
+      sourceId:
+        type: string
+        description: The source artifact this component uses (UUID).
+      version:
+        type: string
+        description: Pinned version of the source artifact (e.g., "1.2.3").
+      valuesTemplate:
+        type: string
+        description: JSON-encoded values object with template expressions.
+      dependsOn:
+        type: array
+        items:
+          type: string
+        description: UUIDs of components this component depends on.
+      outputs:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1ComponentOutput'
+        description: Named outputs from this component.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering components.
+    description: CreateComponentRequest contains the parameters for creating a new component.
+  v1CreateComponentResponse:
+    type: object
+    properties:
+      component:
+        $ref: '#/definitions/v1Component'
+        description: The created component.
+    description: CreateComponentResponse contains the newly created component.
+  v1CreateConnectionRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "github-main"). Must be unique
+          within the tenant. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the connection's purpose.
+      connectionType:
+        $ref: '#/definitions/v1ConnectionType'
+        description: The type of external system this connection targets.
+      gitToken:
+        $ref: '#/definitions/v1GitTokenConfig'
+        description: Git token authentication.
+      gitSsh:
+        $ref: '#/definitions/v1GitSSHConfig'
+        description: Git SSH key authentication.
+      gitGithubApp:
+        $ref: '#/definitions/v1GitHubAppConfig'
+        description: GitHub App authentication.
+      helmHttp:
+        $ref: '#/definitions/v1HelmHTTPConfig'
+        description: Helm HTTP basic auth.
+      ociBasic:
+        $ref: '#/definitions/v1OCIBasicConfig'
+        description: OCI registry basic auth.
+      cloudOidcAws:
+        $ref: '#/definitions/v1CloudOIDCAWSConfig'
+        description: AWS OIDC federation.
+      cloudOidcGcp:
+        $ref: '#/definitions/v1CloudOIDCGCPConfig'
+        description: GCP OIDC federation via Workload Identity.
+      cloudOidcAzure:
+        $ref: '#/definitions/v1CloudOIDCAzureConfig'
+        description: Azure OIDC federation.
+      cloudStaticAws:
+        $ref: '#/definitions/v1CloudStaticAWSConfig'
+        description: AWS static credentials (deprecated).
+      cloudStaticGcp:
+        $ref: '#/definitions/v1CloudStaticGCPConfig'
+        description: GCP static credentials (deprecated).
+      cloudStaticAzure:
+        $ref: '#/definitions/v1CloudStaticAzureConfig'
+        description: Azure static credentials (deprecated).
+      terraformRegistry:
+        $ref: '#/definitions/admiralConnectionV1TerraformRegistryConfig'
+        description: Terraform registry credentials.
+      s3:
+        $ref: '#/definitions/v1S3Config'
+        description: Amazon S3 bucket configuration.
+      gcs:
+        $ref: '#/definitions/v1GCSConfig'
+        description: Google Cloud Storage bucket configuration.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering connections.
+      createdBy:
+        type: string
+        description: User ID who is creating the connection.
+    description: CreateConnectionRequest contains the parameters for creating a new connection.
+  v1CreateConnectionResponse:
+    type: object
+    properties:
+      connection:
+        $ref: '#/definitions/v1Connection'
+        description: The created connection.
+    description: CreateConnectionResponse contains the newly created connection.
+  v1CreateDeploymentRequest:
+    type: object
+    properties:
+      applicationId:
+        type: string
+        description: The application to deploy (UUID).
+      environmentId:
+        type: string
+        description: The environment to deploy to (UUID).
+    description: CreateDeploymentRequest contains the parameters for creating a new deployment.
+  v1CreateDeploymentResponse:
+    type: object
+    properties:
+      deployment:
+        $ref: '#/definitions/v1Deployment'
+        description: |-
+          The created deployment. Status will be PENDING or QUEUED depending on
+          whether another deployment is active for this application+environment.
+    description: CreateDeploymentResponse contains the newly created deployment.
   v1CreateEnvironmentRequest:
     type: object
     properties:
@@ -1814,7 +4538,81 @@ definitions:
         $ref: '#/definitions/v1Environment'
         description: The created environment.
     description: CreateEnvironmentResponse contains the newly created environment.
-  v1CreatePersonalAccessTokenRequest:
+  v1CreateRunnerTokenResponse:
+    type: object
+    properties:
+      accessToken:
+        $ref: '#/definitions/v1AccessToken'
+        description: The created token metadata. Scopes are auto-assigned for runner AGTs.
+      plainTextToken:
+        type: string
+        description: |-
+          The raw token secret (e.g., "adm_agt_pL2mN5oQ8rS1..."). This value is
+          shown exactly once and cannot be retrieved again.
+    description: CreateRunnerTokenResponse contains the newly created AGT.
+  v1CreateSourceRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "vpc-module"). Must be unique
+          within the tenant. Lowercase alphanumeric and hyphens only.
+      description:
+        type: string
+        description: Optional longer-form description of the source's purpose.
+      sourceType:
+        $ref: '#/definitions/v1SourceType'
+        description: The type of artifact this source points to.
+      terraformRegistry:
+        $ref: '#/definitions/admiralSourceV1TerraformRegistryConfig'
+        description: Terraform registry module.
+      terraformGit:
+        $ref: '#/definitions/v1TerraformGitConfig'
+        description: Terraform module in a Git repository.
+      helmRepository:
+        $ref: '#/definitions/v1HelmRepositoryConfig'
+        description: Helm chart from an HTTP(S) repository.
+      helmOci:
+        $ref: '#/definitions/v1HelmOCIConfig'
+        description: Helm chart from an OCI registry.
+      helmGit:
+        $ref: '#/definitions/v1HelmGitConfig'
+        description: Helm chart from a Git repository.
+      kustomizeGit:
+        $ref: '#/definitions/v1KustomizeGitConfig'
+        description: Kustomize overlay from a Git repository.
+      manifestGit:
+        $ref: '#/definitions/v1ManifestGitConfig'
+        description: Raw Kubernetes manifests from a Git repository.
+      archive:
+        $ref: '#/definitions/v1ArchiveConfig'
+        description: Downloadable archive.
+      connectionId:
+        type: string
+        description: |-
+          The connection providing credentials for this source (UUID). Omit for
+          public sources that require no authentication.
+      catalog:
+        type: boolean
+        description: Whether this source is a curated catalog entry.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering sources.
+      createdBy:
+        type: string
+        description: User ID who is creating the source.
+    description: CreateSourceRequest contains the parameters for creating a new source.
+  v1CreateSourceResponse:
+    type: object
+    properties:
+      source:
+        $ref: '#/definitions/v1Source'
+        description: The created source.
+    description: CreateSourceResponse contains the newly created source.
+  v1CreateUserTokenRequest:
     type: object
     properties:
       name:
@@ -1834,8 +4632,8 @@ definitions:
         description: |-
           Optional expiration time. If unset, the token does not expire.
           Tenant policies may enforce a maximum lifetime.
-    description: CreatePersonalAccessTokenRequest contains the parameters for creating a new PAT.
-  v1CreatePersonalAccessTokenResponse:
+    description: CreateUserTokenRequest contains the parameters for creating a new PAT.
+  v1CreateUserTokenResponse:
     type: object
     properties:
       accessToken:
@@ -1846,7 +4644,7 @@ definitions:
         description: |-
           The raw token secret (e.g., "adm_pat_7kH3mNqR2xFb..."). This value is
           shown exactly once and cannot be retrieved again. Store it securely.
-    description: CreatePersonalAccessTokenResponse contains the newly created PAT.
+    description: CreateUserTokenResponse contains the newly created PAT.
   v1CreateVariableRequest:
     type: object
     properties:
@@ -1887,16 +4685,86 @@ definitions:
     description: CreateVariableResponse contains the newly created variable.
   v1DeleteApplicationResponse:
     type: object
-    description: DeleteApplicationResponse is empty on success.
-  v1DeleteClusterResponse:
+    description: DeleteApplicationResponse is returned when the application has been successfully deleted.
+  v1DeleteComponentOverrideResponse:
     type: object
-    description: DeleteClusterResponse is empty on success.
+    description: DeleteComponentOverrideResponse is returned when the override has been successfully deleted.
+  v1DeleteComponentResponse:
+    type: object
+    description: DeleteComponentResponse is returned when the component has been successfully deleted.
+  v1DeleteConnectionResponse:
+    type: object
+    description: DeleteConnectionResponse is returned when the connection has been successfully deleted.
   v1DeleteEnvironmentResponse:
     type: object
-    description: DeleteEnvironmentResponse is empty on success.
+    description: DeleteEnvironmentResponse is returned when the environment has been successfully deleted.
+  v1DeleteSourceResponse:
+    type: object
+    description: DeleteSourceResponse is returned when the source has been successfully deleted.
+  v1DeleteStateResponse:
+    type: object
+    description: DeleteStateResponse is returned when the state has been successfully deleted.
   v1DeleteVariableResponse:
     type: object
-    description: DeleteVariableResponse is empty on success.
+    description: DeleteVariableResponse is returned when the variable has been successfully deleted.
+  v1Deployment:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the deployment (UUID).
+      applicationId:
+        type: string
+        description: The application being deployed (UUID).
+      environmentId:
+        type: string
+        description: The environment being deployed to (UUID).
+      status:
+        $ref: '#/definitions/v1DeploymentStatus'
+        description: Current lifecycle status of the deployment.
+      startedAt:
+        type: string
+        format: date-time
+        description: When the deployment started executing (transitioned from QUEUED to RUNNING).
+      completedAt:
+        type: string
+        format: date-time
+        description: When the deployment completed (succeeded, failed, or cancelled).
+      createdAt:
+        type: string
+        format: date-time
+        description: When the deployment record was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the deployment record was last updated.
+    description: |-
+      Deployment represents one act of deploying an application to an environment.
+      Each deployment produces one revision per component in the application's
+      dependency graph.
+  v1DeploymentStatus:
+    type: string
+    enum:
+      - DEPLOYMENT_STATUS_UNSPECIFIED
+      - DEPLOYMENT_STATUS_PENDING
+      - DEPLOYMENT_STATUS_QUEUED
+      - DEPLOYMENT_STATUS_RUNNING
+      - DEPLOYMENT_STATUS_SUCCEEDED
+      - DEPLOYMENT_STATUS_PARTIALLY_FAILED
+      - DEPLOYMENT_STATUS_FAILED
+      - DEPLOYMENT_STATUS_CANCELLED
+    default: DEPLOYMENT_STATUS_UNSPECIFIED
+    description: |-
+      DeploymentStatus represents the lifecycle state of a deployment.
+
+       - DEPLOYMENT_STATUS_UNSPECIFIED: Default value. Must not be used.
+       - DEPLOYMENT_STATUS_PENDING: Deployment created but not yet scheduled.
+       - DEPLOYMENT_STATUS_QUEUED: Deployment waiting for an active deployment to complete.
+       - DEPLOYMENT_STATUS_RUNNING: Deployment is actively executing revisions.
+       - DEPLOYMENT_STATUS_SUCCEEDED: All revisions completed successfully.
+       - DEPLOYMENT_STATUS_PARTIALLY_FAILED: Some revisions succeeded but at least one failed.
+       - DEPLOYMENT_STATUS_FAILED: All revisions failed or the deployment itself failed.
+       - DEPLOYMENT_STATUS_CANCELLED: Deployment was cancelled by a user or system.
   v1Environment:
     type: object
     properties:
@@ -1938,41 +4806,57 @@ definitions:
     description: |-
       Environment represents a named deployment target for an application. Each
       environment binds an application to a runtime where its workloads are deployed.
+  v1FederatedIdentity:
+    type: object
+    properties:
+      tenantId:
+        type: string
+        description: The tenant this federated identity belongs to (UUID format).
+      userId:
+        type: string
+        description: The Admiral user this external identity is linked to (UUID format).
+      subjectId:
+        type: string
+        description: |-
+          The unique identifier for this user at the external provider (e.g.,
+          the "sub" claim in an OIDC token or the NameID in a SAML assertion).
+      socialProvider:
+        $ref: '#/definitions/v1SocialProvider'
+        description: A preconfigured social login provider (e.g., GOOGLE).
+      identityProviderId:
+        type: string
+        description: |-
+          The UUID of a tenant-specific enterprise identity provider configured
+          via IdentityProviderAPI.
+    description: |-
+      FederatedIdentity represents a link between an Admiral user and an external
+      identity from a social provider (e.g., Google) or an enterprise identity
+      provider (SAML/OIDC). The subject_id is the unique identifier assigned to
+      the user by the external provider.
+  v1ForceUnlockStateResponse:
+    type: object
+    properties:
+      state:
+        $ref: '#/definitions/v1State'
+        description: The state with lock information cleared.
+    description: ForceUnlockStateResponse contains the state with lock cleared.
+  v1GCSConfig:
+    type: object
+    properties:
+      bucket:
+        type: string
+        description: GCS bucket name.
+      prefix:
+        type: string
+        description: Optional key prefix within the bucket.
+    description: GCSConfig contains configuration for a Google Cloud Storage bucket.
   v1GetApplicationResponse:
     type: object
     properties:
       application:
         $ref: '#/definitions/v1Application'
         description: The application record.
-    description: GetApplicationResponse contains the application record.
-  v1GetClusterResponse:
-    type: object
-    properties:
-      cluster:
-        $ref: '#/definitions/v1Cluster'
-        description: The cluster record, including server-derived health_status.
-    description: GetClusterResponse contains the cluster record.
-  v1GetClusterStatusResponse:
-    type: object
-    properties:
-      healthStatus:
-        $ref: '#/definitions/v1ClusterHealthStatus'
-        description: |-
-          Server-derived health status based on agent connectivity, node readiness,
-          and workload health.
-      status:
-        $ref: '#/definitions/v1ClusterStatus'
-        description: |-
-          Latest telemetry snapshot from the agent. Absent if no telemetry has
-          been reported yet.
-      reportedAt:
-        type: string
-        format: date-time
-        description: When the latest telemetry was reported by the agent.
-    description: |-
-      GetClusterStatusResponse contains the server-derived health status and the
-      latest telemetry snapshot. If no agent has reported telemetry yet, the
-      health_status will be PENDING and status will be absent.
+    description: GetApplicationResponse contains the requested application.
   v1GetClusterTokenResponse:
     type: object
     properties:
@@ -1980,6 +4864,41 @@ definitions:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata. The token secret is never included.
     description: GetClusterTokenResponse contains the requested cluster AGT metadata.
+  v1GetComponentOverrideResponse:
+    type: object
+    properties:
+      override:
+        $ref: '#/definitions/v1ComponentOverride'
+        description: The component override.
+    description: GetComponentOverrideResponse contains the requested override.
+  v1GetComponentResponse:
+    type: object
+    properties:
+      component:
+        $ref: '#/definitions/v1Component'
+        description: The component record.
+    description: GetComponentResponse contains the requested component.
+  v1GetConnectionResponse:
+    type: object
+    properties:
+      connection:
+        $ref: '#/definitions/v1Connection'
+        description: The connection record. Sensitive credential fields are masked.
+    description: GetConnectionResponse contains the requested connection.
+  v1GetCurrentStateResponse:
+    type: object
+    properties:
+      state:
+        $ref: '#/definitions/v1State'
+        description: The state record.
+    description: GetCurrentStateResponse contains the state metadata.
+  v1GetDeploymentResponse:
+    type: object
+    properties:
+      deployment:
+        $ref: '#/definitions/v1Deployment'
+        description: The deployment record.
+    description: GetDeploymentResponse contains the requested deployment.
   v1GetEnvironmentResponse:
     type: object
     properties:
@@ -1987,38 +4906,78 @@ definitions:
         $ref: '#/definitions/v1Environment'
         description: The environment record.
     description: GetEnvironmentResponse contains the environment record.
-  v1GetPersonalAccessTokenResponse:
+  v1GetRevisionResponse:
+    type: object
+    properties:
+      revision:
+        $ref: '#/definitions/v1Revision'
+        description: The revision record.
+    description: GetRevisionResponse contains the requested revision.
+  v1GetRunnerTokenResponse:
     type: object
     properties:
       accessToken:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata. The token secret is never included.
-    description: GetPersonalAccessTokenResponse contains the requested PAT metadata.
-  v1GetUserResponse:
+    description: GetRunnerTokenResponse contains the requested runner AGT metadata.
+  v1GetSourceInputsResponse:
     type: object
     properties:
-      id:
+      inputs:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1SourceInput'
+        description: The parsed input parameters.
+    description: GetSourceInputsResponse contains the parsed inputs for a source version.
+  v1GetSourceOutputsResponse:
+    type: object
+    properties:
+      outputs:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1SourceOutput'
+        description: The parsed output definitions.
+    description: |-
+      GetSourceOutputsResponse contains the parsed outputs for a source version.
+      Only populated for Terraform sources — workload sources have no formal outputs.
+  v1GetSourceResponse:
+    type: object
+    properties:
+      source:
+        $ref: '#/definitions/v1Source'
+        description: The source record.
+    description: GetSourceResponse contains the requested source.
+  v1GetStateResponse:
+    type: object
+    properties:
+      state:
+        $ref: '#/definitions/v1State'
+        description: The state metadata.
+      data:
         type: string
-        description: Unique identifier for the user (UUID format).
-      tenantId:
+        format: byte
+        description: The raw state data (JSON-encoded Terraform state).
+    description: GetStateResponse contains the current state data.
+  v1GetStateVersionResponse:
+    type: object
+    properties:
+      version:
+        $ref: '#/definitions/v1StateVersion'
+        description: The state version metadata.
+      data:
         type: string
-        description: The tenant this user belongs to (UUID format).
-      email:
-        type: string
-        description: User's email address.
-      displayName:
-        type: string
-        description: User's display name for UI purposes.
-      givenName:
-        type: string
-        description: User's given (first) name.
-      familyName:
-        type: string
-        description: User's family (last) name.
-      avatarUrl:
-        type: string
-        description: URL to the user's avatar image.
-    description: GetUserResponse contains the authenticated user's profile information.
+        format: byte
+        description: The raw state data for this version (JSON-encoded Terraform state).
+    description: GetStateVersionResponse contains the requested state version.
+  v1GetUserTokenResponse:
+    type: object
+    properties:
+      accessToken:
+        $ref: '#/definitions/v1AccessToken'
+        description: The token metadata. The token secret is never included.
+    description: GetUserTokenResponse contains the requested PAT metadata.
   v1GetVariableResponse:
     type: object
     properties:
@@ -2026,11 +4985,165 @@ definitions:
         $ref: '#/definitions/v1Variable'
         description: The variable record. Sensitive variable values are masked.
     description: GetVariableResponse contains the variable record.
+  v1GitHubAppConfig:
+    type: object
+    properties:
+      appId:
+        type: string
+        format: int64
+        description: GitHub App ID.
+      installationId:
+        type: string
+        format: int64
+        description: GitHub App installation ID.
+      privateKey:
+        type: string
+        description: PEM-encoded private key for the GitHub App.
+    description: GitHubAppConfig contains credentials for GitHub App authentication.
+  v1GitSSHConfig:
+    type: object
+    properties:
+      privateKey:
+        type: string
+        description: PEM-encoded private key.
+    description: GitSSHConfig contains credentials for Git SSH key authentication.
+  v1GitTokenConfig:
+    type: object
+    properties:
+      token:
+        type: string
+        description: Personal access token or deploy token.
+    description: GitTokenConfig contains credentials for Git token-based authentication.
   v1HealthcheckResponse:
     type: object
     description: |-
-      HealthcheckResponse is returned when the service is healthy.
-      An empty response indicates the service is operating normally.
+      HealthcheckResponse is returned when the service is healthy. An empty
+      response with an OK status code indicates the service is available.
+  v1HelmGitConfig:
+    type: object
+    properties:
+      repoUrl:
+        type: string
+        description: Git repository URL.
+      path:
+        type: string
+        description: Path to the chart within the repository.
+      ref:
+        type: string
+        description: Git ref (branch, tag, or commit SHA). Defaults to the repository's default branch.
+    description: HelmGitConfig contains settings for a Helm chart in a Git repository.
+  v1HelmHTTPConfig:
+    type: object
+    properties:
+      username:
+        type: string
+        description: HTTP basic auth username.
+      password:
+        type: string
+        description: HTTP basic auth password.
+    description: HelmHTTPConfig contains credentials for Helm HTTP repository authentication.
+  v1HelmOCIConfig:
+    type: object
+    properties:
+      registryUrl:
+        type: string
+        description: OCI registry URL (e.g., "oci://ghcr.io/org").
+      chartName:
+        type: string
+        description: Chart name within the registry.
+    description: HelmOCIConfig contains settings for a Helm chart in an OCI registry.
+  v1HelmRepositoryConfig:
+    type: object
+    properties:
+      repoUrl:
+        type: string
+        description: Helm chart repository URL.
+      chartName:
+        type: string
+        description: Chart name within the repository.
+    description: HelmRepositoryConfig contains settings for a Helm chart in an HTTP(S) repository.
+  v1Job:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the job (UUID).
+      tenantId:
+        type: string
+        description: Tenant this job belongs to (UUID).
+      runnerId:
+        type: string
+        description: The runner assigned to execute this job (UUID).
+      deploymentId:
+        type: string
+        description: The deployment this job is part of (UUID).
+      revisionId:
+        type: string
+        description: The revision this job corresponds to (UUID).
+      componentId:
+        type: string
+        description: The component being executed (UUID).
+      jobType:
+        type: string
+        description: The type of job (e.g., "terraform_plan", "terraform_apply", "helm_upgrade").
+      status:
+        $ref: '#/definitions/v1JobStatus'
+        description: Current lifecycle status of the job.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the job record was created.
+      startedAt:
+        type: string
+        format: date-time
+        description: When the job started executing.
+      completedAt:
+        type: string
+        format: date-time
+        description: When the job completed.
+    description: Job represents a unit of work dispatched to a runner for execution.
+  v1JobBundle:
+    type: object
+    properties:
+      jobId:
+        type: string
+        description: The job this bundle is for (UUID).
+      sourceArchiveUrl:
+        type: string
+        description: URL to download the source archive (pre-signed or authenticated).
+      valuesJson:
+        type: string
+        description: JSON-encoded rendered values for the component.
+      stateConfig:
+        type: string
+        description: Optional state backend configuration for Terraform jobs.
+      environmentVariables:
+        type: object
+        additionalProperties:
+          type: string
+        description: Environment variables to inject into the job execution environment.
+    description: JobBundle contains all the information a runner needs to execute a job.
+  v1JobStatus:
+    type: string
+    enum:
+      - JOB_STATUS_UNSPECIFIED
+      - JOB_STATUS_PENDING
+      - JOB_STATUS_CLAIMED
+      - JOB_STATUS_RUNNING
+      - JOB_STATUS_SUCCEEDED
+      - JOB_STATUS_FAILED
+      - JOB_STATUS_CANCELLED
+    default: JOB_STATUS_UNSPECIFIED
+    description: |-
+      JobStatus represents the lifecycle state of a job.
+
+       - JOB_STATUS_UNSPECIFIED: Default value. Must not be used.
+       - JOB_STATUS_PENDING: Job created and waiting to be claimed.
+       - JOB_STATUS_CLAIMED: Job claimed by a runner.
+       - JOB_STATUS_RUNNING: Job is actively executing.
+       - JOB_STATUS_SUCCEEDED: Job completed successfully.
+       - JOB_STATUS_FAILED: Job failed during execution.
+       - JOB_STATUS_CANCELLED: Job was cancelled.
   v1KubernetesConfig:
     type: object
     properties:
@@ -2043,6 +5156,19 @@ definitions:
           The Kubernetes namespace for this environment's workloads.
           Defaults to the environment name if not specified at deploy time.
     description: KubernetesConfig contains Kubernetes-specific settings for an environment.
+  v1KustomizeGitConfig:
+    type: object
+    properties:
+      repoUrl:
+        type: string
+        description: Git repository URL.
+      path:
+        type: string
+        description: Path to the kustomization directory within the repository.
+      ref:
+        type: string
+        description: Git ref (branch, tag, or commit SHA). Defaults to the repository's default branch.
+    description: KustomizeGitConfig contains settings for a Kustomize overlay in a Git repository.
   v1ListApplicationsResponse:
     type: object
     properties:
@@ -2051,10 +5177,10 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/v1Application'
-        description: The list of applications.
+        description: The list of applications matching the filter.
       nextPageToken:
         type: string
-        description: Pagination token for the next page. Empty when there are no more results.
+        description: Token to retrieve the next page. Empty when there are no more results.
     description: ListApplicationsResponse contains a page of applications.
   v1ListClusterTokensResponse:
     type: object
@@ -2069,19 +5195,58 @@ definitions:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
     description: ListClusterTokensResponse contains a page of cluster AGT metadata.
-  v1ListClustersResponse:
+  v1ListComponentOverridesResponse:
     type: object
     properties:
-      clusters:
+      overrides:
         type: array
         items:
           type: object
-          $ref: '#/definitions/v1Cluster'
-        description: The list of clusters.
+          $ref: '#/definitions/v1ComponentOverride'
+        description: The list of overrides for the component.
       nextPageToken:
         type: string
-        description: Pagination token for the next page. Empty when there are no more results.
-    description: ListClustersResponse contains a page of clusters.
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListComponentOverridesResponse contains a page of component overrides.
+  v1ListComponentsResponse:
+    type: object
+    properties:
+      components:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Component'
+        description: The list of components matching the filter.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListComponentsResponse contains a page of components.
+  v1ListConnectionsResponse:
+    type: object
+    properties:
+      connections:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Connection'
+        description: The list of connections matching the filter. Sensitive fields are masked.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListConnectionsResponse contains a page of connections.
+  v1ListDeploymentsResponse:
+    type: object
+    properties:
+      deployments:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Deployment'
+        description: The list of deployments matching the filter.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListDeploymentsResponse contains a page of deployments.
   v1ListEnvironmentsResponse:
     type: object
     properties:
@@ -2090,12 +5255,25 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/v1Environment'
-        description: The list of environments.
+        description: The list of environments matching the filter.
       nextPageToken:
         type: string
-        description: Pagination token for the next page. Empty when there are no more results.
+        description: Token to retrieve the next page. Empty when there are no more results.
     description: ListEnvironmentsResponse contains a page of environments.
-  v1ListPersonalAccessTokensResponse:
+  v1ListRevisionsResponse:
+    type: object
+    properties:
+      revisions:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Revision'
+        description: The list of revisions for the deployment.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListRevisionsResponse contains a page of revisions.
+  v1ListRunnerTokensResponse:
     type: object
     properties:
       accessTokens:
@@ -2107,7 +5285,68 @@ definitions:
       nextPageToken:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
-    description: ListPersonalAccessTokensResponse contains a page of PAT metadata.
+    description: ListRunnerTokensResponse contains a page of runner AGT metadata.
+  v1ListSourceVersionsResponse:
+    type: object
+    properties:
+      versions:
+        type: array
+        items:
+          type: string
+        description: Available versions from the external system (e.g., semver tags, commit SHAs).
+    description: ListSourceVersionsResponse contains the available versions for a source.
+  v1ListSourcesResponse:
+    type: object
+    properties:
+      sources:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1Source'
+        description: The list of sources matching the filter.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListSourcesResponse contains a page of sources.
+  v1ListStateVersionsResponse:
+    type: object
+    properties:
+      versions:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1StateVersion'
+        description: The list of state versions, ordered by version_number descending.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListStateVersionsResponse contains a page of state versions.
+  v1ListStatesResponse:
+    type: object
+    properties:
+      states:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1State'
+        description: The list of states matching the filter.
+      nextPageToken:
+        type: string
+        description: Token to retrieve the next page. Empty when there are no more results.
+    description: ListStatesResponse contains a page of states.
+  v1ListUserTokensResponse:
+    type: object
+    properties:
+      accessTokens:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1AccessToken'
+        description: The list of tokens. Token secrets are never included.
+      nextPageToken:
+        type: string
+        description: Pagination token for the next page. Empty when there are no more results.
+    description: ListUserTokensResponse contains a page of PAT metadata.
   v1ListVariablesResponse:
     type: object
     properties:
@@ -2121,19 +5360,50 @@ definitions:
         type: string
         description: Pagination token for the next page. Empty when there are no more results.
     description: ListVariablesResponse contains a page of variables.
-  v1ListWorkloadsResponse:
+  v1LockStateResponse:
     type: object
     properties:
-      workloads:
-        type: array
-        items:
-          type: object
-          $ref: '#/definitions/v1Workload'
-        description: The list of workloads.
-      nextPageToken:
+      state:
+        $ref: '#/definitions/v1State'
+        description: The state with lock information set.
+    description: LockStateResponse acknowledges the lock acquisition.
+  v1ManifestGitConfig:
+    type: object
+    properties:
+      repoUrl:
         type: string
-        description: Pagination token for the next page. Empty when there are no more results.
-    description: ListWorkloadsResponse contains a page of workloads.
+        description: Git repository URL.
+      path:
+        type: string
+        description: Path to the manifests directory within the repository.
+      ref:
+        type: string
+        description: Git ref (branch, tag, or commit SHA). Defaults to the repository's default branch.
+    description: ManifestGitConfig contains settings for raw Kubernetes manifests in a Git repository.
+  v1MfaMethod:
+    type: string
+    enum:
+      - MFA_METHOD_UNSPECIFIED
+      - TOTP
+    default: MFA_METHOD_UNSPECIFIED
+    description: |-
+      MfaMethod identifies a multi-factor authentication method that a user has
+      enrolled.
+
+       - MFA_METHOD_UNSPECIFIED: Default value. Must not be used.
+       - TOTP: Time-based One-Time Password (RFC 6238) via an authenticator app.
+
+      WEBAUTHN = 2; // Future: passkeys/security keys
+  v1OCIBasicConfig:
+    type: object
+    properties:
+      username:
+        type: string
+        description: Registry username.
+      password:
+        type: string
+        description: Registry password.
+    description: OCIBasicConfig contains credentials for OCI registry basic authentication.
   v1ObjectReference:
     type: object
     properties:
@@ -2147,6 +5417,13 @@ definitions:
         type: string
         description: Object name.
     description: ObjectReference is a lightweight reference to a Kubernetes object.
+  v1PushStateResponse:
+    type: object
+    properties:
+      version:
+        $ref: '#/definitions/v1StateVersion'
+        description: The newly created state version.
+    description: PushStateResponse contains the metadata of the new state version.
   v1ReportClusterStatusResponse:
     type: object
     properties:
@@ -2167,6 +5444,90 @@ definitions:
         type: boolean
         description: Whether the report was accepted.
     description: ReportWorkloadStatusResponse acknowledges a workload telemetry push.
+  v1RetryRevisionResponse:
+    type: object
+    properties:
+      revision:
+        $ref: '#/definitions/v1Revision'
+        description: The revision with reset status (PENDING).
+    description: RetryRevisionResponse contains the retried revision.
+  v1Revision:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the revision (UUID).
+      deploymentId:
+        type: string
+        description: The deployment this revision belongs to (UUID).
+      componentId:
+        type: string
+        description: The component being executed (UUID).
+      componentName:
+        type: string
+        description: The component name at the time of deployment (denormalized for history).
+      status:
+        $ref: '#/definitions/v1RevisionStatus'
+        description: Current lifecycle status of the revision.
+      blockedBy:
+        type: array
+        items:
+          type: string
+        description: |-
+          Component IDs that this revision is blocked by. Only populated when
+          status is BLOCKED.
+      planOutput:
+        type: string
+        description: |-
+          Plan output from the planning phase (e.g., Terraform plan output).
+          Only populated after the planning phase completes.
+      applyOutput:
+        type: string
+        description: |-
+          Apply output from the applying phase (e.g., Terraform apply output).
+          Only populated after the applying phase completes.
+      startedAt:
+        type: string
+        format: date-time
+        description: When the revision started executing.
+      completedAt:
+        type: string
+        format: date-time
+        description: When the revision completed (succeeded, failed, or cancelled).
+      createdAt:
+        type: string
+        format: date-time
+        description: When the revision record was created.
+    description: |-
+      Revision represents the execution of a single component within a deployment.
+      Revisions are nested under deployments and follow the component dependency
+      graph for ordering.
+  v1RevisionStatus:
+    type: string
+    enum:
+      - REVISION_STATUS_UNSPECIFIED
+      - REVISION_STATUS_PENDING
+      - REVISION_STATUS_QUEUED
+      - REVISION_STATUS_PLANNING
+      - REVISION_STATUS_APPLYING
+      - REVISION_STATUS_SUCCEEDED
+      - REVISION_STATUS_FAILED
+      - REVISION_STATUS_BLOCKED
+      - REVISION_STATUS_CANCELLED
+    default: REVISION_STATUS_UNSPECIFIED
+    description: |-
+      RevisionStatus represents the lifecycle state of a single component revision
+      within a deployment.
+
+       - REVISION_STATUS_UNSPECIFIED: Default value. Must not be used.
+       - REVISION_STATUS_PENDING: Revision created but not yet scheduled.
+       - REVISION_STATUS_QUEUED: Revision waiting for a runner to claim it.
+       - REVISION_STATUS_PLANNING: Revision is generating a plan (Terraform plan, Helm template, etc.).
+       - REVISION_STATUS_APPLYING: Revision is applying changes (Terraform apply, Helm upgrade, etc.).
+       - REVISION_STATUS_SUCCEEDED: Revision completed successfully.
+       - REVISION_STATUS_FAILED: Revision failed during planning or applying.
+       - REVISION_STATUS_BLOCKED: Revision is blocked by dependencies that have not yet completed.
+       - REVISION_STATUS_CANCELLED: Revision was cancelled.
   v1RevokeClusterTokenResponse:
     type: object
     properties:
@@ -2174,13 +5535,132 @@ definitions:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata with updated status.
     description: RevokeClusterTokenResponse contains the revoked cluster AGT metadata.
-  v1RevokePersonalAccessTokenResponse:
+  v1RevokeRunnerTokenResponse:
     type: object
     properties:
       accessToken:
         $ref: '#/definitions/v1AccessToken'
         description: The token metadata with updated status.
-    description: RevokePersonalAccessTokenResponse contains the revoked PAT metadata.
+    description: RevokeRunnerTokenResponse contains the revoked runner AGT metadata.
+  v1RevokeUserTokenResponse:
+    type: object
+    properties:
+      accessToken:
+        $ref: '#/definitions/v1AccessToken'
+        description: The token metadata with updated status.
+    description: RevokeUserTokenResponse contains the revoked PAT metadata.
+  v1Runner:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the runner (UUID).
+      tenantId:
+        type: string
+        description: Tenant this runner belongs to (UUID).
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "terraform-prod", "workflow-ci").
+          Unique within the tenant. Lowercase alphanumeric and hyphens only, must
+          start with a letter and end with an alphanumeric character (1-63 chars).
+      description:
+        type: string
+        description: Optional longer-form description of the runner's purpose.
+      runnerKind:
+        $ref: '#/definitions/v1RunnerKind'
+        description: The kind of operations this runner executes.
+      healthStatus:
+        $ref: '#/definitions/v1RunnerHealthStatus'
+        description: Derived health status based on heartbeat recency.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering runners.
+      createdBy:
+        type: string
+        description: User ID who created the runner.
+      updatedBy:
+        type: string
+        description: User ID who last updated the runner.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the runner record was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the runner record was last updated.
+    description: |-
+      Runner represents an IaC/workflow execution environment within a tenant.
+      1 Runner = 1 controller = 1 agent record.
+  v1RunnerHealthStatus:
+    type: string
+    enum:
+      - RUNNER_HEALTH_STATUS_UNSPECIFIED
+      - RUNNER_HEALTH_STATUS_PENDING
+      - RUNNER_HEALTH_STATUS_HEALTHY
+      - RUNNER_HEALTH_STATUS_UNREACHABLE
+    default: RUNNER_HEALTH_STATUS_UNSPECIFIED
+    description: |-
+      RunnerHealthStatus represents the derived health state of a runner.
+
+       - RUNNER_HEALTH_STATUS_UNSPECIFIED: Default value. Must not be used.
+       - RUNNER_HEALTH_STATUS_PENDING: Runner record exists but no agent has registered yet.
+       - RUNNER_HEALTH_STATUS_HEALTHY: Runner agent is connected and sending heartbeats.
+       - RUNNER_HEALTH_STATUS_UNREACHABLE: No heartbeat received within the expected interval.
+  v1RunnerKind:
+    type: string
+    enum:
+      - RUNNER_KIND_UNSPECIFIED
+      - RUNNER_KIND_TERRAFORM
+      - RUNNER_KIND_WORKFLOW
+    default: RUNNER_KIND_UNSPECIFIED
+    description: |-
+      RunnerKind identifies what type of operations a runner can execute.
+
+       - RUNNER_KIND_UNSPECIFIED: Default value. Must not be used.
+       - RUNNER_KIND_TERRAFORM: Terraform runner for infrastructure provisioning.
+       - RUNNER_KIND_WORKFLOW: Workflow runner for CI/CD-style pipelines.
+  v1RunnerStatus:
+    type: object
+    properties:
+      runnerKind:
+        $ref: '#/definitions/v1RunnerKind'
+        description: The kind of operations this runner executes.
+      version:
+        type: string
+        description: Runner agent version string.
+      os:
+        type: string
+        description: Operating system (e.g., "linux", "darwin").
+      arch:
+        type: string
+        description: CPU architecture (e.g., "amd64", "arm64").
+      cpuCount:
+        type: integer
+        format: int32
+        description: Number of CPU cores available.
+      memoryBytes:
+        type: string
+        format: int64
+        description: Total memory available, in bytes.
+      activeJobs:
+        type: integer
+        format: int32
+        description: Number of jobs currently executing.
+      maxJobs:
+        type: integer
+        format: int32
+        description: Maximum concurrent jobs the runner can handle.
+      lastHeartbeatAt:
+        type: string
+        format: date-time
+        description: When the last heartbeat was received.
+    description: |-
+      RunnerStatus contains the runtime status snapshot for a runner, as reported
+      by the runner's heartbeat.
   v1RuntimeType:
     type: string
     enum:
@@ -2192,6 +5672,286 @@ definitions:
 
        - RUNTIME_TYPE_UNSPECIFIED: Default value. Must not be used.
        - RUNTIME_TYPE_KUBERNETES: Kubernetes cluster managed via Admiral's K8s agent.
+  v1S3Config:
+    type: object
+    properties:
+      bucket:
+        type: string
+        description: S3 bucket name.
+      region:
+        type: string
+        description: AWS region (e.g., "us-east-1").
+      prefix:
+        type: string
+        description: Optional key prefix within the bucket.
+    description: S3Config contains configuration for an Amazon S3 bucket.
+  v1SetComponentOverrideResponse:
+    type: object
+    properties:
+      override:
+        $ref: '#/definitions/v1ComponentOverride'
+        description: The override that was set.
+    description: SetComponentOverrideResponse contains the created or updated override.
+  v1SocialProvider:
+    type: string
+    enum:
+      - SOCIAL_PROVIDER_UNSPECIFIED
+      - GOOGLE
+    default: SOCIAL_PROVIDER_UNSPECIFIED
+    description: |-
+      SocialProvider identifies a third-party social login provider that a tenant
+      can enable for its users. Social providers use OAuth 2.0 / OpenID Connect
+      and are preconfigured — unlike enterprise identity providers which require
+      per-tenant configuration via IdentityProviderAPI.
+
+       - SOCIAL_PROVIDER_UNSPECIFIED: Default value. Must not be used.
+       - GOOGLE: Google OAuth 2.0 login.
+  v1Source:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the source (UUID).
+      name:
+        type: string
+        description: |-
+          URL-safe, human-readable identifier (e.g., "vpc-module", "nginx-chart").
+          Unique within the tenant. Lowercase alphanumeric and hyphens only, must
+          start with a letter and end with an alphanumeric character (1-63 chars).
+      description:
+        type: string
+        description: Optional longer-form description of the source's purpose.
+      sourceType:
+        $ref: '#/definitions/v1SourceType'
+        description: The type of artifact this source points to.
+      terraformRegistry:
+        $ref: '#/definitions/admiralSourceV1TerraformRegistryConfig'
+        description: Terraform registry module.
+      terraformGit:
+        $ref: '#/definitions/v1TerraformGitConfig'
+        description: Terraform module in a Git repository.
+      helmRepository:
+        $ref: '#/definitions/v1HelmRepositoryConfig'
+        description: Helm chart from an HTTP(S) repository.
+      helmOci:
+        $ref: '#/definitions/v1HelmOCIConfig'
+        description: Helm chart from an OCI registry.
+      helmGit:
+        $ref: '#/definitions/v1HelmGitConfig'
+        description: Helm chart from a Git repository.
+      kustomizeGit:
+        $ref: '#/definitions/v1KustomizeGitConfig'
+        description: Kustomize overlay from a Git repository.
+      manifestGit:
+        $ref: '#/definitions/v1ManifestGitConfig'
+        description: Raw Kubernetes manifests from a Git repository.
+      archive:
+        $ref: '#/definitions/v1ArchiveConfig'
+        description: Downloadable archive.
+      connectionId:
+        type: string
+        description: |-
+          The connection providing credentials for this source (UUID). Null for
+          public sources that require no authentication.
+      catalog:
+        type: boolean
+        description: |-
+          Whether this source is a curated catalog entry. Platform engineers mark
+          sources as catalog entries for developer self-service consumption.
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+        description: Arbitrary key-value labels for organizing and filtering sources.
+      createdBy:
+        type: string
+        description: User ID who created the source.
+      updatedBy:
+        type: string
+        description: User ID who last updated the source.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the source was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the source was last updated.
+    description: |-
+      Source represents a tenant-scoped artifact definition pointing to an external
+      module, chart, manifest set, or archive. Sources are referenced by components
+      to define what gets deployed.
+  v1SourceInput:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Input parameter name (e.g., "instance_type", "replicaCount").
+      type:
+        type: string
+        description: Input type (e.g., "string", "number", "bool", "list", "map").
+      description:
+        type: string
+        description: Human-readable description of the input.
+      defaultValue:
+        type: string
+        description: Default value as a JSON-encoded string. Empty if no default is defined.
+      required:
+        type: boolean
+        description: Whether this input is required (no default value).
+      sensitive:
+        type: boolean
+        description: Whether this input contains sensitive data.
+    description: |-
+      SourceInput describes a single input parameter for a source artifact.
+      For Terraform: parsed from variable blocks via terraform-config-inspect.
+      For Helm: parsed from values.yaml and values.schema.json.
+  v1SourceOutput:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Output name (e.g., "cluster_endpoint", "database_url").
+      type:
+        type: string
+        description: Output type (e.g., "string", "list", "map").
+      description:
+        type: string
+        description: Human-readable description of the output.
+      sensitive:
+        type: boolean
+        description: Whether this output contains sensitive data.
+    description: |-
+      SourceOutput describes a single output from a source artifact.
+      Only applicable to Terraform sources — Helm/Kustomize have no formal outputs.
+  v1SourceType:
+    type: string
+    enum:
+      - SOURCE_TYPE_UNSPECIFIED
+      - SOURCE_TYPE_TERRAFORM_REGISTRY
+      - SOURCE_TYPE_TERRAFORM_GIT
+      - SOURCE_TYPE_HELM_REPOSITORY
+      - SOURCE_TYPE_HELM_OCI
+      - SOURCE_TYPE_HELM_GIT
+      - SOURCE_TYPE_KUSTOMIZE_GIT
+      - SOURCE_TYPE_MANIFEST_GIT
+      - SOURCE_TYPE_ARCHIVE
+    default: SOURCE_TYPE_UNSPECIFIED
+    description: |-
+      SourceType identifies the kind of artifact a source points to.
+
+       - SOURCE_TYPE_UNSPECIFIED: Default value. Must not be used.
+       - SOURCE_TYPE_TERRAFORM_REGISTRY: Terraform module from a registry (public or private).
+       - SOURCE_TYPE_TERRAFORM_GIT: Terraform module from a Git repository.
+       - SOURCE_TYPE_HELM_REPOSITORY: Helm chart from an HTTP(S) chart repository.
+       - SOURCE_TYPE_HELM_OCI: Helm chart from an OCI-compliant registry.
+       - SOURCE_TYPE_HELM_GIT: Helm chart from a Git repository.
+       - SOURCE_TYPE_KUSTOMIZE_GIT: Kustomize overlay from a Git repository.
+       - SOURCE_TYPE_MANIFEST_GIT: Raw Kubernetes manifests from a Git repository.
+       - SOURCE_TYPE_ARCHIVE: Downloadable archive (tar.gz, zip).
+  v1State:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the state (UUID).
+      componentId:
+        type: string
+        description: The component this state is for (UUID).
+      environmentId:
+        type: string
+        description: The environment this state is for (UUID).
+      lockId:
+        type: string
+        description: Current lock ID if the state is locked. Absent if unlocked.
+      lockedBy:
+        type: string
+        description: Entity holding the lock (e.g., runner ID or job ID). Absent if unlocked.
+      lockedAt:
+        type: string
+        format: date-time
+        description: When the lock was acquired. Absent if unlocked.
+      createdAt:
+        type: string
+        format: date-time
+        description: When the state record was created.
+      updatedAt:
+        type: string
+        format: date-time
+        description: When the state record was last updated.
+    description: |-
+      State represents the Terraform state record for a component+environment pair.
+      Each state tracks the current lock status and references its version history.
+  v1StateVersion:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the state version (UUID).
+      stateId:
+        type: string
+        description: The state this version belongs to (UUID).
+      versionNumber:
+        type: string
+        format: int64
+        description: Monotonically increasing version number within the state.
+      sizeBytes:
+        type: string
+        format: int64
+        description: Size of the state data in bytes.
+      checksum:
+        type: string
+        description: Checksum of the state data (e.g., SHA-256).
+      createdBy:
+        type: string
+        description: Entity that created this version (e.g., runner ID or job ID).
+      createdAt:
+        type: string
+        format: date-time
+        description: When this version was created.
+    description: StateVersion represents a single version of a Terraform state file.
+  v1SyncSourceResponse:
+    type: object
+    description: SyncSourceResponse acknowledges the sync request.
+  v1TenantRole:
+    type: string
+    enum:
+      - TENANT_ROLE_UNSPECIFIED
+      - MEMBER
+      - OWNER
+    default: TENANT_ROLE_UNSPECIFIED
+    description: |-
+      TenantRole defines the role a user holds within a tenant. Roles follow a
+      simple ownership hierarchy — not a full RBAC model. Scopes on tokens are
+      orthogonal to tenant roles on users.
+
+       - TENANT_ROLE_UNSPECIFIED: Default value. Must not be used.
+       - MEMBER: Standard user with access to tenant resources based on token scopes.
+       - OWNER: Tenant administrator with full access to all tenant settings, user
+      management, and billing.
+  v1TerraformGitConfig:
+    type: object
+    properties:
+      repoUrl:
+        type: string
+        description: Git repository URL.
+      path:
+        type: string
+        description: Path to the module within the repository.
+      ref:
+        type: string
+        description: Git ref (branch, tag, or commit SHA). Defaults to the repository's default branch.
+    description: TerraformGitConfig contains settings for a Terraform module in a Git repository.
+  v1TestConnectionResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        description: Whether the connection test succeeded.
+      errorMessage:
+        type: string
+        description: Error message if the test failed. Empty on success.
+    description: TestConnectionResponse contains the result of the connection test.
   v1TokenType:
     type: string
     enum:
@@ -2208,27 +5968,48 @@ definitions:
        - TOKEN_TYPE_UNSPECIFIED: Default value. Must not be used.
        - TOKEN_TYPE_PAT: Personal Access Token, bound to a user.
        - TOKEN_TYPE_AGT: Agent Token, bound to a cluster or runner.
+  v1UnlockStateResponse:
+    type: object
+    properties:
+      state:
+        $ref: '#/definitions/v1State'
+        description: The state with lock information cleared.
+    description: UnlockStateResponse acknowledges the lock release.
   v1UpdateApplicationResponse:
     type: object
     properties:
       application:
         $ref: '#/definitions/v1Application'
-        description: The updated application.
+        description: The updated application with all fields reflecting the current state.
     description: UpdateApplicationResponse contains the updated application.
-  v1UpdateClusterResponse:
+  v1UpdateComponentResponse:
     type: object
     properties:
-      cluster:
-        $ref: '#/definitions/v1Cluster'
-        description: The updated cluster.
-    description: UpdateClusterResponse contains the updated cluster.
+      component:
+        $ref: '#/definitions/v1Component'
+        description: The updated component with all fields reflecting the current state.
+    description: UpdateComponentResponse contains the updated component.
+  v1UpdateConnectionResponse:
+    type: object
+    properties:
+      connection:
+        $ref: '#/definitions/v1Connection'
+        description: The updated connection with all fields reflecting the current state.
+    description: UpdateConnectionResponse contains the updated connection.
   v1UpdateEnvironmentResponse:
     type: object
     properties:
       environment:
         $ref: '#/definitions/v1Environment'
-        description: The updated environment.
+        description: The updated environment with all fields reflecting the current state.
     description: UpdateEnvironmentResponse contains the updated environment.
+  v1UpdateSourceResponse:
+    type: object
+    properties:
+      source:
+        $ref: '#/definitions/v1Source'
+        description: The updated source with all fields reflecting the current state.
+    description: UpdateSourceResponse contains the updated source.
   v1UpdateVariableResponse:
     type: object
     properties:
@@ -2236,15 +6017,102 @@ definitions:
         $ref: '#/definitions/v1Variable'
         description: The updated variable.
     description: UpdateVariableResponse contains the updated variable.
+  v1User:
+    type: object
+    properties:
+      id:
+        type: string
+        description: Unique identifier for the user (UUID format).
+      tenantId:
+        type: string
+        description: The tenant this user belongs to (UUID format).
+      email:
+        type: string
+        description: The user's email address. Must be unique within the tenant.
+      displayName:
+        type: string
+        description: |-
+          The user's display name, shown in the UI. If not set, the email
+          address is typically used as a fallback.
+      givenName:
+        type: string
+        description: The user's given (first) name.
+      familyName:
+        type: string
+        description: The user's family (last) name.
+      avatarUrl:
+        type: string
+        description: URL to the user's avatar image.
+      emailVerified:
+        type: boolean
+        description: Whether the user's email address has been verified.
+      tenantRole:
+        $ref: '#/definitions/v1TenantRole'
+        description: |-
+          The user's role within their tenant. Determines administrative
+          privileges (OWNER has full access, MEMBER has standard access).
+      roles:
+        type: array
+        items:
+          type: string
+        description: |-
+          Application-level roles assigned to this user. These are opaque strings
+          interpreted by the application layer (e.g., "billing-admin", "viewer").
+      enabled:
+        type: boolean
+        description: |-
+          Whether the user account is enabled. Disabled users cannot authenticate
+          or access any resources.
+      federatedIdentities:
+        type: array
+        items:
+          type: object
+          $ref: '#/definitions/v1FederatedIdentity'
+        description: |-
+          Read-only: managed by FederatedIdentityAPI.
+          The user's linked external identities (social providers or enterprise IdPs).
+      hasPassword:
+        type: boolean
+        description: |-
+          Read-only: derived from password presence.
+          Whether the user has a password set for password-based authentication.
+      mfaMethods:
+        type: array
+        items:
+          $ref: '#/definitions/v1MfaMethod'
+        description: |-
+          Read-only: managed by AuthenticationAPI.
+          The MFA methods the user has enrolled (e.g., TOTP).
+      recoveryCodesRemaining:
+        type: integer
+        format: int32
+        description: |-
+          Read-only: managed by AuthenticationAPI.
+          The number of unused recovery codes remaining for MFA fallback.
+      lastLoginAt:
+        type: string
+        format: date-time
+        description: |-
+          Timestamp of the user's most recent login. Null if the user has never
+          logged in.
+      createdAt:
+        type: string
+        format: date-time
+        description: Timestamp when the user was created. Read-only.
+      updatedAt:
+        type: string
+        format: date-time
+        description: Timestamp when the user was last updated. Read-only.
+    description: |-
+      User represents a human identity within a tenant. Each user has a unique
+      email address within their tenant, a tenant role, and optional profile
+      attributes.
   v1Variable:
     type: object
     properties:
       id:
         type: string
         description: Unique identifier for the variable (UUID).
-      tenantId:
-        type: string
-        description: Tenant this variable belongs to (UUID).
       key:
         type: string
         description: |-
@@ -2270,9 +6138,6 @@ definitions:
           The environment this variable is scoped to (UUID). Requires application_id.
           When set alongside application_id, the variable applies only to this
           specific environment within the application.
-      createdBy:
-        type: string
-        description: User ID who created or last updated the variable.
       createdAt:
         type: string
         format: date-time
