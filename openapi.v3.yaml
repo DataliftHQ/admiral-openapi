@@ -10463,6 +10463,9 @@ tags:
 
        The telemetry model has three tiers: current snapshot (upserted per push),
        time-series metrics (rolling 48-hour window), and events (rolling 7-day window).
+
+       All operations delegate to the platform ClusterAPI. The facade resolves the
+       caller's identity (user JWT or AGT → cluster_id) and forwards.
   - name: admiral.api.component.v1.ComponentAPI
     description: |-
       ComponentAPI manages components within an application.
@@ -10550,7 +10553,10 @@ tags:
 
        Admin routes follow /v1/runners/... (plural, with IDs).
        Runner-facing routes use /v1/runner/... (singular, no ID — derived from
-       the AGT binding), matching the cluster agent pattern. ---------------------------------------------------------------------------
+       the AGT binding), matching the cluster agent pattern.
+
+       All operations delegate to the platform RunnerAPI. The facade resolves the
+       caller's identity (user JWT or AGT → runner_id) and forwards. ---------------------------------------------------------------------------
        Admin CRUD
        ---------------------------------------------------------------------------
   - name: admiral.api.source.v1.SourceAPI
@@ -10571,7 +10577,9 @@ tags:
        The API includes discovery operations (ListSourceVersions, GetSourceInputs,
        GetSourceOutputs) that query external systems in real time. These are
        primarily used by the UI for interactive workflows (version dropdowns, input
-       forms) but are exposed in the public API for CLI and automation use.
+       forms) but are exposed in the public API for CLI and automation use. The
+       facade delegates discovery to the platform SourceAPI, which handles
+       credential resolution and external fetching centrally.
   - name: admiral.api.state.v1.StateAPI
     description: |-
       StateAPI manages Terraform state for infrastructure components within a
@@ -10608,7 +10616,11 @@ tags:
 
        Admin routes use /v1/states/... (plural, with state_id).
        Runner-facing routes use /v1/runner/jobs/{job_id}/state (job-scoped —
-       the server resolves the component and environment from the job). ---------------------------------------------------------------------------
+       the server resolves the component and environment from the job).
+
+       All operations delegate to the platform StateAPI. The facade resolves the
+       caller's identity and calls ResolveJobState for runner-facing RPCs to map
+       job_id → state_id before forwarding state operations. ---------------------------------------------------------------------------
        Runner-facing (AGT-only)
        ---------------------------------------------------------------------------
   - name: admiral.api.user.v1.UserAPI
