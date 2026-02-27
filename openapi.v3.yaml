@@ -1,19 +1,19 @@
 openapi: 3.1.0
 info:
   title: Admiral API
-  description: Admiral API
-  version: 0.0.0
+  description: The Admiral REST API for managing applications, infrastructure, and deployments. See https://docs.admiral.io/api for complete documentation.
+  version: 1.0.0
 paths:
   /healthz:
     get:
       tags:
-        - admiral.api.healthcheck.v1.HealthcheckAPI
-      summary: Healthcheck
+        - Health
+      summary: Check service health
       description: |-
         Healthcheck verifies that the service is running and healthy.
          Returns an empty response on success. Use this endpoint for load balancer
          health checks and monitoring systems.
-      operationId: admiral.api.healthcheck.v1.HealthcheckAPI.Healthcheck2
+      operationId: HealthcheckAPI_Healthcheck2
       responses:
         "200":
           description: Success
@@ -24,11 +24,8 @@ paths:
   /v1/agent/revisions/{revision_id}/bundle:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        GetRevisionBundle fetches the rendered artifact bundle for a workload
-         revision. The K8s agent calls this when it detects a new or updated
-         revision that needs to be applied to the cluster.
+        - Clusters
+      summary: Retrieve a revision bundle
       description: |-
         The bundle contains pre-rendered Kubernetes manifests (from Helm template,
          kustomize build, or raw manifests) ready for server-side apply. The agent
@@ -40,7 +37,7 @@ paths:
          or has been cancelled.
 
          Scope: `cluster:deploy` | Token types: `agt`
-      operationId: admiral.api.cluster.v1.ClusterAPI.GetRevisionBundle
+      operationId: ClusterAPI_GetRevisionBundle
       parameters:
         - name: revision_id
           in: path
@@ -61,18 +58,15 @@ paths:
   /v1/agent/revisions/{revision_id}/result:
     post:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        ReportRevisionResult reports the outcome of applying a workload revision
-         to the cluster. The server transitions the parent Revision status
-         accordingly (APPLYING → SUCCEEDED or FAILED).
+        - Clusters
+      summary: Report revision result
       description: |-
         The cluster is identified by the agent token's binding. Returns
          PERMISSION_DENIED if the revision's target cluster does not match the
          AGT's cluster binding.
 
          Scope: `cluster:deploy` | Token types: `agt`
-      operationId: admiral.api.cluster.v1.ClusterAPI.ReportRevisionResult
+      operationId: ClusterAPI_ReportRevisionResult
       parameters:
         - name: revision_id
           in: path
@@ -111,11 +105,8 @@ paths:
   /v1/agent/status:
     post:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        ReportClusterStatus receives a combined telemetry snapshot from a K8s agent.
-         The payload includes cluster-level metrics, per-workload status, and
-         Kubernetes events. Admiral splits this into three storage tiers on receipt.
+        - Clusters
+      summary: Report cluster status
       description: |-
         The cluster is identified by the agent token — the server resolves the
          cluster from the AGT's binding. No cluster_id is required in the request.
@@ -123,7 +114,7 @@ paths:
          This endpoint is agent-facing and restricted to agent tokens.
 
          Scope: `cluster:status` | Token types: `agt`
-      operationId: admiral.api.cluster.v1.ClusterAPI.ReportClusterStatus
+      operationId: ClusterAPI_ReportClusterStatus
       requestBody:
         content:
           application/json:
@@ -140,12 +131,10 @@ paths:
   /v1/applications:
     get:
       tags:
-        - admiral.api.application.v1.ApplicationAPI
-      summary: |-
-        ListApplications returns a paginated list of applications within the
-         caller's tenant.
+        - Applications
+      summary: List applications
       description: 'Scope: `app:read`'
-      operationId: admiral.api.application.v1.ApplicationAPI.ListApplications
+      operationId: ApplicationAPI_ListApplications
       parameters:
         - name: filter
           in: query
@@ -181,10 +170,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.application.v1.ListApplicationsResponse'
     post:
       tags:
-        - admiral.api.application.v1.ApplicationAPI
-      summary: CreateApplication creates a new application within the caller's tenant.
+        - Applications
+      summary: Create an application
       description: 'Scope: `app:write`'
-      operationId: admiral.api.application.v1.ApplicationAPI.CreateApplication
+      operationId: ApplicationAPI_CreateApplication
       requestBody:
         content:
           application/json:
@@ -201,12 +190,10 @@ paths:
   /v1/applications/{application.id}:
     patch:
       tags:
-        - admiral.api.application.v1.ApplicationAPI
-      summary: |-
-        UpdateApplication updates an application's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Applications
+      summary: Update an application
       description: 'Scope: `app:write`'
-      operationId: admiral.api.application.v1.ApplicationAPI.UpdateApplication
+      operationId: ApplicationAPI_UpdateApplication
       parameters:
         - name: application.id
           in: path
@@ -251,10 +238,10 @@ paths:
   /v1/applications/{application_id}:
     get:
       tags:
-        - admiral.api.application.v1.ApplicationAPI
-      summary: GetApplication retrieves an application by ID.
+        - Applications
+      summary: Retrieve an application
       description: 'Scope: `app:read`'
-      operationId: admiral.api.application.v1.ApplicationAPI.GetApplication
+      operationId: ApplicationAPI_GetApplication
       parameters:
         - name: application_id
           in: path
@@ -274,12 +261,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.application.v1.GetApplicationResponse'
     delete:
       tags:
-        - admiral.api.application.v1.ApplicationAPI
-      summary: |-
-        DeleteApplication permanently deletes an application and all of its
-         associated environments. This action cannot be undone.
+        - Applications
+      summary: Delete an application
       description: 'Scope: `app:write`'
-      operationId: admiral.api.application.v1.ApplicationAPI.DeleteApplication
+      operationId: ApplicationAPI_DeleteApplication
       parameters:
         - name: application_id
           in: path
@@ -300,10 +285,10 @@ paths:
   /v1/clusters:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: ListClusters returns a paginated list of clusters within the caller's tenant.
+        - Clusters
+      summary: List clusters
       description: 'Scope: `cluster:read`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.ListClusters
+      operationId: ClusterAPI_ListClusters
       parameters:
         - name: filter
           in: query
@@ -339,11 +324,8 @@ paths:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.ListClustersResponse'
     post:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        CreateCluster creates a new cluster record within the caller's tenant and
-         generates an initial Agent Token (AGT) for the K8s agent. The cluster
-         starts in PENDING status until an agent registers against it.
+        - Clusters
+      summary: Create a cluster
       description: |-
         The response includes a `plain_text_token` — the raw AGT secret shown
          exactly once. Deploy this token to the K8s agent (e.g., via Helm values
@@ -351,7 +333,7 @@ paths:
          AgentAPI.RegisterAgent on first boot.
 
          Scope: `cluster:write`
-      operationId: admiral.api.cluster.v1.ClusterAPI.CreateCluster
+      operationId: ClusterAPI_CreateCluster
       requestBody:
         content:
           application/json:
@@ -368,12 +350,10 @@ paths:
   /v1/clusters/{cluster.id}:
     patch:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        UpdateCluster updates a cluster's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Clusters
+      summary: Update a cluster
       description: 'Scope: `cluster:write`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.UpdateCluster
+      operationId: ClusterAPI_UpdateCluster
       parameters:
         - name: cluster.id
           in: path
@@ -418,15 +398,15 @@ paths:
   /v1/clusters/{cluster_id}:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: GetCluster retrieves a cluster by ID.
+        - Clusters
+      summary: Retrieve a cluster
       description: |-
         Returns the Cluster record with its server-derived health_status. For
          detailed telemetry (node counts, resource usage, workload summary), use
          GetClusterStatus instead.
 
          Scope: `cluster:read`
-      operationId: admiral.api.cluster.v1.ClusterAPI.GetCluster
+      operationId: ClusterAPI_GetCluster
       parameters:
         - name: cluster_id
           in: path
@@ -446,12 +426,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.GetClusterResponse'
     delete:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        DeleteCluster permanently deletes a cluster record and revokes all
-         associated agent tokens. This action cannot be undone.
+        - Clusters
+      summary: Delete a cluster
       description: 'Scope: `cluster:write`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.DeleteCluster
+      operationId: ClusterAPI_DeleteCluster
       parameters:
         - name: cluster_id
           in: path
@@ -476,18 +454,15 @@ paths:
   /v1/clusters/{cluster_id}/status:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        GetClusterStatus retrieves the current telemetry snapshot for a cluster.
-         Returns the latest metrics pushed by the agent, along with server-derived
-         health status and workload summary counts.
+        - Clusters
+      summary: Retrieve cluster status
       description: |-
         Returns NOT_FOUND if the cluster does not exist. If the cluster exists but
          no agent has reported telemetry yet, the response will have health_status
          PENDING and no status message.
 
          Scope: `cluster:read`
-      operationId: admiral.api.cluster.v1.ClusterAPI.GetClusterStatus
+      operationId: ClusterAPI_GetClusterStatus
       parameters:
         - name: cluster_id
           in: path
@@ -508,12 +483,10 @@ paths:
   /v1/clusters/{cluster_id}/tokens:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        ListClusterTokens returns a paginated list of AGTs bound to the specified
-         cluster. Token secrets are never included.
+        - Clusters
+      summary: List cluster tokens
       description: 'Scope: `cluster:read`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.ListClusterTokens
+      operationId: ClusterAPI_ListClusterTokens
       parameters:
         - name: cluster_id
           in: path
@@ -558,18 +531,15 @@ paths:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.ListClusterTokensResponse'
     post:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        CreateClusterToken creates a new Agent Token (AGT) bound to the specified
-         cluster. Scopes are auto-assigned and cannot be overridden. The response
-         includes the raw token secret, which is shown exactly once.
+        - Clusters
+      summary: Create a cluster token
       description: |-
         Use this to create additional AGTs for an existing cluster (e.g., for
          zero-downtime token rotation). The initial AGT is created automatically
          by CreateCluster.
 
          Scope: `cluster:write`
-      operationId: admiral.api.cluster.v1.ClusterAPI.CreateClusterToken
+      operationId: ClusterAPI_CreateClusterToken
       parameters:
         - name: cluster_id
           in: path
@@ -616,12 +586,10 @@ paths:
   /v1/clusters/{cluster_id}/tokens/{token_id}:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        GetClusterToken retrieves a single AGT by ID.
-         Returns metadata only — the token secret is never included.
+        - Clusters
+      summary: Retrieve a cluster token
       description: 'Scope: `cluster:read`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.GetClusterToken
+      operationId: ClusterAPI_GetClusterToken
       parameters:
         - name: cluster_id
           in: path
@@ -651,13 +619,10 @@ paths:
   /v1/clusters/{cluster_id}/tokens/{token_id}/revoke:
     post:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        RevokeClusterToken permanently revokes an AGT bound to this cluster.
-         The agent will receive a 401 on its next request. If this is the only
-         active AGT for the cluster, the agent will become disconnected.
+        - Clusters
+      summary: Revoke a cluster token
       description: 'Scope: `cluster:write`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.RevokeClusterToken
+      operationId: ClusterAPI_RevokeClusterToken
       parameters:
         - name: cluster_id
           in: path
@@ -687,10 +652,10 @@ paths:
   /v1/clusters/{cluster_id}/workloads:
     get:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: ListWorkloads returns a paginated list of workloads running in a specific cluster.
+        - Clusters
+      summary: List workloads
       description: 'Scope: `cluster:read`'
-      operationId: admiral.api.cluster.v1.ClusterAPI.ListWorkloads
+      operationId: ClusterAPI_ListWorkloads
       parameters:
         - name: cluster_id
           in: path
@@ -736,15 +701,13 @@ paths:
   /v1/clusters/{cluster_id}/workloads/status:
     post:
       tags:
-        - admiral.api.cluster.v1.ClusterAPI
-      summary: |-
-        ReportWorkloadStatus receives workload-only telemetry from a K8s agent.
-         Used for incremental workload updates between full cluster status pushes.
+        - Clusters
+      summary: Report workload status
       description: |-
         This endpoint is agent-facing and restricted to agent tokens.
 
          Scope: `cluster:status` | Token types: `agt`
-      operationId: admiral.api.cluster.v1.ClusterAPI.ReportWorkloadStatus
+      operationId: ClusterAPI_ReportWorkloadStatus
       parameters:
         - name: cluster_id
           in: path
@@ -785,8 +748,8 @@ paths:
   /v1/components:
     get:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: ListComponents returns a paginated list of components.
+        - Components
+      summary: List components
       description: |-
         The response behavior depends on the filter:
            - Filter by `application_id` only: returns application-level component
@@ -797,7 +760,7 @@ paths:
              whether the component differs from its application-level default.
 
          Scope: `app:read`
-      operationId: admiral.api.component.v1.ComponentAPI.ListComponents
+      operationId: ComponentAPI_ListComponents
       parameters:
         - name: filter
           in: query
@@ -851,14 +814,14 @@ paths:
                 $ref: '#/components/schemas/admiral.api.component.v1.ListComponentsResponse'
     post:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: CreateComponent adds a new component to an application.
+        - Components
+      summary: Create a component
       description: |-
         The component name must be unique within the application. The source must
          exist and be accessible to the caller's tenant.
 
          Scope: `app:write`
-      operationId: admiral.api.component.v1.ComponentAPI.CreateComponent
+      operationId: ComponentAPI_CreateComponent
       requestBody:
         content:
           application/json:
@@ -875,17 +838,15 @@ paths:
   /v1/components/{component.id}:
     patch:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: |-
-        UpdateComponent updates a component's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Components
+      summary: Update a component
       description: |-
         When renaming a component, the server validates that no other components
          reference the old name in their values_template expressions and rejects
          the rename if references exist.
 
          Scope: `app:write`
-      operationId: admiral.api.component.v1.ComponentAPI.UpdateComponent
+      operationId: ComponentAPI_UpdateComponent
       parameters:
         - name: component.id
           in: path
@@ -931,10 +892,10 @@ paths:
   /v1/components/{component_id}:
     get:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: GetComponent retrieves a component by ID.
+        - Components
+      summary: Retrieve a component
       description: 'Scope: `app:read`'
-      operationId: admiral.api.component.v1.ComponentAPI.GetComponent
+      operationId: ComponentAPI_GetComponent
       parameters:
         - name: component_id
           in: path
@@ -954,15 +915,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.component.v1.GetComponentResponse'
     delete:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: |-
-        DeleteComponent removes a component from an application. Fails if other
-         components depend on this component (via depends_on or output references
-         in values_template) — remove or update those dependencies first. Also
-         removes all environment overrides for this component.
-         This action cannot be undone.
+        - Components
+      summary: Delete a component
       description: 'Scope: `app:write`'
-      operationId: admiral.api.component.v1.ComponentAPI.DeleteComponent
+      operationId: ComponentAPI_DeleteComponent
       parameters:
         - name: component_id
           in: path
@@ -989,12 +945,10 @@ paths:
   /v1/components/{component_id}/overrides:
     get:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: |-
-        ListComponentOverrides returns all environment-level overrides for a
-         component across all environments.
+        - Components
+      summary: List component overrides
       description: 'Scope: `env:read`'
-      operationId: admiral.api.component.v1.ComponentAPI.ListComponentOverrides
+      operationId: ComponentAPI_ListComponentOverrides
       parameters:
         - name: component_id
           in: path
@@ -1032,12 +986,10 @@ paths:
   /v1/components/{component_id}/overrides/{environment_id}:
     get:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: |-
-        GetComponentOverride retrieves the environment-level override for a
-         component, if one exists.
+        - Components
+      summary: Retrieve a component override
       description: 'Scope: `env:read`'
-      operationId: admiral.api.component.v1.ComponentAPI.GetComponentOverride
+      operationId: ComponentAPI_GetComponentOverride
       parameters:
         - name: component_id
           in: path
@@ -1066,11 +1018,8 @@ paths:
                 $ref: '#/components/schemas/admiral.api.component.v1.GetComponentOverrideResponse'
     put:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: |-
-        SetComponentOverride creates or replaces an environment-level override for
-         a component. Overrides allow an environment to use a different source,
-         version, values template, or to disable the component entirely.
+        - Components
+      summary: Set a component override
       description: |-
         For example, a "redis" component might use a Helm chart source in dev but
          a Terraform ElastiCache module in prod.
@@ -1079,7 +1028,7 @@ paths:
          environment combination, it is replaced.
 
          Scope: `env:write`
-      operationId: admiral.api.component.v1.ComponentAPI.SetComponentOverride
+      operationId: ComponentAPI_SetComponentOverride
       parameters:
         - name: component_id
           in: path
@@ -1159,12 +1108,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.component.v1.SetComponentOverrideResponse'
     delete:
       tags:
-        - admiral.api.component.v1.ComponentAPI
-      summary: |-
-        DeleteComponentOverride removes an environment-level override, reverting
-         the component to its application-level defaults for that environment.
+        - Components
+      summary: Delete a component override
       description: 'Scope: `env:write`'
-      operationId: admiral.api.component.v1.ComponentAPI.DeleteComponentOverride
+      operationId: ComponentAPI_DeleteComponentOverride
       parameters:
         - name: component_id
           in: path
@@ -1194,12 +1141,10 @@ paths:
   /v1/connections:
     get:
       tags:
-        - admiral.api.connection.v1.ConnectionAPI
-      summary: |-
-        ListConnections returns a paginated list of connections within the caller's
-         tenant. Sensitive credential fields are never included.
+        - Connections
+      summary: List connections
       description: 'Scope: `connection:read`'
-      operationId: admiral.api.connection.v1.ConnectionAPI.ListConnections
+      operationId: ConnectionAPI_ListConnections
       parameters:
         - name: filter
           in: query
@@ -1235,15 +1180,15 @@ paths:
                 $ref: '#/components/schemas/admiral.api.connection.v1.ListConnectionsResponse'
     post:
       tags:
-        - admiral.api.connection.v1.ConnectionAPI
-      summary: CreateConnection creates a new connection within the caller's tenant.
+        - Connections
+      summary: Create a connection
       description: |-
         The connection type and auth config must match — for example, a GIT_TOKEN
          connection requires a GitTokenAuth config. The server validates connectivity
          on creation when possible and sets the initial status accordingly.
 
          Scope: `connection:write`
-      operationId: admiral.api.connection.v1.ConnectionAPI.CreateConnection
+      operationId: ConnectionAPI_CreateConnection
       requestBody:
         content:
           application/json:
@@ -1260,17 +1205,15 @@ paths:
   /v1/connections/{connection.id}:
     patch:
       tags:
-        - admiral.api.connection.v1.ConnectionAPI
-      summary: |-
-        UpdateConnection updates a connection's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Connections
+      summary: Update a connection
       description: |-
         When updating auth_config, the entire auth config is replaced — partial
          updates within the auth config oneof are not supported. Omitting auth_config
          from the update_mask leaves credentials unchanged.
 
          Scope: `connection:write`
-      operationId: admiral.api.connection.v1.ConnectionAPI.UpdateConnection
+      operationId: ConnectionAPI_UpdateConnection
       parameters:
         - name: connection.id
           in: path
@@ -1318,14 +1261,14 @@ paths:
   /v1/connections/{connection_id}:
     get:
       tags:
-        - admiral.api.connection.v1.ConnectionAPI
-      summary: GetConnection retrieves a connection by ID.
+        - Connections
+      summary: Retrieve a connection
       description: |-
         Returns connection metadata and status. Sensitive credential fields are
          never included in the response.
 
          Scope: `connection:read`
-      operationId: admiral.api.connection.v1.ConnectionAPI.GetConnection
+      operationId: ConnectionAPI_GetConnection
       parameters:
         - name: connection_id
           in: path
@@ -1345,13 +1288,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.connection.v1.GetConnectionResponse'
     delete:
       tags:
-        - admiral.api.connection.v1.ConnectionAPI
-      summary: |-
-        DeleteConnection permanently deletes a connection. Fails if any sources
-         still reference this connection — remove or reassign those sources first.
-         This action cannot be undone.
+        - Connections
+      summary: Delete a connection
       description: 'Scope: `connection:write`'
-      operationId: admiral.api.connection.v1.ConnectionAPI.DeleteConnection
+      operationId: ConnectionAPI_DeleteConnection
       parameters:
         - name: connection_id
           in: path
@@ -1376,17 +1316,14 @@ paths:
   /v1/connections/{connection_id}/test:
     post:
       tags:
-        - admiral.api.connection.v1.ConnectionAPI
-      summary: |-
-        TestConnection validates that the stored credentials can successfully
-         authenticate to the remote system. Updates the connection's status and
-         last_tested_at fields based on the result.
+        - Connections
+      summary: Test a connection
       description: |-
         This operation makes a network call to the external system and may take
          several seconds depending on the remote endpoint.
 
          Scope: `connection:write`
-      operationId: admiral.api.connection.v1.ConnectionAPI.TestConnection
+      operationId: ConnectionAPI_TestConnection
       parameters:
         - name: connection_id
           in: path
@@ -1407,14 +1344,14 @@ paths:
   /v1/deployments:
     get:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: ListDeployments returns a paginated list of deployments.
+        - Deployments
+      summary: List deployments
       description: |-
         Common filter fields: `application_id`, `environment_id`, `status`,
          `trigger_type`. Use to view deployment history for an environment.
 
          Scope: `deploy:read`
-      operationId: admiral.api.deployment.v1.DeploymentAPI.ListDeployments
+      operationId: DeploymentAPI_ListDeployments
       parameters:
         - name: filter
           in: query
@@ -1464,10 +1401,8 @@ paths:
                 $ref: '#/components/schemas/admiral.api.deployment.v1.ListDeploymentsResponse'
     post:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: |-
-        CreateDeployment triggers a new deployment of an application to an
-         environment.
+        - Deployments
+      summary: Create a deployment
       description: |-
         The server resolves all components (with environment overrides applied),
          builds the dependency DAG, and begins rendering and executing revisions.
@@ -1483,7 +1418,7 @@ paths:
          current deployment completes or is cancelled.
 
          Scope: `deploy:write`
-      operationId: admiral.api.deployment.v1.DeploymentAPI.CreateDeployment
+      operationId: DeploymentAPI_CreateDeployment
       requestBody:
         content:
           application/json:
@@ -1500,12 +1435,10 @@ paths:
   /v1/deployments/{deployment_id}:
     get:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: |-
-        GetDeployment retrieves a deployment by ID, including its composite
-         status derived from all component revisions.
+        - Deployments
+      summary: Retrieve a deployment
       description: 'Scope: `deploy:read`'
-      operationId: admiral.api.deployment.v1.DeploymentAPI.GetDeployment
+      operationId: DeploymentAPI_GetDeployment
       parameters:
         - name: deployment_id
           in: path
@@ -1526,13 +1459,10 @@ paths:
   /v1/deployments/{deployment_id}/cancel:
     post:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: |-
-        CancelDeployment cancels an in-progress deployment. Revisions that are
-         already SUCCEEDED remain applied — cancellation only stops pending and
-         queued revisions from proceeding. The deployment status becomes CANCELLED.
+        - Deployments
+      summary: Cancel a deployment
       description: 'Scope: `deploy:write`'
-      operationId: admiral.api.deployment.v1.DeploymentAPI.CancelDeployment
+      operationId: DeploymentAPI_CancelDeployment
       parameters:
         - name: deployment_id
           in: path
@@ -1568,10 +1498,10 @@ paths:
   /v1/deployments/{deployment_id}/revisions:
     get:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: ListRevisions returns all component revisions for a deployment.
+        - Deployments
+      summary: List revisions
       description: 'Scope: `deploy:read`'
-      operationId: admiral.api.deployment.v1.DeploymentAPI.ListRevisions
+      operationId: DeploymentAPI_ListRevisions
       parameters:
         - name: deployment_id
           in: path
@@ -1609,10 +1539,10 @@ paths:
   /v1/deployments/{deployment_id}/revisions/{revision_id}:
     get:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: GetRevision retrieves a single component revision within a deployment.
+        - Deployments
+      summary: Retrieve a revision
       description: 'Scope: `deploy:read`'
-      operationId: admiral.api.deployment.v1.DeploymentAPI.GetRevision
+      operationId: DeploymentAPI_GetRevision
       parameters:
         - name: deployment_id
           in: path
@@ -1642,13 +1572,10 @@ paths:
   /v1/deployments/{deployment_id}/revisions/{revision_id}/retry:
     post:
       tags:
-        - admiral.api.deployment.v1.DeploymentAPI
-      summary: |-
-        RetryRevision retries a failed component revision. A new execution
-         attempt is made using the same rendered artifacts. The retry count
-         is incremented. Only applicable to revisions in FAILED status.
+        - Deployments
+      summary: Retry a revision
       description: 'Scope: `deploy:write`'
-      operationId: admiral.api.deployment.v1.DeploymentAPI.RetryRevision
+      operationId: DeploymentAPI_RetryRevision
       parameters:
         - name: deployment_id
           in: path
@@ -1678,12 +1605,10 @@ paths:
   /v1/environments:
     get:
       tags:
-        - admiral.api.environment.v1.EnvironmentAPI
-      summary: |-
-        ListEnvironments returns a paginated list of environments. Use the filter
-         to scope by application, runtime type, or labels.
+        - Environments
+      summary: List environments
       description: 'Scope: `env:read`'
-      operationId: admiral.api.environment.v1.EnvironmentAPI.ListEnvironments
+      operationId: EnvironmentAPI_ListEnvironments
       parameters:
         - name: filter
           in: query
@@ -1719,10 +1644,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.environment.v1.ListEnvironmentsResponse'
     post:
       tags:
-        - admiral.api.environment.v1.EnvironmentAPI
-      summary: CreateEnvironment creates a new environment for the specified application.
+        - Environments
+      summary: Create an environment
       description: 'Scope: `env:write`'
-      operationId: admiral.api.environment.v1.EnvironmentAPI.CreateEnvironment
+      operationId: EnvironmentAPI_CreateEnvironment
       requestBody:
         content:
           application/json:
@@ -1739,12 +1664,10 @@ paths:
   /v1/environments/{environment.id}:
     patch:
       tags:
-        - admiral.api.environment.v1.EnvironmentAPI
-      summary: |-
-        UpdateEnvironment updates an environment's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Environments
+      summary: Update an environment
       description: 'Scope: `env:write`'
-      operationId: admiral.api.environment.v1.EnvironmentAPI.UpdateEnvironment
+      operationId: EnvironmentAPI_UpdateEnvironment
       parameters:
         - name: environment.id
           in: path
@@ -1790,10 +1713,10 @@ paths:
   /v1/environments/{environment_id}:
     get:
       tags:
-        - admiral.api.environment.v1.EnvironmentAPI
-      summary: GetEnvironment retrieves an environment by ID.
+        - Environments
+      summary: Retrieve an environment
       description: 'Scope: `env:read`'
-      operationId: admiral.api.environment.v1.EnvironmentAPI.GetEnvironment
+      operationId: EnvironmentAPI_GetEnvironment
       parameters:
         - name: environment_id
           in: path
@@ -1813,15 +1736,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.environment.v1.GetEnvironmentResponse'
     delete:
       tags:
-        - admiral.api.environment.v1.EnvironmentAPI
-      summary: |-
-        DeleteEnvironment permanently deletes an environment. Fails if the
-         environment has an active deployment (last deployment status is SUCCEEDED
-         with resources running). To delete an environment with deployed resources,
-         first run a destroy deployment to tear down all components, then delete
-         the environment record. This action cannot be undone.
+        - Environments
+      summary: Delete an environment
       description: 'Scope: `env:write`'
-      operationId: admiral.api.environment.v1.EnvironmentAPI.DeleteEnvironment
+      operationId: EnvironmentAPI_DeleteEnvironment
       parameters:
         - name: environment_id
           in: path
@@ -1842,13 +1760,13 @@ paths:
   /v1/healthcheck:
     get:
       tags:
-        - admiral.api.healthcheck.v1.HealthcheckAPI
-      summary: Healthcheck
+        - Health
+      summary: Check service health
       description: |-
         Healthcheck verifies that the service is running and healthy.
          Returns an empty response on success. Use this endpoint for load balancer
          health checks and monitoring systems.
-      operationId: admiral.api.healthcheck.v1.HealthcheckAPI.Healthcheck
+      operationId: HealthcheckAPI_Healthcheck
       responses:
         "200":
           description: Success
@@ -1859,10 +1777,8 @@ paths:
   /v1/runner/heartbeat:
     post:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        Heartbeat reports that the runner is alive and includes current capacity
-         metrics. The server uses heartbeat recency to derive health status.
+        - Runners
+      summary: Send runner heartbeat
       description: |-
         The runner is identified by the agent token — the server resolves the
          runner from the AGT's binding. No runner_id is required in the request.
@@ -1870,7 +1786,7 @@ paths:
          This endpoint is runner-facing and restricted to agent tokens.
 
          Scope: `runner:exec` | Token types: `agt`
-      operationId: admiral.api.runner.v1.RunnerAPI.Heartbeat
+      operationId: RunnerAPI_Heartbeat
       requestBody:
         content:
           application/json:
@@ -1887,18 +1803,15 @@ paths:
   /v1/runner/jobs/claim:
     post:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        ClaimJob polls for the next job assigned to this runner. Returns the job
-         metadata if work is available, or an empty response if no jobs are
-         pending. The runner should call this on a polling interval.
+        - Runners
+      summary: Claim a job
       description: |-
         The runner is identified by the agent token — no runner_id is required.
 
          This endpoint is runner-facing and restricted to agent tokens.
 
          Scope: `runner:exec` | Token types: `agt`
-      operationId: admiral.api.runner.v1.RunnerAPI.ClaimJob
+      operationId: RunnerAPI_ClaimJob
       requestBody:
         content:
           application/json:
@@ -1915,11 +1828,8 @@ paths:
   /v1/runner/jobs/{job_id}/bundle:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        GetJobBundle fetches the rendered artifacts for a claimed job. Separated
-         from ClaimJob to keep the claim response lightweight — the runner first
-         claims a job, then fetches the (potentially large) artifact bundle.
+        - Runners
+      summary: Retrieve a job bundle
       description: |-
         The bundle contains everything the runner needs to execute the Terraform
          operation: rendered .tf files, resolved variables, provider configuration,
@@ -1928,7 +1838,7 @@ paths:
          This endpoint is runner-facing and restricted to agent tokens.
 
          Scope: `runner:exec` | Token types: `agt`
-      operationId: admiral.api.runner.v1.RunnerAPI.GetJobBundle
+      operationId: RunnerAPI_GetJobBundle
       parameters:
         - name: job_id
           in: path
@@ -1949,17 +1859,13 @@ paths:
   /v1/runner/jobs/{job_id}/result:
     post:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        ReportJobResult reports the outcome of a completed job. The runner sends
-         plan output (for plan jobs), apply results, error messages, and log
-         references. The server transitions the parent Revision status accordingly
-         (e.g., PLANNING→APPLYING, APPLYING→SUCCEEDED/FAILED).
+        - Runners
+      summary: Report job result
       description: |-
         This endpoint is runner-facing and restricted to agent tokens.
 
          Scope: `runner:exec` | Token types: `agt`
-      operationId: admiral.api.runner.v1.RunnerAPI.ReportJobResult
+      operationId: RunnerAPI_ReportJobResult
       parameters:
         - name: job_id
           in: path
@@ -1996,11 +1902,8 @@ paths:
   /v1/runner/jobs/{job_id}/state:
     get:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        GetState fetches the current state for a job's component + environment.
-         Returns empty data if no state exists yet (fresh init — Terraform
-         handles this gracefully).
+        - State
+      summary: Retrieve state for a job
       description: |-
         The server validates that the AGT's runner binding matches the runner
          assigned to this job. Returns PERMISSION_DENIED if they do not match.
@@ -2009,7 +1912,7 @@ paths:
          Maps to Terraform HTTP backend GET on the state address.
 
          Scope: `state:read` | Token types: `agt`
-      operationId: admiral.api.state.v1.StateAPI.GetState
+      operationId: StateAPI_GetState
       parameters:
         - name: job_id
           in: path
@@ -2033,12 +1936,8 @@ paths:
                 $ref: '#/components/schemas/admiral.api.state.v1.GetStateResponse'
     post:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        PushState stores a new state version after a successful apply. The server
-         validates the serial number (must be greater than current) and lineage
-         (must match if state already exists). Creates the state record on first
-         push.
+        - State
+      summary: Push state for a job
       description: |-
         The server validates that the AGT's runner binding matches the runner
          assigned to this job. Returns PERMISSION_DENIED if they do not match.
@@ -2049,7 +1948,7 @@ paths:
          Maps to Terraform HTTP backend POST on the state address.
 
          Scope: `state:write` | Token types: `agt`
-      operationId: admiral.api.state.v1.StateAPI.PushState
+      operationId: StateAPI_PushState
       parameters:
         - name: job_id
           in: path
@@ -2106,10 +2005,8 @@ paths:
   /v1/runner/jobs/{job_id}/state/lock:
     post:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        LockState acquires an exclusive lock for the job's state. Terraform calls
-         this before plan/apply to prevent concurrent modifications.
+        - State
+      summary: Lock state for a job
       description: |-
         The server validates that the AGT's runner binding matches the runner
          assigned to this job. Returns PERMISSION_DENIED if they do not match.
@@ -2120,7 +2017,7 @@ paths:
          Maps to Terraform HTTP backend POST on the lock address.
 
          Scope: `state:write` | Token types: `agt`
-      operationId: admiral.api.state.v1.StateAPI.LockState
+      operationId: StateAPI_LockState
       parameters:
         - name: job_id
           in: path
@@ -2168,10 +2065,8 @@ paths:
   /v1/runner/jobs/{job_id}/state/unlock:
     post:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        UnlockState releases the exclusive lock on the job's state. The lock_id
-         must match the one used during LockState.
+        - State
+      summary: Unlock state for a job
       description: |-
         The server validates that the AGT's runner binding matches the runner
          assigned to this job. Returns PERMISSION_DENIED if they do not match.
@@ -2181,7 +2076,7 @@ paths:
          Maps to Terraform HTTP backend POST on the unlock address.
 
          Scope: `state:write` | Token types: `agt`
-      operationId: admiral.api.state.v1.StateAPI.UnlockState
+      operationId: StateAPI_UnlockState
       parameters:
         - name: job_id
           in: path
@@ -2217,10 +2112,10 @@ paths:
   /v1/runners:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: ListRunners returns a paginated list of runners within the caller's tenant.
+        - Runners
+      summary: List runners
       description: 'Scope: `runner:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.ListRunners
+      operationId: RunnerAPI_ListRunners
       parameters:
         - name: filter
           in: query
@@ -2256,17 +2151,14 @@ paths:
                 $ref: '#/components/schemas/admiral.api.runner.v1.ListRunnersResponse'
     post:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        CreateRunner creates a new runner record within the caller's tenant and
-         generates an initial Agent Token (AGT). The runner starts in PENDING
-         health status until it begins heartbeating.
+        - Runners
+      summary: Create a runner
       description: |-
         The response includes a `plain_text_token` — the raw AGT secret shown
          exactly once. Deploy this token to the runner binary for authentication.
 
          Scope: `runner:write`
-      operationId: admiral.api.runner.v1.RunnerAPI.CreateRunner
+      operationId: RunnerAPI_CreateRunner
       requestBody:
         content:
           application/json:
@@ -2283,12 +2175,10 @@ paths:
   /v1/runners/{runner.id}:
     patch:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        UpdateRunner updates a runner's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Runners
+      summary: Update a runner
       description: 'Scope: `runner:write`'
-      operationId: admiral.api.runner.v1.RunnerAPI.UpdateRunner
+      operationId: RunnerAPI_UpdateRunner
       parameters:
         - name: runner.id
           in: path
@@ -2333,14 +2223,14 @@ paths:
   /v1/runners/{runner_id}:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: GetRunner retrieves a runner by ID.
+        - Runners
+      summary: Retrieve a runner
       description: |-
         Returns the Runner record with its server-derived health_status. For
          detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
 
          Scope: `runner:read`
-      operationId: admiral.api.runner.v1.RunnerAPI.GetRunner
+      operationId: RunnerAPI_GetRunner
       parameters:
         - name: runner_id
           in: path
@@ -2360,13 +2250,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
     delete:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        DeleteRunner permanently deletes a runner record and revokes all
-         associated agent tokens. Any jobs assigned to this runner that are
-         not yet completed will be failed. This action cannot be undone.
+        - Runners
+      summary: Delete a runner
       description: 'Scope: `runner:write`'
-      operationId: admiral.api.runner.v1.RunnerAPI.DeleteRunner
+      operationId: RunnerAPI_DeleteRunner
       parameters:
         - name: runner_id
           in: path
@@ -2391,12 +2278,10 @@ paths:
   /v1/runners/{runner_id}/jobs:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        ListRunnerJobs returns a paginated list of jobs assigned to a runner.
-         Provides admin read-only visibility into runner workload.
+        - Runners
+      summary: List runner jobs
       description: 'Scope: `runner:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.ListRunnerJobs
+      operationId: RunnerAPI_ListRunnerJobs
       parameters:
         - name: runner_id
           in: path
@@ -2454,17 +2339,15 @@ paths:
   /v1/runners/{runner_id}/status:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        GetRunnerStatus retrieves the current telemetry snapshot for a runner.
-         Returns the latest capacity metrics reported via Heartbeat.
+        - Runners
+      summary: Retrieve runner status
       description: |-
         Returns NOT_FOUND if the runner does not exist. If the runner exists but
          has not heartbeated yet, health_status will be PENDING and status will
          be absent.
 
          Scope: `runner:read`
-      operationId: admiral.api.runner.v1.RunnerAPI.GetRunnerStatus
+      operationId: RunnerAPI_GetRunnerStatus
       parameters:
         - name: runner_id
           in: path
@@ -2485,12 +2368,10 @@ paths:
   /v1/runners/{runner_id}/tokens:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        ListRunnerTokens returns a paginated list of AGTs bound to the specified
-         runner. Token secrets are never included.
+        - Runners
+      summary: List runner tokens
       description: 'Scope: `runner:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.ListRunnerTokens
+      operationId: RunnerAPI_ListRunnerTokens
       parameters:
         - name: runner_id
           in: path
@@ -2535,18 +2416,15 @@ paths:
                 $ref: '#/components/schemas/admiral.api.runner.v1.ListRunnerTokensResponse'
     post:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        CreateRunnerToken creates a new Agent Token (AGT) bound to the specified
-         runner. Scopes are auto-assigned and cannot be overridden. The response
-         includes the raw token secret, which is shown exactly once.
+        - Runners
+      summary: Create a runner token
       description: |-
         Use this to create additional AGTs for an existing runner (e.g., for
          zero-downtime token rotation). The initial AGT is created automatically
          by CreateRunner.
 
          Scope: `runner:write`
-      operationId: admiral.api.runner.v1.RunnerAPI.CreateRunnerToken
+      operationId: RunnerAPI_CreateRunnerToken
       parameters:
         - name: runner_id
           in: path
@@ -2593,12 +2471,10 @@ paths:
   /v1/runners/{runner_id}/tokens/{token_id}:
     get:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        GetRunnerToken retrieves a single AGT by ID.
-         Returns metadata only — the token secret is never included.
+        - Runners
+      summary: Retrieve a runner token
       description: 'Scope: `runner:read`'
-      operationId: admiral.api.runner.v1.RunnerAPI.GetRunnerToken
+      operationId: RunnerAPI_GetRunnerToken
       parameters:
         - name: runner_id
           in: path
@@ -2628,13 +2504,10 @@ paths:
   /v1/runners/{runner_id}/tokens/{token_id}/revoke:
     post:
       tags:
-        - admiral.api.runner.v1.RunnerAPI
-      summary: |-
-        RevokeRunnerToken permanently revokes an AGT bound to this runner.
-         The runner will receive a 401 on its next request. If this is the only
-         active AGT for the runner, the runner will become disconnected.
+        - Runners
+      summary: Revoke a runner token
       description: 'Scope: `runner:write`'
-      operationId: admiral.api.runner.v1.RunnerAPI.RevokeRunnerToken
+      operationId: RunnerAPI_RevokeRunnerToken
       parameters:
         - name: runner_id
           in: path
@@ -2664,12 +2537,10 @@ paths:
   /v1/sources:
     get:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        ListSources returns a paginated list of sources within the caller's tenant.
-         Use the filter to scope by type, catalog status, or labels.
+        - Sources
+      summary: List sources
       description: 'Scope: `source:read`'
-      operationId: admiral.api.source.v1.SourceAPI.ListSources
+      operationId: SourceAPI_ListSources
       parameters:
         - name: filter
           in: query
@@ -2705,14 +2576,14 @@ paths:
                 $ref: '#/components/schemas/admiral.api.source.v1.ListSourcesResponse'
     post:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: CreateSource creates a new source definition within the caller's tenant.
+        - Sources
+      summary: Create a source
       description: |-
         The source type and source_config must match — for example, a
          TERRAFORM_REGISTRY source requires a TerraformRegistryConfig.
 
          Scope: `source:write`
-      operationId: admiral.api.source.v1.SourceAPI.CreateSource
+      operationId: SourceAPI_CreateSource
       requestBody:
         content:
           application/json:
@@ -2729,12 +2600,10 @@ paths:
   /v1/sources/{source.id}:
     patch:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        UpdateSource updates a source's mutable fields.
-         Use the `update_mask` to specify which fields to update.
+        - Sources
+      summary: Update a source
       description: 'Scope: `source:write`'
-      operationId: admiral.api.source.v1.SourceAPI.UpdateSource
+      operationId: SourceAPI_UpdateSource
       parameters:
         - name: source.id
           in: path
@@ -2780,10 +2649,10 @@ paths:
   /v1/sources/{source_id}:
     get:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: GetSource retrieves a source by ID.
+        - Sources
+      summary: Retrieve a source
       description: 'Scope: `source:read`'
-      operationId: admiral.api.source.v1.SourceAPI.GetSource
+      operationId: SourceAPI_GetSource
       parameters:
         - name: source_id
           in: path
@@ -2803,13 +2672,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.source.v1.GetSourceResponse'
     delete:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        DeleteSource permanently deletes a source definition. Fails if any
-         application components still reference this source — remove or reassign
-         those components first. This action cannot be undone.
+        - Sources
+      summary: Delete a source
       description: 'Scope: `source:write`'
-      operationId: admiral.api.source.v1.SourceAPI.DeleteSource
+      operationId: SourceAPI_DeleteSource
       parameters:
         - name: source_id
           in: path
@@ -2834,10 +2700,8 @@ paths:
   /v1/sources/{source_id}/inputs:
     get:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        GetSourceInputs fetches the source artifact at a specific version and
-         parses its inputs (configurable parameters).
+        - Sources
+      summary: Retrieve source inputs
       description: |-
         For Terraform modules, this parses HCL variable blocks using
          terraform-config-inspect. For Helm charts, this extracts values.yaml and
@@ -2848,7 +2712,7 @@ paths:
          may take several seconds.
 
          Scope: `source:read`
-      operationId: admiral.api.source.v1.SourceAPI.GetSourceInputs
+      operationId: SourceAPI_GetSourceInputs
       parameters:
         - name: source_id
           in: path
@@ -2881,10 +2745,8 @@ paths:
   /v1/sources/{source_id}/outputs:
     get:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        GetSourceOutputs fetches the source artifact at a specific version and
-         parses its outputs (values produced after apply).
+        - Sources
+      summary: Retrieve source outputs
       description: |-
         Only meaningful for Terraform modules, which declare formal output blocks.
          Helm charts, Kustomize, and raw manifests do not have formal outputs —
@@ -2894,7 +2756,7 @@ paths:
          several seconds.
 
          Scope: `source:read`
-      operationId: admiral.api.source.v1.SourceAPI.GetSourceOutputs
+      operationId: SourceAPI_GetSourceOutputs
       parameters:
         - name: source_id
           in: path
@@ -2923,10 +2785,8 @@ paths:
   /v1/sources/{source_id}/sync:
     post:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        SyncSource triggers a refresh of the source's cached metadata — version
-         list, discovered inputs/outputs, and connectivity status.
+        - Sources
+      summary: Sync a source
       description: |-
         Use this after updating credentials on the referenced connection, or to
          force a refresh when you know the upstream has changed.
@@ -2935,7 +2795,7 @@ paths:
          several seconds.
 
          Scope: `source:write`
-      operationId: admiral.api.source.v1.SourceAPI.SyncSource
+      operationId: SourceAPI_SyncSource
       parameters:
         - name: source_id
           in: path
@@ -2956,10 +2816,8 @@ paths:
   /v1/sources/{source_id}/versions:
     get:
       tags:
-        - admiral.api.source.v1.SourceAPI
-      summary: |-
-        ListSourceVersions queries the external system for available versions of
-         this source's artifact.
+        - Sources
+      summary: List source versions
       description: |-
         For Terraform registry sources, this calls the Module Registry Protocol's
          version listing endpoint. For Helm repositories, it parses the index.yaml.
@@ -2970,7 +2828,7 @@ paths:
          several seconds.
 
          Scope: `source:read`
-      operationId: admiral.api.source.v1.SourceAPI.ListSourceVersions
+      operationId: SourceAPI_ListSourceVersions
       parameters:
         - name: source_id
           in: path
@@ -3008,13 +2866,10 @@ paths:
   /v1/states:
     get:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        ListStates returns a paginated list of state records within the caller's
-         tenant. Use filters to scope by component, environment, or application.
-         Returns metadata only — use GetCurrentState to fetch full state data.
+        - State
+      summary: List states
       description: 'Scope: `state:read`'
-      operationId: admiral.api.state.v1.StateAPI.ListStates
+      operationId: StateAPI_ListStates
       parameters:
         - name: filter
           in: query
@@ -3069,16 +2924,13 @@ paths:
   /v1/states/{state_id}:
     get:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        GetCurrentState retrieves the current state and lock info for a state
-         record. Returns the latest state data, serial, lineage, and any active
-         lock.
+        - State
+      summary: Retrieve current state
       description: |-
         Returns NOT_FOUND if the state record does not exist.
 
          Scope: `state:read`
-      operationId: admiral.api.state.v1.StateAPI.GetCurrentState
+      operationId: StateAPI_GetCurrentState
       parameters:
         - name: state_id
           in: path
@@ -3098,17 +2950,14 @@ paths:
                 $ref: '#/components/schemas/admiral.api.state.v1.GetCurrentStateResponse'
     delete:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        DeleteState permanently deletes a state record and all its version
-         history. Fails if the state is currently locked — force-unlock first.
-         This action cannot be undone.
+        - State
+      summary: Delete a state
       description: |-
         Returns NOT_FOUND if the state record does not exist.
          Returns FAILED_PRECONDITION if the state is currently locked.
 
          Scope: `state:admin`
-      operationId: admiral.api.state.v1.StateAPI.DeleteState
+      operationId: StateAPI_DeleteState
       parameters:
         - name: state_id
           in: path
@@ -3133,18 +2982,15 @@ paths:
   /v1/states/{state_id}/force-unlock:
     post:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        ForceUnlockState forcefully releases a stuck lock on a state record.
-         Use this when a runner has crashed or become unreachable while holding
-         a lock, preventing subsequent deployments from proceeding.
+        - State
+      summary: Force unlock a state
       description: |-
         Returns NOT_FOUND if the state record does not exist.
          Returns FAILED_PRECONDITION if the state has no active lock.
          This action is logged in the audit trail.
 
          Scope: `state:admin`
-      operationId: admiral.api.state.v1.StateAPI.ForceUnlockState
+      operationId: StateAPI_ForceUnlockState
       parameters:
         - name: state_id
           in: path
@@ -3182,16 +3028,13 @@ paths:
   /v1/states/{state_id}/versions:
     get:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        ListStateVersions returns a paginated history of state versions for a
-         state record. Returns metadata only (serial, md5, size) — use
-         GetStateVersion to fetch the full state data at a specific serial.
+        - State
+      summary: List state versions
       description: |-
         Returns NOT_FOUND if the state record does not exist.
 
          Scope: `state:read`
-      operationId: admiral.api.state.v1.StateAPI.ListStateVersions
+      operationId: StateAPI_ListStateVersions
       parameters:
         - name: state_id
           in: path
@@ -3229,16 +3072,14 @@ paths:
   /v1/states/{state_id}/versions/{serial}:
     get:
       tags:
-        - admiral.api.state.v1.StateAPI
-      summary: |-
-        GetStateVersion retrieves the full state data at a historical serial
-         number. Use ListStateVersions to discover available serials.
+        - State
+      summary: Retrieve a state version
       description: |-
         Returns NOT_FOUND if the state record does not exist or if no version
          with the specified serial exists for that state record.
 
          Scope: `state:read`
-      operationId: admiral.api.state.v1.StateAPI.GetStateVersion
+      operationId: StateAPI_GetStateVersion
       parameters:
         - name: state_id
           in: path
@@ -3270,12 +3111,12 @@ paths:
   /v1/user:
     get:
       tags:
-        - admiral.api.user.v1.UserAPI
-      summary: GetUser
+        - User
+      summary: Retrieve current user
       description: |-
         GetUser retrieves the profile of the currently authenticated user.
          The user is identified by the authentication token provided in the request.
-      operationId: admiral.api.user.v1.UserAPI.GetUser
+      operationId: UserAPI_GetUser
       responses:
         "200":
           description: Success
@@ -3286,12 +3127,10 @@ paths:
   /v1/user/tokens:
     get:
       tags:
-        - admiral.api.user.v1.UserAPI
-      summary: |-
-        ListPersonalAccessTokens returns a paginated list of the authenticated
-         user's PATs. Token secrets are never included.
+        - User
+      summary: List personal access tokens
       description: 'Scope: `token:read`'
-      operationId: admiral.api.user.v1.UserAPI.ListPersonalAccessTokens
+      operationId: UserAPI_ListPersonalAccessTokens
       parameters:
         - name: filter
           in: query
@@ -3331,13 +3170,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.user.v1.ListPersonalAccessTokensResponse'
     post:
       tags:
-        - admiral.api.user.v1.UserAPI
-      summary: |-
-        CreatePersonalAccessToken creates a new PAT for the authenticated user.
-         The response includes the raw token secret, which is shown exactly once
-         and cannot be retrieved again.
+        - User
+      summary: Create a personal access token
       description: 'Scope: `token:write`'
-      operationId: admiral.api.user.v1.UserAPI.CreatePersonalAccessToken
+      operationId: UserAPI_CreatePersonalAccessToken
       requestBody:
         content:
           application/json:
@@ -3354,12 +3190,10 @@ paths:
   /v1/user/tokens/{token_id}:
     get:
       tags:
-        - admiral.api.user.v1.UserAPI
-      summary: |-
-        GetPersonalAccessToken retrieves a single PAT by ID.
-         Returns metadata only — the token secret is never included.
+        - User
+      summary: Retrieve a personal access token
       description: 'Scope: `token:read`'
-      operationId: admiral.api.user.v1.UserAPI.GetPersonalAccessToken
+      operationId: UserAPI_GetPersonalAccessToken
       parameters:
         - name: token_id
           in: path
@@ -3380,12 +3214,10 @@ paths:
   /v1/user/tokens/{token_id}/revoke:
     post:
       tags:
-        - admiral.api.user.v1.UserAPI
-      summary: |-
-        RevokePersonalAccessToken permanently revokes a PAT. The token becomes
-         immediately unusable and cannot be restored.
+        - User
+      summary: Revoke a personal access token
       description: 'Scope: `token:write`'
-      operationId: admiral.api.user.v1.UserAPI.RevokePersonalAccessToken
+      operationId: UserAPI_RevokePersonalAccessToken
       parameters:
         - name: token_id
           in: path
@@ -3406,8 +3238,8 @@ paths:
   /v1/variables:
     get:
       tags:
-        - admiral.api.variable.v1.VariableAPI
-      summary: ListVariables returns a merged, paginated list of variables.
+        - Variables
+      summary: List variables
       description: |-
         The returned list is a resolved view based on the provided filters:
            - No application_id or environment_id: global variables only.
@@ -3418,7 +3250,7 @@ paths:
          so clients can determine precedence.
 
          Scope: `var:read`
-      operationId: admiral.api.variable.v1.VariableAPI.ListVariables
+      operationId: VariableAPI_ListVariables
       parameters:
         - name: filter
           in: query
@@ -3474,14 +3306,14 @@ paths:
                 $ref: '#/components/schemas/admiral.api.variable.v1.ListVariablesResponse'
     post:
       tags:
-        - admiral.api.variable.v1.VariableAPI
-      summary: CreateVariable creates a new variable.
+        - Variables
+      summary: Create a variable
       description: |-
         Fails if a variable with the same key already exists at the same level
          (same key + application_id + environment_id combination).
 
          Scope: `var:write`
-      operationId: admiral.api.variable.v1.VariableAPI.CreateVariable
+      operationId: VariableAPI_CreateVariable
       requestBody:
         content:
           application/json:
@@ -3498,13 +3330,10 @@ paths:
   /v1/variables/{variable.id}:
     patch:
       tags:
-        - admiral.api.variable.v1.VariableAPI
-      summary: |-
-        UpdateVariable updates a variable's mutable fields.
-         Use the `update_mask` to specify which fields to update.
-         Only `value` and `sensitive` are mutable — key is immutable.
+        - Variables
+      summary: Update a variable
       description: 'Scope: `var:write`'
-      operationId: admiral.api.variable.v1.VariableAPI.UpdateVariable
+      operationId: VariableAPI_UpdateVariable
       parameters:
         - name: variable.id
           in: path
@@ -3549,13 +3378,13 @@ paths:
   /v1/variables/{variable_id}:
     get:
       tags:
-        - admiral.api.variable.v1.VariableAPI
-      summary: GetVariable retrieves a variable by ID.
+        - Variables
+      summary: Retrieve a variable
       description: |-
         Sensitive variable values are masked in the response.
 
          Scope: `var:read`
-      operationId: admiral.api.variable.v1.VariableAPI.GetVariable
+      operationId: VariableAPI_GetVariable
       parameters:
         - name: variable_id
           in: path
@@ -3575,10 +3404,10 @@ paths:
                 $ref: '#/components/schemas/admiral.api.variable.v1.GetVariableResponse'
     delete:
       tags:
-        - admiral.api.variable.v1.VariableAPI
-      summary: DeleteVariable permanently deletes a variable. This action cannot be undone.
+        - Variables
+      summary: Delete a variable
       description: 'Scope: `var:write`'
-      operationId: admiral.api.variable.v1.VariableAPI.DeleteVariable
+      operationId: VariableAPI_DeleteVariable
       parameters:
         - name: variable_id
           in: path
@@ -10443,203 +10272,27 @@ components:
          ) to obtain a formatter capable of generating timestamps in this format.
 security: []
 tags:
-  - name: admiral.api.application.v1.ApplicationAPI
-    description: |-
-      ApplicationAPI manages applications within a tenant.
-
-       An application is the fundamental unit in Admiral. It groups deployment
-       manifests, infrastructure dependencies, environment configuration, and
-       relationships into a single entity that can be deployed across multiple
-       environments. Applications are defined once and promoted explicitly between
-       environments.
-  - name: admiral.api.cluster.v1.ClusterAPI
-    description: |-
-      ClusterAPI manages Kubernetes clusters and their workload telemetry.
-
-       Administrators create clusters via CreateCluster, which returns an Agent
-       Token (AGT) for deploying the K8s agent. Once the agent boots and calls
-       AgentAPI.RegisterAgent, the cluster transitions from PENDING to HEALTHY
-       and begins receiving telemetry.
-
-       The telemetry model has three tiers: current snapshot (upserted per push),
-       time-series metrics (rolling 48-hour window), and events (rolling 7-day window).
-
-       All operations delegate to the platform ClusterAPI. The facade resolves the
-       caller's identity (user JWT or AGT → cluster_id) and forwards.
-  - name: admiral.api.component.v1.ComponentAPI
-    description: |-
-      ComponentAPI manages components within an application.
-
-       A component binds an application to a source — it defines what artifact
-       (Terraform module, Helm chart, Kustomize overlay, etc.) to deploy and how
-       to configure it. Each component has a name (unique within the application),
-       a source reference, a pinned version, and a values template that maps
-       variables and component outputs into the source's expected inputs.
-
-       Components are defined at the application level and apply to all
-       environments by default. Environments can override a component's source,
-       version, values, or disable it entirely via ComponentOverride.
-
-       Components form a dependency graph: infrastructure components produce
-       outputs that are auto-discovered from the source (e.g., Terraform outputs).
-       Workload components declare their outputs explicitly. Other components
-       consume these outputs via template expressions
-       (e.g., `{{ .component.vpc.vpc_id }}`). Admiral resolves this DAG at
-       deployment time to determine execution order.
-  - name: admiral.api.connection.v1.ConnectionAPI
-    description: |-
-      ConnectionAPI manages credentials for accessing external systems.
-
-       A connection stores the authentication configuration needed to reach a remote
-       system — a Git host, Helm repository, OCI registry, Terraform registry, or
-       cloud provider. Connections are tenant-scoped and referenced by sources when
-       fetching artifacts.
-
-       Sensitive credential fields (tokens, keys, secrets) are write-only: they are
-       accepted on create/update but never returned in API responses. GET and List
-       operations return connection metadata and status only.
-
-       For cloud registries (ECR, GAR, ACR), OIDC workload identity federation is
-       the recommended approach. Admiral acts as an OIDC identity provider — the
-       customer configures their cloud IAM to trust Admiral's issuer with their
-       tenant_id claim. No long-lived secrets are stored in Admiral. Static cloud
-       credentials are supported for legacy or airgapped environments but are
-       discouraged and may be restricted via tenant-level policy in the future.
-  - name: admiral.api.deployment.v1.DeploymentAPI
-    description: |-
-      DeploymentAPI manages deployments and their component revisions.
-
-       A deployment represents a single act of deploying an application to an
-       environment. When triggered, Admiral resolves all components for the
-       application+environment combination (applying overrides), builds a
-       dependency graph, and renders each component into an immutable revision.
-
-       Infrastructure revisions (Terraform) follow a plan → apply lifecycle.
-       Workload revisions (Helm, Kustomize, manifests) are applied directly to
-       the target cluster. The deployment engine executes the dependency graph
-       in order: independent components run in parallel, dependent components
-       wait for their upstream to succeed.
-
-       There is no special rollback mechanism — to revert a change, update the
-       configuration (variables, component settings) and create a new deployment.
-       Every deployment is always rendered against the current state, ensuring
-       consistency between infrastructure outputs and workload inputs.
-  - name: admiral.api.environment.v1.EnvironmentAPI
-    description: |-
-      EnvironmentAPI manages environments within an application.
-
-       An environment is a named deployment target (e.g., dev, staging, prod) that
-       binds an application to a runtime where its workloads are deployed. Each
-       environment carries its own configuration, credentials, and compute targets.
-       Promotion between environments is explicit — Admiral never auto-promotes.
-  - name: admiral.api.healthcheck.v1.HealthcheckAPI
-    description: HealthcheckAPI provides health check operations for monitoring service availability.
-  - name: admiral.api.runner.v1.RunnerAPI
-    description: |-
-      RunnerAPI manages infrastructure execution runners and their jobs.
-
-       Runners are the execution plane for infrastructure operations (Terraform
-       plan, apply, destroy). Administrators create runners via CreateRunner,
-       which returns an Agent Token (AGT) for deploying the runner binary.
-       Once the runner boots and begins heartbeating, the server transitions
-       its health from PENDING to HEALTHY and the runner can start claiming jobs.
-
-       The job lifecycle bridges Deployments and Runners:
-         1. CreateDeployment resolves components and creates Revisions.
-         2. For infrastructure revisions, the server creates a Job and assigns it
-            to the environment's configured runner.
-         3. The runner calls ClaimJob → GetJobBundle → executes TF → ReportJobResult.
-         4. ReportJobResult transitions the parent Revision status.
-
-       Admin routes follow /v1/runners/... (plural, with IDs).
-       Runner-facing routes use /v1/runner/... (singular, no ID — derived from
-       the AGT binding), matching the cluster agent pattern.
-
-       All operations delegate to the platform RunnerAPI. The facade resolves the
-       caller's identity (user JWT or AGT → runner_id) and forwards. ---------------------------------------------------------------------------
-       Admin CRUD
-       ---------------------------------------------------------------------------
-  - name: admiral.api.source.v1.SourceAPI
-    description: |-
-      SourceAPI manages source definitions — pointers to external artifacts that
-       Admiral fetches, inspects, and renders into immutable deployment snapshots.
-
-       A source represents a fetchable artifact at a specific location: a Terraform
-       module in a registry, a Helm chart in an OCI registry, Kubernetes manifests
-       in a Git repository, etc. Sources reference a connection for credentials and
-       are referenced by application components for deployment.
-
-       Sources can be marked as catalog entries by platform engineers. Catalog
-       sources are curated, pre-approved artifacts (e.g., a corporate-standard RDS
-       module with backups and encryption pre-configured). Organizations can
-       optionally restrict applications to catalog-only sources.
-
-       The API includes discovery operations (ListSourceVersions, GetSourceInputs,
-       GetSourceOutputs) that query external systems in real time. These are
-       primarily used by the UI for interactive workflows (version dropdowns, input
-       forms) but are exposed in the public API for CLI and automation use. The
-       facade delegates discovery to the platform SourceAPI, which handles
-       credential resolution and external fetching centrally.
-  - name: admiral.api.state.v1.StateAPI
-    description: |-
-      StateAPI manages Terraform state for infrastructure components within a
-       tenant.
-
-       State is scoped to **component + environment** — each infrastructure
-       component (e.g., "rds", "vpc") has exactly one state record per
-       environment (e.g., dev, staging, prod). This state persists for the
-       entire lifetime of that component in that environment, spanning many
-       deployments and jobs. Locks protect the state record itself, not any
-       individual job — if a job crashes while holding a lock, the lock remains
-       on the state until released or force-unlocked.
-
-       Admiral acts as the state backend for all Terraform-backed components.
-       You do not need to configure a separate backend (S3, GCS, etc.) —
-       Admiral stores and versions state automatically.
-
-       Most callers only need the admin-facing RPCs: GetCurrentState, ListStates,
-       ListStateVersions, GetStateVersion, ForceUnlockState, and DeleteState.
-       These provide full visibility into and control over state without needing
-       to understand the Terraform HTTP backend protocol.
-
-       Runner-facing RPCs (GetState, PushState, LockState, UnlockState) are
-       called by Admiral's runner binary during job execution. These endpoints
-       use job_id as an access path — the server resolves the job's component
-       and environment to locate the underlying state record. The runner
-       configures Terraform's HTTP backend with per-job state URLs and injects
-       its AGT as a bearer token. These endpoints are not intended for direct
-       use by external developers.
-
-       Execution flow:
-         ClaimJob → GetJobBundle → LockState → GetState → terraform apply →
-         PushState → UnlockState → ReportJobResult
-
-       Admin routes use /v1/states/... (plural, with state_id).
-       Runner-facing routes use /v1/runner/jobs/{job_id}/state (job-scoped —
-       the server resolves the component and environment from the job).
-
-       All operations delegate to the platform StateAPI. The facade resolves the
-       caller's identity and calls ResolveJobState for runner-facing RPCs to map
-       job_id → state_id before forwarding state operations. ---------------------------------------------------------------------------
-       Runner-facing (AGT-only)
-       ---------------------------------------------------------------------------
-  - name: admiral.api.user.v1.UserAPI
-    description: |-
-      UserAPI provides operations for the currently authenticated user, including
-       profile retrieval and Personal Access Token (PAT) management.
-
-       PATs allow users to authenticate with the Admiral API from scripts, CI
-       pipelines, and other programmatic contexts. Each PAT has user-selected
-       scopes and an optional expiration.
-  - name: admiral.api.variable.v1.VariableAPI
-    description: |-
-      VariableAPI manages configuration variables within a tenant.
-
-       Variables provide key-value configuration at three levels: global
-       (tenant-wide), per application, or per application+environment. When listing
-       variables for a specific application and environment, Admiral merges variables
-       from all applicable levels, with narrower levels taking precedence.
-
-       Sensitive variables have their values encrypted at rest and masked in API
-       responses. The actual value is only resolved at deployment time into the
-       immutable deployment snapshot.
+  - name: Applications
+    description: Manage application lifecycle and configuration.
+  - name: Clusters
+    description: Manage Kubernetes clusters, agent tokens, and workload telemetry.
+  - name: Components
+    description: Manage application components and environment overrides.
+  - name: Connections
+    description: Manage credentials for accessing external systems.
+  - name: Deployments
+    description: Manage deployments and track component revisions.
+  - name: Environments
+    description: Manage deployment target environments.
+  - name: Health
+    description: Check service availability.
+  - name: Runners
+    description: Manage infrastructure runners, tokens, and job execution.
+  - name: Sources
+    description: Manage source definitions for external artifacts.
+  - name: State
+    description: Manage Terraform state for infrastructure components.
+  - name: User
+    description: Retrieve user profile and manage personal access tokens.
+  - name: Variables
+    description: Manage configuration variables across scopes.
