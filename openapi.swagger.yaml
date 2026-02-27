@@ -203,36 +203,7 @@ paths:
             $ref: '#/definitions/v1CreateApplicationRequest'
       tags:
         - ApplicationAPI
-  /v1/applications/{application.id}:
-    patch:
-      summary: |-
-        UpdateApplication updates an application's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `app:write`'
-      operationId: ApplicationAPI_UpdateApplication
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateApplicationResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: application.id
-          description: Unique identifier for the application (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ApplicationAPIUpdateApplicationBody'
-      tags:
-        - ApplicationAPI
-  /v1/applications/{applicationId}:
+  /v1/applications/{id}:
     get:
       summary: GetApplication retrieves an application by ID.
       description: 'Scope: `app:read`'
@@ -247,7 +218,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: applicationId
+        - name: id
           description: The unique identifier of the application (UUID).
           in: path
           required: true
@@ -270,11 +241,39 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: applicationId
+        - name: id
           description: The unique identifier of the application to delete (UUID).
           in: path
           required: true
           type: string
+      tags:
+        - ApplicationAPI
+    patch:
+      summary: |-
+        UpdateApplication updates an application's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `app:write`'
+      operationId: ApplicationAPI_UpdateApplication
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateApplicationResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: The unique identifier of the application (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ApplicationAPIUpdateApplicationBody'
       tags:
         - ApplicationAPI
   /v1/clusters:
@@ -341,36 +340,7 @@ paths:
             $ref: '#/definitions/v1CreateClusterRequest'
       tags:
         - ClusterAPI
-  /v1/clusters/{cluster.id}:
-    patch:
-      summary: |-
-        UpdateCluster updates a cluster's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `cluster:write`'
-      operationId: ClusterAPI_UpdateCluster
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateClusterResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: cluster.id
-          description: Unique identifier for the cluster (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ClusterAPIUpdateClusterBody'
-      tags:
-        - ClusterAPI
-  /v1/clusters/{clusterId}:
+  /v1/clusters/{id}:
     get:
       summary: GetCluster retrieves a cluster by ID.
       description: |-
@@ -390,7 +360,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The unique identifier of the cluster (UUID).
           in: path
           required: true
@@ -413,7 +383,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: |-
             The unique identifier of the cluster to delete (UUID).
             All associated agent tokens will be revoked.
@@ -422,7 +392,35 @@ paths:
           type: string
       tags:
         - ClusterAPI
-  /v1/clusters/{clusterId}/status:
+    patch:
+      summary: |-
+        UpdateCluster updates a cluster's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `cluster:write`'
+      operationId: ClusterAPI_UpdateCluster
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateClusterResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: The unique identifier of the cluster (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ClusterAPIUpdateClusterBody'
+      tags:
+        - ClusterAPI
+  /v1/clusters/{id}/status:
     get:
       summary: |-
         GetClusterStatus retrieves the current telemetry snapshot for a cluster.
@@ -445,14 +443,14 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The unique identifier of the cluster (UUID).
           in: path
           required: true
           type: string
       tags:
         - ClusterAPI
-  /v1/clusters/{clusterId}/tokens:
+  /v1/clusters/{id}/tokens:
     get:
       summary: |-
         ListClusterTokens returns a paginated list of AGTs bound to the specified
@@ -469,7 +467,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The cluster to list tokens for (UUID).
           in: path
           required: true
@@ -514,7 +512,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The cluster to bind this token to (UUID).
           in: path
           required: true
@@ -526,7 +524,7 @@ paths:
             $ref: '#/definitions/ClusterAPICreateClusterTokenBody'
       tags:
         - ClusterAPI
-  /v1/clusters/{clusterId}/tokens/{tokenId}:
+  /v1/clusters/{id}/tokens/{tokenId}:
     get:
       summary: |-
         GetClusterToken retrieves a single AGT by ID.
@@ -543,7 +541,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The cluster the token belongs to (UUID).
           in: path
           required: true
@@ -555,7 +553,7 @@ paths:
           type: string
       tags:
         - ClusterAPI
-  /v1/clusters/{clusterId}/tokens/{tokenId}/revoke:
+  /v1/clusters/{id}/tokens/{tokenId}/revoke:
     post:
       summary: |-
         RevokeClusterToken permanently revokes an AGT bound to this cluster.
@@ -573,7 +571,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The cluster the token belongs to (UUID).
           in: path
           required: true
@@ -590,7 +588,7 @@ paths:
             $ref: '#/definitions/ClusterAPIRevokeClusterTokenBody'
       tags:
         - ClusterAPI
-  /v1/clusters/{clusterId}/workloads:
+  /v1/clusters/{id}/workloads:
     get:
       summary: ListWorkloads returns a paginated list of workloads running in a specific cluster.
       description: 'Scope: `cluster:read`'
@@ -605,7 +603,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The cluster whose workloads to list (UUID).
           in: path
           required: true
@@ -628,7 +626,7 @@ paths:
           type: string
       tags:
         - ClusterAPI
-  /v1/clusters/{clusterId}/workloads/status:
+  /v1/clusters/{id}/workloads/status:
     post:
       summary: |-
         ReportWorkloadStatus receives workload-only telemetry from a K8s agent.
@@ -648,7 +646,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: clusterId
+        - name: id
           description: The cluster these workloads belong to (UUID).
           in: path
           required: true
@@ -737,126 +735,6 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/v1CreateComponentRequest'
-      tags:
-        - ComponentAPI
-  /v1/components/{component.id}:
-    patch:
-      summary: |-
-        UpdateComponent updates a component's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: |-
-        When renaming a component, the server validates that no other components
-        reference the old name in their values_template expressions and rejects
-        the rename if references exist.
-
-        Scope: `app:write`
-      operationId: ComponentAPI_UpdateComponent
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateComponentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: component.id
-          description: Unique identifier for the component (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ComponentAPIUpdateComponentBody'
-      tags:
-        - ComponentAPI
-  /v1/components/{componentId}:
-    get:
-      summary: GetComponent retrieves a component by ID.
-      description: 'Scope: `app:read`'
-      operationId: ComponentAPI_GetComponent
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1GetComponentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: componentId
-          description: The unique identifier of the component (UUID).
-          in: path
-          required: true
-          type: string
-      tags:
-        - ComponentAPI
-    delete:
-      summary: |-
-        DeleteComponent removes a component from an application. Fails if other
-        components depend on this component (via depends_on or output references
-        in values_template) — remove or update those dependencies first. Also
-        removes all environment overrides for this component.
-        This action cannot be undone.
-      description: 'Scope: `app:write`'
-      operationId: ComponentAPI_DeleteComponent
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1DeleteComponentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: componentId
-          description: |-
-            The unique identifier of the component to delete (UUID).
-            Fails if other components depend on this component (via depends_on
-            or output references in values_template).
-          in: path
-          required: true
-          type: string
-      tags:
-        - ComponentAPI
-  /v1/components/{componentId}/overrides:
-    get:
-      summary: |-
-        ListComponentOverrides returns all environment-level overrides for a
-        component across all environments.
-      description: 'Scope: `env:read`'
-      operationId: ComponentAPI_ListComponentOverrides
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1ListComponentOverridesResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: componentId
-          description: The component to list overrides for (UUID).
-          in: path
-          required: true
-          type: string
-        - name: pageSize
-          description: Maximum number of overrides to return per page.
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: pageToken
-          description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
       tags:
         - ComponentAPI
   /v1/components/{componentId}/overrides/{environmentId}:
@@ -957,6 +835,125 @@ paths:
             $ref: '#/definitions/ComponentAPISetComponentOverrideBody'
       tags:
         - ComponentAPI
+  /v1/components/{id}:
+    get:
+      summary: GetComponent retrieves a component by ID.
+      description: 'Scope: `app:read`'
+      operationId: ComponentAPI_GetComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the component (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ComponentAPI
+    delete:
+      summary: |-
+        DeleteComponent removes a component from an application. Fails if other
+        components depend on this component (via depends_on or output references
+        in values_template) — remove or update those dependencies first. Also
+        removes all environment overrides for this component.
+        This action cannot be undone.
+      description: 'Scope: `app:write`'
+      operationId: ComponentAPI_DeleteComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1DeleteComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: |-
+            Unique identifier of the component to delete (UUID).
+            Fails if other components depend on this component (via depends_on
+            or output references in values_template).
+          in: path
+          required: true
+          type: string
+      tags:
+        - ComponentAPI
+    patch:
+      summary: |-
+        UpdateComponent updates a component's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: |-
+        When renaming a component, the server validates that no other components
+        reference the old name in their values_template expressions and rejects
+        the rename if references exist.
+
+        Scope: `app:write`
+      operationId: ComponentAPI_UpdateComponent
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateComponentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the component to update (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ComponentAPIUpdateComponentBody'
+      tags:
+        - ComponentAPI
+  /v1/components/{id}/overrides:
+    get:
+      summary: |-
+        ListComponentOverrides returns all environment-level overrides for a
+        component across all environments.
+      description: 'Scope: `env:read`'
+      operationId: ComponentAPI_ListComponentOverrides
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListComponentOverridesResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the component to list overrides for (UUID).
+          in: path
+          required: true
+          type: string
+        - name: pageSize
+          description: Maximum number of overrides to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - ComponentAPI
   /v1/connections:
     get:
       summary: |-
@@ -1019,41 +1016,7 @@ paths:
             $ref: '#/definitions/v1CreateConnectionRequest'
       tags:
         - ConnectionAPI
-  /v1/connections/{connection.id}:
-    patch:
-      summary: |-
-        UpdateConnection updates a connection's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: |-
-        When updating auth_config, the entire auth config is replaced — partial
-        updates within the auth config oneof are not supported. Omitting auth_config
-        from the update_mask leaves credentials unchanged.
-
-        Scope: `connection:write`
-      operationId: ConnectionAPI_UpdateConnection
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateConnectionResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: connection.id
-          description: Unique identifier for the connection (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/ConnectionAPIUpdateConnectionBody'
-      tags:
-        - ConnectionAPI
-  /v1/connections/{connectionId}:
+  /v1/connections/{id}:
     get:
       summary: GetConnection retrieves a connection by ID.
       description: |-
@@ -1072,7 +1035,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: connectionId
+        - name: id
           description: The unique identifier of the connection (UUID).
           in: path
           required: true
@@ -1096,7 +1059,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: connectionId
+        - name: id
           description: |-
             The unique identifier of the connection to delete (UUID).
             Fails if any sources still reference this connection.
@@ -1105,7 +1068,40 @@ paths:
           type: string
       tags:
         - ConnectionAPI
-  /v1/connections/{connectionId}/test:
+    patch:
+      summary: |-
+        UpdateConnection updates a connection's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: |-
+        When updating auth_config, the entire auth config is replaced — partial
+        updates within the auth config oneof are not supported. Omitting auth_config
+        from the update_mask leaves credentials unchanged.
+
+        Scope: `connection:write`
+      operationId: ConnectionAPI_UpdateConnection
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateConnectionResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: The unique identifier of the connection (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ConnectionAPIUpdateConnectionBody'
+      tags:
+        - ConnectionAPI
+  /v1/connections/{id}/test:
     post:
       summary: |-
         TestConnection validates that the stored credentials can successfully
@@ -1127,7 +1123,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: connectionId
+        - name: id
           description: The unique identifier of the connection to test (UUID).
           in: path
           required: true
@@ -1221,93 +1217,6 @@ paths:
             $ref: '#/definitions/v1CreateDeploymentRequest'
       tags:
         - DeploymentAPI
-  /v1/deployments/{deploymentId}:
-    get:
-      summary: |-
-        GetDeployment retrieves a deployment by ID, including its composite
-        status derived from all component revisions.
-      description: 'Scope: `deploy:read`'
-      operationId: DeploymentAPI_GetDeployment
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1GetDeploymentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: deploymentId
-          description: The unique identifier of the deployment (UUID).
-          in: path
-          required: true
-          type: string
-      tags:
-        - DeploymentAPI
-  /v1/deployments/{deploymentId}/cancel:
-    post:
-      summary: |-
-        CancelDeployment cancels an in-progress deployment. Revisions that are
-        already SUCCEEDED remain applied — cancellation only stops pending and
-        queued revisions from proceeding. The deployment status becomes CANCELLED.
-      description: 'Scope: `deploy:write`'
-      operationId: DeploymentAPI_CancelDeployment
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1CancelDeploymentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: deploymentId
-          description: The deployment to cancel (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/DeploymentAPICancelDeploymentBody'
-      tags:
-        - DeploymentAPI
-  /v1/deployments/{deploymentId}/revisions:
-    get:
-      summary: ListRevisions returns all component revisions for a deployment.
-      description: 'Scope: `deploy:read`'
-      operationId: DeploymentAPI_ListRevisions
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1ListRevisionsResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: deploymentId
-          description: The deployment to list revisions for (UUID).
-          in: path
-          required: true
-          type: string
-        - name: pageSize
-          description: Maximum number of revisions to return per page.
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: pageToken
-          description: Opaque pagination token from a previous response.
-          in: query
-          required: false
-          type: string
-      tags:
-        - DeploymentAPI
   /v1/deployments/{deploymentId}/revisions/{revisionId}:
     get:
       summary: GetRevision retrieves a single component revision within a deployment.
@@ -1370,6 +1279,93 @@ paths:
             $ref: '#/definitions/DeploymentAPIRetryRevisionBody'
       tags:
         - DeploymentAPI
+  /v1/deployments/{id}:
+    get:
+      summary: |-
+        GetDeployment retrieves a deployment by ID, including its composite
+        status derived from all component revisions.
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_GetDeployment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1GetDeploymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the deployment (UUID).
+          in: path
+          required: true
+          type: string
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{id}/cancel:
+    post:
+      summary: |-
+        CancelDeployment cancels an in-progress deployment. Revisions that are
+        already SUCCEEDED remain applied — cancellation only stops pending and
+        queued revisions from proceeding. The deployment status becomes CANCELLED.
+      description: 'Scope: `deploy:write`'
+      operationId: DeploymentAPI_CancelDeployment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1CancelDeploymentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the deployment to cancel (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/DeploymentAPICancelDeploymentBody'
+      tags:
+        - DeploymentAPI
+  /v1/deployments/{id}/revisions:
+    get:
+      summary: ListRevisions returns all component revisions for a deployment.
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_ListRevisions
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1ListRevisionsResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the deployment to list revisions for (UUID).
+          in: path
+          required: true
+          type: string
+        - name: pageSize
+          description: Maximum number of revisions to return per page.
+          in: query
+          required: false
+          type: integer
+          format: int32
+        - name: pageToken
+          description: Opaque pagination token from a previous response.
+          in: query
+          required: false
+          type: string
+      tags:
+        - DeploymentAPI
   /v1/environments:
     get:
       summary: |-
@@ -1427,36 +1423,7 @@ paths:
             $ref: '#/definitions/v1CreateEnvironmentRequest'
       tags:
         - EnvironmentAPI
-  /v1/environments/{environment.id}:
-    patch:
-      summary: |-
-        UpdateEnvironment updates an environment's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `env:write`'
-      operationId: EnvironmentAPI_UpdateEnvironment
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateEnvironmentResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: environment.id
-          description: Unique identifier for the environment (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/EnvironmentAPIUpdateEnvironmentBody'
-      tags:
-        - EnvironmentAPI
-  /v1/environments/{environmentId}:
+  /v1/environments/{id}:
     get:
       summary: GetEnvironment retrieves an environment by ID.
       description: 'Scope: `env:read`'
@@ -1471,7 +1438,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: environmentId
+        - name: id
           description: The unique identifier of the environment (UUID).
           in: path
           required: true
@@ -1497,11 +1464,39 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: environmentId
+        - name: id
           description: The unique identifier of the environment to delete (UUID).
           in: path
           required: true
           type: string
+      tags:
+        - EnvironmentAPI
+    patch:
+      summary: |-
+        UpdateEnvironment updates an environment's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `env:write`'
+      operationId: EnvironmentAPI_UpdateEnvironment
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateEnvironmentResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: The unique identifier of the environment (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/EnvironmentAPIUpdateEnvironmentBody'
       tags:
         - EnvironmentAPI
   /v1/healthcheck:
@@ -1864,36 +1859,7 @@ paths:
             $ref: '#/definitions/v1CreateRunnerRequest'
       tags:
         - RunnerAPI
-  /v1/runners/{runner.id}:
-    patch:
-      summary: |-
-        UpdateRunner updates a runner's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `runner:write`'
-      operationId: RunnerAPI_UpdateRunner
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateRunnerResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: runner.id
-          description: Unique identifier for the runner (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
-      tags:
-        - RunnerAPI
-  /v1/runners/{runnerId}:
+  /v1/runners/{id}:
     get:
       summary: GetRunner retrieves a runner by ID.
       description: |-
@@ -1912,7 +1878,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The unique identifier of the runner (UUID).
           in: path
           required: true
@@ -1936,7 +1902,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: |-
             The unique identifier of the runner to delete (UUID).
             All associated agent tokens will be revoked.
@@ -1945,7 +1911,35 @@ paths:
           type: string
       tags:
         - RunnerAPI
-  /v1/runners/{runnerId}/jobs:
+    patch:
+      summary: |-
+        UpdateRunner updates a runner's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_UpdateRunner
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateRunnerResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: The unique identifier of the runner (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
+      tags:
+        - RunnerAPI
+  /v1/runners/{id}/jobs:
     get:
       summary: |-
         ListRunnerJobs returns a paginated list of jobs assigned to a runner.
@@ -1962,7 +1956,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The runner whose jobs to list (UUID).
           in: path
           required: true
@@ -1991,7 +1985,7 @@ paths:
           type: string
       tags:
         - RunnerAPI
-  /v1/runners/{runnerId}/status:
+  /v1/runners/{id}/status:
     get:
       summary: |-
         GetRunnerStatus retrieves the current telemetry snapshot for a runner.
@@ -2013,14 +2007,14 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The unique identifier of the runner (UUID).
           in: path
           required: true
           type: string
       tags:
         - RunnerAPI
-  /v1/runners/{runnerId}/tokens:
+  /v1/runners/{id}/tokens:
     get:
       summary: |-
         ListRunnerTokens returns a paginated list of AGTs bound to the specified
@@ -2037,7 +2031,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The runner to list tokens for (UUID).
           in: path
           required: true
@@ -2082,7 +2076,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The runner to bind this token to (UUID).
           in: path
           required: true
@@ -2094,7 +2088,7 @@ paths:
             $ref: '#/definitions/RunnerAPICreateRunnerTokenBody'
       tags:
         - RunnerAPI
-  /v1/runners/{runnerId}/tokens/{tokenId}:
+  /v1/runners/{id}/tokens/{tokenId}:
     get:
       summary: |-
         GetRunnerToken retrieves a single AGT by ID.
@@ -2111,7 +2105,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The runner the token belongs to (UUID).
           in: path
           required: true
@@ -2123,7 +2117,7 @@ paths:
           type: string
       tags:
         - RunnerAPI
-  /v1/runners/{runnerId}/tokens/{tokenId}/revoke:
+  /v1/runners/{id}/tokens/{tokenId}/revoke:
     post:
       summary: |-
         RevokeRunnerToken permanently revokes an AGT bound to this runner.
@@ -2141,7 +2135,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: runnerId
+        - name: id
           description: The runner the token belongs to (UUID).
           in: path
           required: true
@@ -2219,36 +2213,7 @@ paths:
             $ref: '#/definitions/v1CreateSourceRequest'
       tags:
         - SourceAPI
-  /v1/sources/{source.id}:
-    patch:
-      summary: |-
-        UpdateSource updates a source's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-      description: 'Scope: `source:write`'
-      operationId: SourceAPI_UpdateSource
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateSourceResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: source.id
-          description: Unique identifier for the source (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/SourceAPIUpdateSourceBody'
-      tags:
-        - SourceAPI
-  /v1/sources/{sourceId}:
+  /v1/sources/{id}:
     get:
       summary: GetSource retrieves a source by ID.
       description: 'Scope: `source:read`'
@@ -2263,8 +2228,8 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: sourceId
-          description: The unique identifier of the source (UUID).
+        - name: id
+          description: Unique identifier of the source (UUID).
           in: path
           required: true
           type: string
@@ -2287,16 +2252,44 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: sourceId
+        - name: id
           description: |-
-            The unique identifier of the source to delete (UUID).
+            Unique identifier of the source to delete (UUID).
             Fails if any application components still reference this source.
           in: path
           required: true
           type: string
       tags:
         - SourceAPI
-  /v1/sources/{sourceId}/inputs:
+    patch:
+      summary: |-
+        UpdateSource updates a source's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+      description: 'Scope: `source:write`'
+      operationId: SourceAPI_UpdateSource
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateSourceResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: Unique identifier of the source to update (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/SourceAPIUpdateSourceBody'
+      tags:
+        - SourceAPI
+  /v1/sources/{id}/inputs:
     get:
       summary: |-
         GetSourceInputs fetches the source artifact at a specific version and
@@ -2322,8 +2315,8 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: sourceId
-          description: The source to inspect (UUID).
+        - name: id
+          description: Unique identifier of the source to inspect (UUID).
           in: path
           required: true
           type: string
@@ -2336,7 +2329,7 @@ paths:
           type: string
       tags:
         - SourceAPI
-  /v1/sources/{sourceId}/outputs:
+  /v1/sources/{id}/outputs:
     get:
       summary: |-
         GetSourceOutputs fetches the source artifact at a specific version and
@@ -2361,8 +2354,8 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: sourceId
-          description: The source to inspect (UUID).
+        - name: id
+          description: Unique identifier of the source to inspect (UUID).
           in: path
           required: true
           type: string
@@ -2373,7 +2366,7 @@ paths:
           type: string
       tags:
         - SourceAPI
-  /v1/sources/{sourceId}/sync:
+  /v1/sources/{id}/sync:
     post:
       summary: |-
         SyncSource triggers a refresh of the source's cached metadata — version
@@ -2397,8 +2390,8 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: sourceId
-          description: The source to sync (UUID).
+        - name: id
+          description: Unique identifier of the source to sync (UUID).
           in: path
           required: true
           type: string
@@ -2409,7 +2402,7 @@ paths:
             $ref: '#/definitions/SourceAPISyncSourceBody'
       tags:
         - SourceAPI
-  /v1/sources/{sourceId}/versions:
+  /v1/sources/{id}/versions:
     get:
       summary: |-
         ListSourceVersions queries the external system for available versions of
@@ -2435,8 +2428,8 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: sourceId
-          description: The source to query versions for (UUID).
+        - name: id
+          description: Unique identifier of the source to query versions for (UUID).
           in: path
           required: true
           type: string
@@ -2498,7 +2491,7 @@ paths:
           type: string
       tags:
         - StateAPI
-  /v1/states/{stateId}:
+  /v1/states/{id}:
     get:
       summary: |-
         GetCurrentState retrieves the current state and lock info for a state
@@ -2519,7 +2512,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: stateId
+        - name: id
           description: The unique identifier of the state record (UUID).
           in: path
           required: true
@@ -2547,7 +2540,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: stateId
+        - name: id
           description: |-
             The unique identifier of the state record to delete (UUID).
             Fails if the state is currently locked — force-unlock first.
@@ -2556,7 +2549,7 @@ paths:
           type: string
       tags:
         - StateAPI
-  /v1/states/{stateId}/force-unlock:
+  /v1/states/{id}/force-unlock:
     post:
       summary: |-
         ForceUnlockState forcefully releases a stuck lock on a state record.
@@ -2579,7 +2572,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: stateId
+        - name: id
           description: The state record to force-unlock (UUID).
           in: path
           required: true
@@ -2591,7 +2584,7 @@ paths:
             $ref: '#/definitions/StateAPIForceUnlockStateBody'
       tags:
         - StateAPI
-  /v1/states/{stateId}/versions:
+  /v1/states/{id}/versions:
     get:
       summary: |-
         ListStateVersions returns a paginated history of state versions for a
@@ -2612,7 +2605,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: stateId
+        - name: id
           description: The state record to list versions for (UUID).
           in: path
           required: true
@@ -2630,7 +2623,7 @@ paths:
           type: string
       tags:
         - StateAPI
-  /v1/states/{stateId}/versions/{serial}:
+  /v1/states/{id}/versions/{serial}:
     get:
       summary: |-
         GetStateVersion retrieves the full state data at a historical serial
@@ -2651,7 +2644,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: stateId
+        - name: id
           description: The state record (UUID).
           in: path
           required: true
@@ -2743,7 +2736,7 @@ paths:
             $ref: '#/definitions/v1CreatePersonalAccessTokenRequest'
       tags:
         - UserAPI
-  /v1/user/tokens/{tokenId}:
+  /v1/user/tokens/{id}:
     get:
       summary: |-
         GetPersonalAccessToken retrieves a single PAT by ID.
@@ -2760,14 +2753,14 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: tokenId
+        - name: id
           description: The unique identifier of the token (UUID).
           in: path
           required: true
           type: string
       tags:
         - UserAPI
-  /v1/user/tokens/{tokenId}/revoke:
+  /v1/user/tokens/{id}/revoke:
     post:
       summary: |-
         RevokePersonalAccessToken permanently revokes a PAT. The token becomes
@@ -2784,7 +2777,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: tokenId
+        - name: id
           description: The unique identifier of the token to revoke (UUID).
           in: path
           required: true
@@ -2878,37 +2871,7 @@ paths:
             $ref: '#/definitions/v1CreateVariableRequest'
       tags:
         - VariableAPI
-  /v1/variables/{variable.id}:
-    patch:
-      summary: |-
-        UpdateVariable updates a variable's mutable fields.
-        Use the `update_mask` to specify which fields to update.
-        Only `value` and `sensitive` are mutable — key is immutable.
-      description: 'Scope: `var:write`'
-      operationId: VariableAPI_UpdateVariable
-      responses:
-        "200":
-          description: A successful response.
-          schema:
-            $ref: '#/definitions/v1UpdateVariableResponse'
-        default:
-          description: An unexpected error response.
-          schema:
-            $ref: '#/definitions/rpcStatus'
-      parameters:
-        - name: variable.id
-          description: Unique identifier for the variable (UUID).
-          in: path
-          required: true
-          type: string
-        - name: body
-          in: body
-          required: true
-          schema:
-            $ref: '#/definitions/VariableAPIUpdateVariableBody'
-      tags:
-        - VariableAPI
-  /v1/variables/{variableId}:
+  /v1/variables/{id}:
     get:
       summary: GetVariable retrieves a variable by ID.
       description: |-
@@ -2926,7 +2889,7 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: variableId
+        - name: id
           description: The unique identifier of the variable (UUID).
           in: path
           required: true
@@ -2947,11 +2910,40 @@ paths:
           schema:
             $ref: '#/definitions/rpcStatus'
       parameters:
-        - name: variableId
+        - name: id
           description: The unique identifier of the variable to delete (UUID).
           in: path
           required: true
           type: string
+      tags:
+        - VariableAPI
+    patch:
+      summary: |-
+        UpdateVariable updates a variable's mutable fields.
+        Use the `update_mask` to specify which fields to update.
+        Only `value` and `sensitive` are mutable — key is immutable.
+      description: 'Scope: `var:write`'
+      operationId: VariableAPI_UpdateVariable
+      responses:
+        "200":
+          description: A successful response.
+          schema:
+            $ref: '#/definitions/v1UpdateVariableResponse'
+        default:
+          description: An unexpected error response.
+          schema:
+            $ref: '#/definitions/rpcStatus'
+      parameters:
+        - name: id
+          description: The unique identifier of the variable (UUID).
+          in: path
+          required: true
+          type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/VariableAPIUpdateVariableBody'
       tags:
         - VariableAPI
 definitions:
@@ -2959,45 +2951,9 @@ definitions:
     type: object
     properties:
       application:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this application belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              URL-safe, human-readable identifier (e.g., "billing-api"). Unique within
-              the tenant. Lowercase alphanumeric and hyphens only, must start with a
-              letter and end with an alphanumeric character (1-63 chars).
-          description:
-            type: string
-            description: |-
-              Optional longer-form description of the application's purpose
-              (e.g., "Handles invoice generation and payment processing").
-          labels:
-            type: object
-            additionalProperties:
-              type: string
-            description: |-
-              Arbitrary key-value labels for organizing and filtering applications
-              (e.g., `{"team": "payments", "tier": "critical"}`).
-          createdBy:
-            type: string
-            description: User ID who created this application (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this application (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the application was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the application was last updated.
+        $ref: '#/definitions/v1Application'
         description: |-
-          The application with updated fields. The `id` field is required.
+          The application with updated fields.
           Only fields specified in `update_mask` are updated.
       updateMask:
         type: string
@@ -3051,52 +3007,7 @@ definitions:
     type: object
     properties:
       cluster:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this cluster belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              URL-safe, human-readable identifier (e.g., "prod-us-east-1"). Unique
-              within the tenant. Lowercase alphanumeric and hyphens only, must start
-              with a letter and end with an alphanumeric character (1-63 chars).
-          description:
-            type: string
-            description: |-
-              Optional longer-form description of the cluster's purpose
-              (e.g., "Primary production cluster serving US East traffic").
-          labels:
-            type: object
-            additionalProperties:
-              type: string
-            description: |-
-              Arbitrary key-value labels for organizing and filtering clusters
-              (e.g., `{"region": "us-east-1", "cloud": "aws"}`).
-          clusterUid:
-            type: string
-            description: |-
-              The Kubernetes kube-system namespace UID, bound at agent registration
-              using a first-write-wins strategy. Used to detect when a token is
-              accidentally deployed to a different physical cluster.
-          healthStatus:
-            $ref: '#/definitions/v1ClusterHealthStatus'
-            description: Derived health status based on agent connectivity and workload state.
-          createdBy:
-            type: string
-            description: User ID who created this cluster (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this cluster (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the cluster record was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the cluster record was last updated.
+        $ref: '#/definitions/v1Cluster'
         description: |-
           The cluster with updated fields. The `id` field is required.
           Only fields specified in `update_mask` are updated.
@@ -3141,125 +3052,10 @@ definitions:
     type: object
     properties:
       component:
-        type: object
-        properties:
-          applicationId:
-            type: string
-            description: The application this component belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              Human-readable name for this component within the application
-              (e.g., "vpc", "redis", "api-server"). Unique within the application.
-              Lowercase alphanumeric and hyphens only (1-63 chars). This name is used
-              in template expressions: `{{ .component.<name>.<output> }}`.
-          description:
-            type: string
-            description: |-
-              Optional description of the component's purpose
-              (e.g., "Primary VPC for all environments" or "Redis cache layer").
-          category:
-            $ref: '#/definitions/v1ComponentCategory'
-            description: |-
-              Whether this is an infrastructure or workload component. Derived from
-              the source type when the component is created, but stored explicitly
-              for filtering and to determine execution behavior.
-          sourceId:
-            type: string
-            description: |-
-              The source artifact this component deploys (UUID). References a Source
-              defined via the SourceAPI.
-          version:
-            type: string
-            description: |-
-              Pinned version of the source artifact. For registry sources, a semver
-              string (e.g., "1.2.3"). For Git sources, a tag, branch, or commit SHA.
-              Required — components always pin a version. Use UpdateComponent to
-              change the version (rolling update).
-          valuesTemplate:
-            type: string
-            description: |-
-              Values template that maps configuration into the source's expected inputs.
-              This is a JSON-encoded object where keys are the source input names and
-              values are either literal values or template expressions.
-
-              Template expressions can reference:
-                - Variables: `{{ .var.DATABASE_URL }}`
-                - Component outputs: `{{ .component.vpc.vpc_id }}`
-                - Environment metadata: `{{ .env.name }}`
-
-              Example for a Terraform RDS module:
-                {
-                  "vpc_id": "{{ .component.vpc.vpc_id }}",
-                  "subnet_ids": "{{ .component.vpc.private_subnet_ids }}",
-                  "instance_class": "{{ .var.RDS_INSTANCE_CLASS }}",
-                  "engine_version": "15.4"
-                }
-
-              Example for a Helm chart:
-                {
-                  "replicaCount": "{{ .var.REPLICA_COUNT }}",
-                  "image.repository": "myorg/api-server",
-                  "image.tag": "{{ .var.IMAGE_TAG }}"
-                }
-
-              The rendering engine resolves all expressions at deployment time using
-              the environment's variables and the outputs of upstream components.
-          dependsOn:
-            type: array
-            items:
-              type: string
-            description: |-
-              Component IDs that must complete successfully before this component can
-              be deployed (UUIDs). Must reference components within the same
-              application. The deployment engine uses these, combined with implicit
-              dependencies from template expressions, to build the execution DAG.
-
-              Explicit depends_on is useful when there is a deployment-order dependency
-              that is not captured by output references (e.g., cert-manager must be
-              installed before any workload that uses TLS certificates).
-          outputs:
-            type: array
-            items:
-              type: object
-              $ref: '#/definitions/v1ComponentOutput'
-            description: |-
-              Declared outputs for this component. For infrastructure components
-              (Terraform), outputs are auto-discovered from the module and this field
-              is ignored. For workload components, outputs must be declared here to
-              be available for template expressions in other components.
-
-              See ComponentOutput for examples.
-          disabled:
-            type: boolean
-            description: |-
-              Whether this component is disabled in the resolved environment context.
-              Always false on the application-level component. Set to true when
-              ListComponents is called with an environment_id and the component has
-              a disabled override for that environment.
-          hasOverride:
-            type: boolean
-            description: |-
-              Whether any field on this component has been overridden in the resolved
-              environment context. Always false when ListComponents is called without
-              an environment_id.
-          createdBy:
-            type: string
-            description: User ID who created this component (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this component (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the component was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the component was last updated.
+        $ref: '#/definitions/v1Component'
         description: |-
-          The component with updated fields. The `id` field is required.
-          Only fields specified in `update_mask` are updated.
+          The component with updated fields. Only fields specified in
+          `update_mask` are updated.
       updateMask:
         type: string
         description: |-
@@ -3274,98 +3070,9 @@ definitions:
     type: object
     properties:
       connection:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this connection belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              URL-safe, human-readable identifier (e.g., "github-org", "ecr-prod").
-              Unique within the tenant. Lowercase alphanumeric and hyphens only, must
-              start with a letter and end with an alphanumeric character (1-63 chars).
-          description:
-            type: string
-            description: |-
-              Optional longer-form description of what this connection is for
-              (e.g., "Read-only access to the platform team's GitHub org").
-          type:
-            $ref: '#/definitions/v1ConnectionType'
-            description: The type of external system and authentication mechanism.
-          gitToken:
-            $ref: '#/definitions/v1GitTokenAuth'
-            description: Git HTTPS token (for CONNECTION_TYPE_GIT_TOKEN).
-          gitSsh:
-            $ref: '#/definitions/v1GitSSHAuth'
-            description: Git SSH key (for CONNECTION_TYPE_GIT_SSH).
-          gitGithubApp:
-            $ref: '#/definitions/v1GitHubAppAuth'
-            description: GitHub App credentials (for CONNECTION_TYPE_GIT_GITHUB_APP).
-          helmHttp:
-            $ref: '#/definitions/v1HelmHTTPAuth'
-            description: Helm HTTP basic auth (for CONNECTION_TYPE_HELM_HTTP).
-          ociBasic:
-            $ref: '#/definitions/v1BasicAuth'
-            description: OCI registry basic auth (for CONNECTION_TYPE_OCI_BASIC).
-          awsFederation:
-            $ref: '#/definitions/v1AWSFederationConfig'
-            description: AWS OIDC federation (for CONNECTION_TYPE_CLOUD_AWS).
-          gcpFederation:
-            $ref: '#/definitions/v1GCPFederationConfig'
-            description: GCP Workload Identity (for CONNECTION_TYPE_CLOUD_GCP).
-          azureFederation:
-            $ref: '#/definitions/v1AzureFederationConfig'
-            description: Azure Federated Credential (for CONNECTION_TYPE_CLOUD_AZURE).
-          awsStatic:
-            $ref: '#/definitions/v1AWSStaticAuth'
-            description: AWS static credentials (for CONNECTION_TYPE_CLOUD_AWS_STATIC, deprecated).
-          gcpStatic:
-            $ref: '#/definitions/v1GCPStaticAuth'
-            description: GCP static credentials (for CONNECTION_TYPE_CLOUD_GCP_STATIC, deprecated).
-          azureStatic:
-            $ref: '#/definitions/v1AzureStaticAuth'
-            description: Azure static credentials (for CONNECTION_TYPE_CLOUD_AZURE_STATIC, deprecated).
-          bearerToken:
-            $ref: '#/definitions/v1BearerTokenAuth'
-            description: Bearer token (for CONNECTION_TYPE_TERRAFORM_REGISTRY).
-          status:
-            $ref: '#/definitions/v1ConnectionStatus'
-            description: Current health status of the connection's credentials.
-          statusMessage:
-            type: string
-            description: |-
-              Human-readable message when status is ERROR (e.g., "401 Unauthorized:
-              token expired"). Empty when status is ACTIVE or UNTESTED.
-          labels:
-            type: object
-            additionalProperties:
-              type: string
-            description: |-
-              Arbitrary key-value labels for organizing and filtering connections
-              (e.g., `{"team": "platform", "environment": "prod"}`).
-          createdBy:
-            type: string
-            description: User ID who created this connection (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this connection (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the connection was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the connection was last updated.
-          lastTestedAt:
-            type: string
-            format: date-time
-            description: |-
-              When the connection was last tested (via TestConnection or auto-validation).
-              Absent if never tested.
+        $ref: '#/definitions/v1Connection'
         description: |-
-          The connection with updated fields. The `id` field is required.
+          The connection with updated fields.
           Only fields specified in `update_mask` are updated.
 
           When updating auth_config, the entire auth config is replaced.
@@ -3390,74 +3097,9 @@ definitions:
     type: object
     properties:
       environment:
-        type: object
-        properties:
-          applicationId:
-            type: string
-            description: The application this environment belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              URL-safe, human-readable identifier (e.g., "prod", "staging-us-east").
-              Unique within the application. Lowercase alphanumeric and hyphens only,
-              must start with a letter and end with an alphanumeric character (1-63 chars).
-          description:
-            type: string
-            description: |-
-              Optional longer-form description of the environment's purpose
-              (e.g., "US East production serving live traffic" or
-              "Shared staging for QA validation before prod promotion").
-          runtimeType:
-            $ref: '#/definitions/v1RuntimeType'
-            description: |-
-              The kind of runtime this environment targets. Optional — can be assigned
-              after creation.
-          kubernetes:
-            $ref: '#/definitions/v1KubernetesConfig'
-            description: Kubernetes-specific settings (cluster, namespace).
-          labels:
-            type: object
-            additionalProperties:
-              type: string
-            description: |-
-              Arbitrary key-value labels for organizing and filtering environments
-              (e.g., `{"region": "us-east-1", "tier": "production"}`).
-          infrastructure:
-            $ref: '#/definitions/v1InfrastructureConfig'
-            description: |-
-              Infrastructure execution settings (runner assignment). If unset,
-              infrastructure components in this environment cannot be deployed.
-          hasPendingChanges:
-            type: boolean
-            description: |-
-              Whether the environment has configuration changes that have not yet been
-              deployed. Server-derived by comparing current resolved config (variables,
-              component settings, overrides, source versions) against the last
-              successful deployment's snapshot. False if no successful deployment
-              exists yet (a fresh environment with no deployments returns false —
-              use `last_deployed_at` to distinguish "clean" from "never deployed").
-          lastDeployedAt:
-            type: string
-            format: date-time
-            description: |-
-              When the last successful deployment to this environment completed.
-              Absent if no successful deployment has occurred yet.
-          createdBy:
-            type: string
-            description: User ID who created this environment (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this environment (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the environment was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the environment was last updated.
+        $ref: '#/definitions/v1Environment'
         description: |-
-          The environment with updated fields. The `id` field is required.
+          The environment with updated fields.
           Only fields specified in `update_mask` are updated.
       updateMask:
         type: string
@@ -3496,49 +3138,7 @@ definitions:
     type: object
     properties:
       runner:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this runner belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              URL-safe, human-readable identifier (e.g., "prod-terraform-runner").
-              Unique within the tenant. Lowercase alphanumeric and hyphens only,
-              must start with a letter and end with an alphanumeric character (1-63 chars).
-          description:
-            type: string
-            description: |-
-              Optional longer-form description of the runner's purpose
-              (e.g., "Terraform runner for production AWS infrastructure").
-          kind:
-            $ref: '#/definitions/v1RunnerKind'
-            description: The type of operations this runner executes.
-          labels:
-            type: object
-            additionalProperties:
-              type: string
-            description: |-
-              Arbitrary key-value labels for organizing and filtering runners
-              (e.g., `{"cloud": "aws", "team": "platform"}`).
-          healthStatus:
-            $ref: '#/definitions/v1RunnerHealthStatus'
-            description: Derived health status based on heartbeat recency and capacity.
-          createdBy:
-            type: string
-            description: User ID who created this runner (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this runner (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the runner record was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the runner record was last updated.
+        $ref: '#/definitions/v1Runner'
         description: |-
           The runner with updated fields. The `id` field is required.
           Only fields specified in `update_mask` are updated.
@@ -3555,102 +3155,10 @@ definitions:
     type: object
     properties:
       source:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this source belongs to (UUID).
-          name:
-            type: string
-            description: |-
-              URL-safe, human-readable identifier (e.g., "corporate-rds", "nginx-chart").
-              Unique within the tenant. Lowercase alphanumeric and hyphens only, must
-              start with a letter and end with an alphanumeric character (1-63 chars).
-          description:
-            type: string
-            description: |-
-              Optional longer-form description of the source's purpose
-              (e.g., "Corporate-approved RDS module with encryption and backups").
-          type:
-            $ref: '#/definitions/v1SourceType'
-            description: The kind of artifact and fetch protocol.
-          url:
-            type: string
-            title: |-
-              Base URL for the source. The meaning varies by source type:
-                - TERRAFORM_REGISTRY: registry hostname (e.g., "registry.terraform.io")
-                - TERRAFORM_GIT, HELM_GIT, KUSTOMIZE_GIT, MANIFEST_GIT: Git repo URL
-                - HELM_REPOSITORY: Helm repo URL (e.g., "https://charts.bitnami.com/bitnami")
-                - HELM_OCI: OCI registry URL (e.g., "oci://ghcr.io")
-                - ARCHIVE: HTTP/S3/GCS URL to the archive
-          connectionId:
-            type: string
-            description: |-
-              Reference to the connection providing credentials for this source (UUID).
-              Optional — null for public sources that require no authentication
-              (e.g., public Terraform registry, public Helm repos).
-          catalog:
-            type: boolean
-            description: |-
-              Whether this source is a curated catalog entry. Catalog sources are managed
-              by platform engineers and may be the only sources available to developers
-              if the organization enforces catalog-only policy.
-          terraformRegistry:
-            $ref: '#/definitions/v1TerraformRegistryConfig'
-            description: Terraform Registry Protocol config (for SOURCE_TYPE_TERRAFORM_REGISTRY).
-          terraformGit:
-            $ref: '#/definitions/v1TerraformGitConfig'
-            description: Terraform Git module config (for SOURCE_TYPE_TERRAFORM_GIT).
-          helmRepository:
-            $ref: '#/definitions/v1HelmRepositoryConfig'
-            description: Helm HTTP repository config (for SOURCE_TYPE_HELM_REPOSITORY).
-          helmOci:
-            $ref: '#/definitions/v1HelmOCIConfig'
-            description: Helm OCI config (for SOURCE_TYPE_HELM_OCI).
-          helmGit:
-            $ref: '#/definitions/v1HelmGitConfig'
-            description: Helm Git config (for SOURCE_TYPE_HELM_GIT).
-          kustomizeGit:
-            $ref: '#/definitions/v1KustomizeGitConfig'
-            description: Kustomize Git config (for SOURCE_TYPE_KUSTOMIZE_GIT).
-          manifestGit:
-            $ref: '#/definitions/v1ManifestGitConfig'
-            description: Raw manifest Git config (for SOURCE_TYPE_MANIFEST_GIT).
-          archive:
-            $ref: '#/definitions/v1ArchiveConfig'
-            description: Archive config (for SOURCE_TYPE_ARCHIVE).
-          labels:
-            type: object
-            additionalProperties:
-              type: string
-            description: |-
-              Arbitrary key-value labels for organizing and filtering sources
-              (e.g., `{"team": "platform", "category": "database"}`).
-          createdBy:
-            type: string
-            description: User ID who created this source (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this source (UUID, server-populated from token).
-          lastSyncedAt:
-            type: string
-            format: date-time
-            description: |-
-              When the source metadata was last synced from the external system
-              (registry, Git, Helm repo). Updated by SyncSource and by automatic
-              background refresh when discovery RPCs encounter stale cached data.
-              Absent if no sync has occurred yet.
-          createdAt:
-            type: string
-            format: date-time
-            description: When the source was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the source was last updated.
+        $ref: '#/definitions/v1Source'
         description: |-
-          The source with updated fields. The `id` field is required.
-          Only fields specified in `update_mask` are updated.
+          The source with updated fields. Only fields specified in `update_mask`
+          are updated.
       updateMask:
         type: string
         description: |-
@@ -3717,69 +3225,9 @@ definitions:
     type: object
     properties:
       variable:
-        type: object
-        properties:
-          tenantId:
-            type: string
-            description: Tenant this variable belongs to (UUID).
-          key:
-            type: string
-            description: |-
-              The variable name. Must be a valid environment variable identifier
-              (e.g., "DATABASE_URL", "API_KEY"). Alphanumeric and underscores
-              (uppercase conventional but lowercase accepted), must start with a letter
-              or underscore (max 255 chars).
-          value:
-            type: string
-            description: |-
-              The variable value. Always stored as a string — use `type` to indicate
-              how to interpret it. Masked or empty for sensitive variables in responses.
-
-              For COMPLEX type, this is a JSON-encoded string (e.g., '["a","b"]' or
-              '{"key":"value"}'). The rendering engine converts it to the target format
-              (HCL for Terraform, YAML for Helm).
-          sensitive:
-            type: boolean
-            description: Whether the variable value is encrypted at rest and masked in API responses.
-          type:
-            $ref: '#/definitions/v1VariableType'
-            description: |-
-              How the value should be interpreted by the rendering engine and displayed
-              in the UI. Defaults to STRING if not specified.
-          description:
-            type: string
-            description: |-
-              Optional description of the variable's purpose (e.g., "Maximum replica
-              count for production scaling" or "RDS instance class per environment").
-          applicationId:
-            type: string
-            description: |-
-              The application this variable is scoped to (UUID). When set, the variable
-              is scoped to this application. When both application_id and environment_id
-              are set, the variable is scoped to that specific environment.
-              Absent means the variable is global (tenant-wide).
-          environmentId:
-            type: string
-            description: |-
-              The environment this variable is scoped to (UUID). Requires application_id.
-              When set alongside application_id, the variable applies only to this
-              specific environment within the application.
-          createdBy:
-            type: string
-            description: User ID who created this variable (UUID, server-populated from token).
-          updatedBy:
-            type: string
-            description: User ID who last updated this variable (UUID, server-populated from token).
-          createdAt:
-            type: string
-            format: date-time
-            description: When the variable was created.
-          updatedAt:
-            type: string
-            format: date-time
-            description: When the variable was last updated.
+        $ref: '#/definitions/v1Variable'
         description: |-
-          The variable with updated fields. The `id` field is required.
+          The variable with updated fields.
           Only fields specified in `update_mask` are updated.
       updateMask:
         type: string
@@ -4856,7 +4304,7 @@ definitions:
           the K8s agent for authentication.
 
           To create additional tokens (e.g., for rotation), use
-          CreateClusterToken (POST /v1/clusters/{cluster_id}/tokens).
+          CreateClusterToken (POST /v1/clusters/{id}/tokens).
     description: |-
       CreateClusterResponse contains the newly created cluster and its initial
       Agent Token (AGT).
@@ -5109,7 +4557,7 @@ definitions:
           the runner binary for authentication.
 
           To create additional tokens (e.g., for rotation), use
-          CreateRunnerToken (POST /v1/runners/{runner_id}/tokens).
+          CreateRunnerToken (POST /v1/runners/{id}/tokens).
     description: |-
       CreateRunnerResponse contains the newly created runner and its initial
       Agent Token (AGT).

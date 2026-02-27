@@ -187,7 +187,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.application.v1.CreateApplicationResponse'
-  /v1/applications/{application.id}:
+  /v1/applications/{id}:
+    get:
+      tags:
+        - Applications
+      summary: Retrieve an application
+      description: 'Scope: `app:read`'
+      operationId: ApplicationAPI_GetApplication
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the application (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the application (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.application.v1.GetApplicationResponse'
+    delete:
+      tags:
+        - Applications
+      summary: Delete an application
+      description: 'Scope: `app:write`'
+      operationId: ApplicationAPI_DeleteApplication
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the application to delete (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the application to delete (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.application.v1.DeleteApplicationResponse'
     patch:
       tags:
         - Applications
@@ -195,15 +241,15 @@ paths:
       description: 'Scope: `app:write`'
       operationId: ApplicationAPI_UpdateApplication
       parameters:
-        - name: application.id
+        - name: id
           in: path
-          description: Unique identifier for the application (UUID).
+          description: The unique identifier of the application (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the application (UUID).
+            description: The unique identifier of the application (UUID).
       requestBody:
         content:
           application/json:
@@ -213,7 +259,7 @@ paths:
                 application:
                   title: application
                   description: |-
-                    The application with updated fields. The `id` field is required.
+                    The application with updated fields.
                      Only fields specified in `update_mask` are updated.
                   $ref: '#/components/schemas/admiral.api.application.v1.Application'
                 updateMask:
@@ -235,53 +281,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.application.v1.UpdateApplicationResponse'
-  /v1/applications/{application_id}:
-    get:
-      tags:
-        - Applications
-      summary: Retrieve an application
-      description: 'Scope: `app:read`'
-      operationId: ApplicationAPI_GetApplication
-      parameters:
-        - name: application_id
-          in: path
-          description: The unique identifier of the application (UUID).
-          required: true
-          schema:
-            type: string
-            title: application_id
-            format: uuid
-            description: The unique identifier of the application (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.application.v1.GetApplicationResponse'
-    delete:
-      tags:
-        - Applications
-      summary: Delete an application
-      description: 'Scope: `app:write`'
-      operationId: ApplicationAPI_DeleteApplication
-      parameters:
-        - name: application_id
-          in: path
-          description: The unique identifier of the application to delete (UUID).
-          required: true
-          schema:
-            type: string
-            title: application_id
-            format: uuid
-            description: The unique identifier of the application to delete (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.application.v1.DeleteApplicationResponse'
   /v1/clusters:
     get:
       tags:
@@ -347,7 +346,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.CreateClusterResponse'
-  /v1/clusters/{cluster.id}:
+  /v1/clusters/{id}:
+    get:
+      tags:
+        - Clusters
+      summary: Retrieve a cluster
+      description: |-
+        Returns the Cluster record with its server-derived health_status. For
+         detailed telemetry (node counts, resource usage, workload summary), use
+         GetClusterStatus instead.
+
+         Scope: `cluster:read`
+      operationId: ClusterAPI_GetCluster
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the cluster (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the cluster (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.cluster.v1.GetClusterResponse'
+    delete:
+      tags:
+        - Clusters
+      summary: Delete a cluster
+      description: 'Scope: `cluster:write`'
+      operationId: ClusterAPI_DeleteCluster
+      parameters:
+        - name: id
+          in: path
+          description: |-
+            The unique identifier of the cluster to delete (UUID).
+             All associated agent tokens will be revoked.
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: |-
+              The unique identifier of the cluster to delete (UUID).
+               All associated agent tokens will be revoked.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.cluster.v1.DeleteClusterResponse'
     patch:
       tags:
         - Clusters
@@ -355,15 +409,15 @@ paths:
       description: 'Scope: `cluster:write`'
       operationId: ClusterAPI_UpdateCluster
       parameters:
-        - name: cluster.id
+        - name: id
           in: path
-          description: Unique identifier for the cluster (UUID).
+          description: The unique identifier of the cluster (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the cluster (UUID).
+            description: The unique identifier of the cluster (UUID).
       requestBody:
         content:
           application/json:
@@ -395,63 +449,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.UpdateClusterResponse'
-  /v1/clusters/{cluster_id}:
-    get:
-      tags:
-        - Clusters
-      summary: Retrieve a cluster
-      description: |-
-        Returns the Cluster record with its server-derived health_status. For
-         detailed telemetry (node counts, resource usage, workload summary), use
-         GetClusterStatus instead.
-
-         Scope: `cluster:read`
-      operationId: ClusterAPI_GetCluster
-      parameters:
-        - name: cluster_id
-          in: path
-          description: The unique identifier of the cluster (UUID).
-          required: true
-          schema:
-            type: string
-            title: cluster_id
-            format: uuid
-            description: The unique identifier of the cluster (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.cluster.v1.GetClusterResponse'
-    delete:
-      tags:
-        - Clusters
-      summary: Delete a cluster
-      description: 'Scope: `cluster:write`'
-      operationId: ClusterAPI_DeleteCluster
-      parameters:
-        - name: cluster_id
-          in: path
-          description: |-
-            The unique identifier of the cluster to delete (UUID).
-             All associated agent tokens will be revoked.
-          required: true
-          schema:
-            type: string
-            title: cluster_id
-            format: uuid
-            description: |-
-              The unique identifier of the cluster to delete (UUID).
-               All associated agent tokens will be revoked.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.cluster.v1.DeleteClusterResponse'
-  /v1/clusters/{cluster_id}/status:
+  /v1/clusters/{id}/status:
     get:
       tags:
         - Clusters
@@ -464,13 +462,13 @@ paths:
          Scope: `cluster:read`
       operationId: ClusterAPI_GetClusterStatus
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The unique identifier of the cluster (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The unique identifier of the cluster (UUID).
       responses:
@@ -480,7 +478,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.GetClusterStatusResponse'
-  /v1/clusters/{cluster_id}/tokens:
+  /v1/clusters/{id}/tokens:
     get:
       tags:
         - Clusters
@@ -488,13 +486,13 @@ paths:
       description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_ListClusterTokens
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The cluster to list tokens for (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The cluster to list tokens for (UUID).
         - name: filter
@@ -541,13 +539,13 @@ paths:
          Scope: `cluster:write`
       operationId: ClusterAPI_CreateClusterToken
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The cluster to bind this token to (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The cluster to bind this token to (UUID).
       requestBody:
@@ -583,7 +581,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.CreateClusterTokenResponse'
-  /v1/clusters/{cluster_id}/tokens/{token_id}:
+  /v1/clusters/{id}/tokens/{token_id}:
     get:
       tags:
         - Clusters
@@ -591,13 +589,13 @@ paths:
       description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_GetClusterToken
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The cluster the token belongs to (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The cluster the token belongs to (UUID).
         - name: token_id
@@ -616,7 +614,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.GetClusterTokenResponse'
-  /v1/clusters/{cluster_id}/tokens/{token_id}/revoke:
+  /v1/clusters/{id}/tokens/{token_id}/revoke:
     post:
       tags:
         - Clusters
@@ -624,13 +622,13 @@ paths:
       description: 'Scope: `cluster:write`'
       operationId: ClusterAPI_RevokeClusterToken
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The cluster the token belongs to (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The cluster the token belongs to (UUID).
         - name: token_id
@@ -649,7 +647,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.RevokeClusterTokenResponse'
-  /v1/clusters/{cluster_id}/workloads:
+  /v1/clusters/{id}/workloads:
     get:
       tags:
         - Clusters
@@ -657,13 +655,13 @@ paths:
       description: 'Scope: `cluster:read`'
       operationId: ClusterAPI_ListWorkloads
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The cluster whose workloads to list (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The cluster whose workloads to list (UUID).
         - name: filter
@@ -698,7 +696,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.cluster.v1.ListWorkloadsResponse'
-  /v1/clusters/{cluster_id}/workloads/status:
+  /v1/clusters/{id}/workloads/status:
     post:
       tags:
         - Clusters
@@ -709,13 +707,13 @@ paths:
          Scope: `cluster:status` | Token types: `agt`
       operationId: ClusterAPI_ReportWorkloadStatus
       parameters:
-        - name: cluster_id
+        - name: id
           in: path
           description: The cluster these workloads belong to (UUID).
           required: true
           schema:
             type: string
-            title: cluster_id
+            title: id
             format: uuid
             description: The cluster these workloads belong to (UUID).
       requestBody:
@@ -835,154 +833,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.component.v1.CreateComponentResponse'
-  /v1/components/{component.id}:
-    patch:
-      tags:
-        - Components
-      summary: Update a component
-      description: |-
-        When renaming a component, the server validates that no other components
-         reference the old name in their values_template expressions and rejects
-         the rename if references exist.
-
-         Scope: `app:write`
-      operationId: ComponentAPI_UpdateComponent
-      parameters:
-        - name: component.id
-          in: path
-          description: Unique identifier for the component (UUID).
-          required: true
-          schema:
-            type: string
-            title: id
-            format: uuid
-            description: Unique identifier for the component (UUID).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                component:
-                  title: component
-                  description: |-
-                    The component with updated fields. The `id` field is required.
-                     Only fields specified in `update_mask` are updated.
-                  $ref: '#/components/schemas/admiral.api.component.v1.Component'
-                updateMask:
-                  title: update_mask
-                  description: |-
-                    The set of fields to update. If unset, all mutable fields are updated.
-                     Supported fields: `name`, `description`, `source_id`, `version`,
-                     `values_template`, `depends_on`, `outputs`.
-                  $ref: '#/components/schemas/google.protobuf.FieldMask'
-              title: UpdateComponentRequest
-              required:
-                - component
-              additionalProperties: false
-              description: UpdateComponentRequest contains the component fields to update.
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.component.v1.UpdateComponentResponse'
-  /v1/components/{component_id}:
-    get:
-      tags:
-        - Components
-      summary: Retrieve a component
-      description: 'Scope: `app:read`'
-      operationId: ComponentAPI_GetComponent
-      parameters:
-        - name: component_id
-          in: path
-          description: The unique identifier of the component (UUID).
-          required: true
-          schema:
-            type: string
-            title: component_id
-            format: uuid
-            description: The unique identifier of the component (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.component.v1.GetComponentResponse'
-    delete:
-      tags:
-        - Components
-      summary: Delete a component
-      description: 'Scope: `app:write`'
-      operationId: ComponentAPI_DeleteComponent
-      parameters:
-        - name: component_id
-          in: path
-          description: |-
-            The unique identifier of the component to delete (UUID).
-             Fails if other components depend on this component (via depends_on
-             or output references in values_template).
-          required: true
-          schema:
-            type: string
-            title: component_id
-            format: uuid
-            description: |-
-              The unique identifier of the component to delete (UUID).
-               Fails if other components depend on this component (via depends_on
-               or output references in values_template).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.component.v1.DeleteComponentResponse'
-  /v1/components/{component_id}/overrides:
-    get:
-      tags:
-        - Components
-      summary: List component overrides
-      description: 'Scope: `env:read`'
-      operationId: ComponentAPI_ListComponentOverrides
-      parameters:
-        - name: component_id
-          in: path
-          description: The component to list overrides for (UUID).
-          required: true
-          schema:
-            type: string
-            title: component_id
-            format: uuid
-            description: The component to list overrides for (UUID).
-        - name: pageSize
-          in: query
-          description: Maximum number of overrides to return per page.
-          schema:
-            type: integer
-            title: page_size
-            maximum: 100
-            minimum: 0
-            format: int32
-            description: Maximum number of overrides to return per page.
-        - name: pageToken
-          in: query
-          description: Opaque pagination token from a previous response.
-          schema:
-            type: string
-            title: page_token
-            description: Opaque pagination token from a previous response.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.component.v1.ListComponentOverridesResponse'
   /v1/components/{component_id}/overrides/{environment_id}:
     get:
       tags:
@@ -1138,6 +988,153 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.component.v1.DeleteComponentOverrideResponse'
+  /v1/components/{id}:
+    get:
+      tags:
+        - Components
+      summary: Retrieve a component
+      description: 'Scope: `app:read`'
+      operationId: ComponentAPI_GetComponent
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the component (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the component (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.component.v1.GetComponentResponse'
+    delete:
+      tags:
+        - Components
+      summary: Delete a component
+      description: 'Scope: `app:write`'
+      operationId: ComponentAPI_DeleteComponent
+      parameters:
+        - name: id
+          in: path
+          description: |-
+            Unique identifier of the component to delete (UUID).
+             Fails if other components depend on this component (via depends_on
+             or output references in values_template).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: |-
+              Unique identifier of the component to delete (UUID).
+               Fails if other components depend on this component (via depends_on
+               or output references in values_template).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.component.v1.DeleteComponentResponse'
+    patch:
+      tags:
+        - Components
+      summary: Update a component
+      description: |-
+        When renaming a component, the server validates that no other components
+         reference the old name in their values_template expressions and rejects
+         the rename if references exist.
+
+         Scope: `app:write`
+      operationId: ComponentAPI_UpdateComponent
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the component to update (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the component to update (UUID).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                component:
+                  title: component
+                  description: |-
+                    The component with updated fields. Only fields specified in
+                     `update_mask` are updated.
+                  $ref: '#/components/schemas/admiral.api.component.v1.Component'
+                updateMask:
+                  title: update_mask
+                  description: |-
+                    The set of fields to update. If unset, all mutable fields are updated.
+                     Supported fields: `name`, `description`, `source_id`, `version`,
+                     `values_template`, `depends_on`, `outputs`.
+                  $ref: '#/components/schemas/google.protobuf.FieldMask'
+              title: UpdateComponentRequest
+              required:
+                - component
+              additionalProperties: false
+              description: UpdateComponentRequest contains the component fields to update.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.component.v1.UpdateComponentResponse'
+  /v1/components/{id}/overrides:
+    get:
+      tags:
+        - Components
+      summary: List component overrides
+      description: 'Scope: `env:read`'
+      operationId: ComponentAPI_ListComponentOverrides
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the component to list overrides for (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the component to list overrides for (UUID).
+        - name: pageSize
+          in: query
+          description: Maximum number of overrides to return per page.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 100
+            minimum: 0
+            format: int32
+            description: Maximum number of overrides to return per page.
+        - name: pageToken
+          in: query
+          description: Opaque pagination token from a previous response.
+          schema:
+            type: string
+            title: page_token
+            description: Opaque pagination token from a previous response.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.component.v1.ListComponentOverridesResponse'
   /v1/connections:
     get:
       tags:
@@ -1202,7 +1199,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.connection.v1.CreateConnectionResponse'
-  /v1/connections/{connection.id}:
+  /v1/connections/{id}:
+    get:
+      tags:
+        - Connections
+      summary: Retrieve a connection
+      description: |-
+        Returns connection metadata and status. Sensitive credential fields are
+         never included in the response.
+
+         Scope: `connection:read`
+      operationId: ConnectionAPI_GetConnection
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the connection (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the connection (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.connection.v1.GetConnectionResponse'
+    delete:
+      tags:
+        - Connections
+      summary: Delete a connection
+      description: 'Scope: `connection:write`'
+      operationId: ConnectionAPI_DeleteConnection
+      parameters:
+        - name: id
+          in: path
+          description: |-
+            The unique identifier of the connection to delete (UUID).
+             Fails if any sources still reference this connection.
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: |-
+              The unique identifier of the connection to delete (UUID).
+               Fails if any sources still reference this connection.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.connection.v1.DeleteConnectionResponse'
     patch:
       tags:
         - Connections
@@ -1215,15 +1266,15 @@ paths:
          Scope: `connection:write`
       operationId: ConnectionAPI_UpdateConnection
       parameters:
-        - name: connection.id
+        - name: id
           in: path
-          description: Unique identifier for the connection (UUID).
+          description: The unique identifier of the connection (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the connection (UUID).
+            description: The unique identifier of the connection (UUID).
       requestBody:
         content:
           application/json:
@@ -1233,7 +1284,7 @@ paths:
                 connection:
                   title: connection
                   description: |-
-                    The connection with updated fields. The `id` field is required.
+                    The connection with updated fields.
                      Only fields specified in `update_mask` are updated.
 
                      When updating auth_config, the entire auth config is replaced.
@@ -1258,62 +1309,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.connection.v1.UpdateConnectionResponse'
-  /v1/connections/{connection_id}:
-    get:
-      tags:
-        - Connections
-      summary: Retrieve a connection
-      description: |-
-        Returns connection metadata and status. Sensitive credential fields are
-         never included in the response.
-
-         Scope: `connection:read`
-      operationId: ConnectionAPI_GetConnection
-      parameters:
-        - name: connection_id
-          in: path
-          description: The unique identifier of the connection (UUID).
-          required: true
-          schema:
-            type: string
-            title: connection_id
-            format: uuid
-            description: The unique identifier of the connection (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.connection.v1.GetConnectionResponse'
-    delete:
-      tags:
-        - Connections
-      summary: Delete a connection
-      description: 'Scope: `connection:write`'
-      operationId: ConnectionAPI_DeleteConnection
-      parameters:
-        - name: connection_id
-          in: path
-          description: |-
-            The unique identifier of the connection to delete (UUID).
-             Fails if any sources still reference this connection.
-          required: true
-          schema:
-            type: string
-            title: connection_id
-            format: uuid
-            description: |-
-              The unique identifier of the connection to delete (UUID).
-               Fails if any sources still reference this connection.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.connection.v1.DeleteConnectionResponse'
-  /v1/connections/{connection_id}/test:
+  /v1/connections/{id}/test:
     post:
       tags:
         - Connections
@@ -1325,13 +1321,13 @@ paths:
          Scope: `connection:write`
       operationId: ConnectionAPI_TestConnection
       parameters:
-        - name: connection_id
+        - name: id
           in: path
           description: The unique identifier of the connection to test (UUID).
           required: true
           schema:
             type: string
-            title: connection_id
+            title: id
             format: uuid
             description: The unique identifier of the connection to test (UUID).
       responses:
@@ -1432,110 +1428,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.deployment.v1.CreateDeploymentResponse'
-  /v1/deployments/{deployment_id}:
-    get:
-      tags:
-        - Deployments
-      summary: Retrieve a deployment
-      description: 'Scope: `deploy:read`'
-      operationId: DeploymentAPI_GetDeployment
-      parameters:
-        - name: deployment_id
-          in: path
-          description: The unique identifier of the deployment (UUID).
-          required: true
-          schema:
-            type: string
-            title: deployment_id
-            format: uuid
-            description: The unique identifier of the deployment (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.deployment.v1.GetDeploymentResponse'
-  /v1/deployments/{deployment_id}/cancel:
-    post:
-      tags:
-        - Deployments
-      summary: Cancel a deployment
-      description: 'Scope: `deploy:write`'
-      operationId: DeploymentAPI_CancelDeployment
-      parameters:
-        - name: deployment_id
-          in: path
-          description: The deployment to cancel (UUID).
-          required: true
-          schema:
-            type: string
-            title: deployment_id
-            format: uuid
-            description: The deployment to cancel (UUID).
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                reason:
-                  type: string
-                  title: reason
-                  maxLength: 1024
-                  description: Optional reason for cancellation.
-              title: CancelDeploymentRequest
-              additionalProperties: false
-              description: CancelDeploymentRequest cancels an in-progress deployment.
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.deployment.v1.CancelDeploymentResponse'
-  /v1/deployments/{deployment_id}/revisions:
-    get:
-      tags:
-        - Deployments
-      summary: List revisions
-      description: 'Scope: `deploy:read`'
-      operationId: DeploymentAPI_ListRevisions
-      parameters:
-        - name: deployment_id
-          in: path
-          description: The deployment to list revisions for (UUID).
-          required: true
-          schema:
-            type: string
-            title: deployment_id
-            format: uuid
-            description: The deployment to list revisions for (UUID).
-        - name: pageSize
-          in: query
-          description: Maximum number of revisions to return per page.
-          schema:
-            type: integer
-            title: page_size
-            maximum: 100
-            minimum: 0
-            format: int32
-            description: Maximum number of revisions to return per page.
-        - name: pageToken
-          in: query
-          description: Opaque pagination token from a previous response.
-          schema:
-            type: string
-            title: page_token
-            description: Opaque pagination token from a previous response.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.deployment.v1.ListRevisionsResponse'
   /v1/deployments/{deployment_id}/revisions/{revision_id}:
     get:
       tags:
@@ -1602,6 +1494,110 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.deployment.v1.RetryRevisionResponse'
+  /v1/deployments/{id}:
+    get:
+      tags:
+        - Deployments
+      summary: Retrieve a deployment
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_GetDeployment
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the deployment (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the deployment (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.deployment.v1.GetDeploymentResponse'
+  /v1/deployments/{id}/cancel:
+    post:
+      tags:
+        - Deployments
+      summary: Cancel a deployment
+      description: 'Scope: `deploy:write`'
+      operationId: DeploymentAPI_CancelDeployment
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the deployment to cancel (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the deployment to cancel (UUID).
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  title: reason
+                  maxLength: 1024
+                  description: Optional reason for cancellation.
+              title: CancelDeploymentRequest
+              additionalProperties: false
+              description: CancelDeploymentRequest cancels an in-progress deployment.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.deployment.v1.CancelDeploymentResponse'
+  /v1/deployments/{id}/revisions:
+    get:
+      tags:
+        - Deployments
+      summary: List revisions
+      description: 'Scope: `deploy:read`'
+      operationId: DeploymentAPI_ListRevisions
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the deployment to list revisions for (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the deployment to list revisions for (UUID).
+        - name: pageSize
+          in: query
+          description: Maximum number of revisions to return per page.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 100
+            minimum: 0
+            format: int32
+            description: Maximum number of revisions to return per page.
+        - name: pageToken
+          in: query
+          description: Opaque pagination token from a previous response.
+          schema:
+            type: string
+            title: page_token
+            description: Opaque pagination token from a previous response.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.deployment.v1.ListRevisionsResponse'
   /v1/environments:
     get:
       tags:
@@ -1661,7 +1657,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.environment.v1.CreateEnvironmentResponse'
-  /v1/environments/{environment.id}:
+  /v1/environments/{id}:
+    get:
+      tags:
+        - Environments
+      summary: Retrieve an environment
+      description: 'Scope: `env:read`'
+      operationId: EnvironmentAPI_GetEnvironment
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the environment (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the environment (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.GetEnvironmentResponse'
+    delete:
+      tags:
+        - Environments
+      summary: Delete an environment
+      description: 'Scope: `env:write`'
+      operationId: EnvironmentAPI_DeleteEnvironment
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the environment to delete (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the environment to delete (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.environment.v1.DeleteEnvironmentResponse'
     patch:
       tags:
         - Environments
@@ -1669,15 +1711,15 @@ paths:
       description: 'Scope: `env:write`'
       operationId: EnvironmentAPI_UpdateEnvironment
       parameters:
-        - name: environment.id
+        - name: id
           in: path
-          description: Unique identifier for the environment (UUID).
+          description: The unique identifier of the environment (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the environment (UUID).
+            description: The unique identifier of the environment (UUID).
       requestBody:
         content:
           application/json:
@@ -1687,7 +1729,7 @@ paths:
                 environment:
                   title: environment
                   description: |-
-                    The environment with updated fields. The `id` field is required.
+                    The environment with updated fields.
                      Only fields specified in `update_mask` are updated.
                   $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
                 updateMask:
@@ -1710,53 +1752,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.environment.v1.UpdateEnvironmentResponse'
-  /v1/environments/{environment_id}:
-    get:
-      tags:
-        - Environments
-      summary: Retrieve an environment
-      description: 'Scope: `env:read`'
-      operationId: EnvironmentAPI_GetEnvironment
-      parameters:
-        - name: environment_id
-          in: path
-          description: The unique identifier of the environment (UUID).
-          required: true
-          schema:
-            type: string
-            title: environment_id
-            format: uuid
-            description: The unique identifier of the environment (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.environment.v1.GetEnvironmentResponse'
-    delete:
-      tags:
-        - Environments
-      summary: Delete an environment
-      description: 'Scope: `env:write`'
-      operationId: EnvironmentAPI_DeleteEnvironment
-      parameters:
-        - name: environment_id
-          in: path
-          description: The unique identifier of the environment to delete (UUID).
-          required: true
-          schema:
-            type: string
-            title: environment_id
-            format: uuid
-            description: The unique identifier of the environment to delete (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.environment.v1.DeleteEnvironmentResponse'
   /v1/healthcheck:
     get:
       tags:
@@ -2172,7 +2167,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.runner.v1.CreateRunnerResponse'
-  /v1/runners/{runner.id}:
+  /v1/runners/{id}:
+    get:
+      tags:
+        - Runners
+      summary: Retrieve a runner
+      description: |-
+        Returns the Runner record with its server-derived health_status. For
+         detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
+
+         Scope: `runner:read`
+      operationId: RunnerAPI_GetRunner
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the runner (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the runner (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
+    delete:
+      tags:
+        - Runners
+      summary: Delete a runner
+      description: 'Scope: `runner:write`'
+      operationId: RunnerAPI_DeleteRunner
+      parameters:
+        - name: id
+          in: path
+          description: |-
+            The unique identifier of the runner to delete (UUID).
+             All associated agent tokens will be revoked.
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: |-
+              The unique identifier of the runner to delete (UUID).
+               All associated agent tokens will be revoked.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.runner.v1.DeleteRunnerResponse'
     patch:
       tags:
         - Runners
@@ -2180,15 +2229,15 @@ paths:
       description: 'Scope: `runner:write`'
       operationId: RunnerAPI_UpdateRunner
       parameters:
-        - name: runner.id
+        - name: id
           in: path
-          description: Unique identifier for the runner (UUID).
+          description: The unique identifier of the runner (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the runner (UUID).
+            description: The unique identifier of the runner (UUID).
       requestBody:
         content:
           application/json:
@@ -2220,62 +2269,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.runner.v1.UpdateRunnerResponse'
-  /v1/runners/{runner_id}:
-    get:
-      tags:
-        - Runners
-      summary: Retrieve a runner
-      description: |-
-        Returns the Runner record with its server-derived health_status. For
-         detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
-
-         Scope: `runner:read`
-      operationId: RunnerAPI_GetRunner
-      parameters:
-        - name: runner_id
-          in: path
-          description: The unique identifier of the runner (UUID).
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: The unique identifier of the runner (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
-    delete:
-      tags:
-        - Runners
-      summary: Delete a runner
-      description: 'Scope: `runner:write`'
-      operationId: RunnerAPI_DeleteRunner
-      parameters:
-        - name: runner_id
-          in: path
-          description: |-
-            The unique identifier of the runner to delete (UUID).
-             All associated agent tokens will be revoked.
-          required: true
-          schema:
-            type: string
-            title: runner_id
-            format: uuid
-            description: |-
-              The unique identifier of the runner to delete (UUID).
-               All associated agent tokens will be revoked.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.runner.v1.DeleteRunnerResponse'
-  /v1/runners/{runner_id}/jobs:
+  /v1/runners/{id}/jobs:
     get:
       tags:
         - Runners
@@ -2283,13 +2277,13 @@ paths:
       description: 'Scope: `runner:read`'
       operationId: RunnerAPI_ListRunnerJobs
       parameters:
-        - name: runner_id
+        - name: id
           in: path
           description: The runner whose jobs to list (UUID).
           required: true
           schema:
             type: string
-            title: runner_id
+            title: id
             format: uuid
             description: The runner whose jobs to list (UUID).
         - name: filter
@@ -2336,7 +2330,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.runner.v1.ListRunnerJobsResponse'
-  /v1/runners/{runner_id}/status:
+  /v1/runners/{id}/status:
     get:
       tags:
         - Runners
@@ -2349,13 +2343,13 @@ paths:
          Scope: `runner:read`
       operationId: RunnerAPI_GetRunnerStatus
       parameters:
-        - name: runner_id
+        - name: id
           in: path
           description: The unique identifier of the runner (UUID).
           required: true
           schema:
             type: string
-            title: runner_id
+            title: id
             format: uuid
             description: The unique identifier of the runner (UUID).
       responses:
@@ -2365,7 +2359,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerStatusResponse'
-  /v1/runners/{runner_id}/tokens:
+  /v1/runners/{id}/tokens:
     get:
       tags:
         - Runners
@@ -2373,13 +2367,13 @@ paths:
       description: 'Scope: `runner:read`'
       operationId: RunnerAPI_ListRunnerTokens
       parameters:
-        - name: runner_id
+        - name: id
           in: path
           description: The runner to list tokens for (UUID).
           required: true
           schema:
             type: string
-            title: runner_id
+            title: id
             format: uuid
             description: The runner to list tokens for (UUID).
         - name: filter
@@ -2426,13 +2420,13 @@ paths:
          Scope: `runner:write`
       operationId: RunnerAPI_CreateRunnerToken
       parameters:
-        - name: runner_id
+        - name: id
           in: path
           description: The runner to bind this token to (UUID).
           required: true
           schema:
             type: string
-            title: runner_id
+            title: id
             format: uuid
             description: The runner to bind this token to (UUID).
       requestBody:
@@ -2468,7 +2462,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.runner.v1.CreateRunnerTokenResponse'
-  /v1/runners/{runner_id}/tokens/{token_id}:
+  /v1/runners/{id}/tokens/{token_id}:
     get:
       tags:
         - Runners
@@ -2476,13 +2470,13 @@ paths:
       description: 'Scope: `runner:read`'
       operationId: RunnerAPI_GetRunnerToken
       parameters:
-        - name: runner_id
+        - name: id
           in: path
           description: The runner the token belongs to (UUID).
           required: true
           schema:
             type: string
-            title: runner_id
+            title: id
             format: uuid
             description: The runner the token belongs to (UUID).
         - name: token_id
@@ -2501,7 +2495,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerTokenResponse'
-  /v1/runners/{runner_id}/tokens/{token_id}/revoke:
+  /v1/runners/{id}/tokens/{token_id}/revoke:
     post:
       tags:
         - Runners
@@ -2509,13 +2503,13 @@ paths:
       description: 'Scope: `runner:write`'
       operationId: RunnerAPI_RevokeRunnerToken
       parameters:
-        - name: runner_id
+        - name: id
           in: path
           description: The runner the token belongs to (UUID).
           required: true
           schema:
             type: string
-            title: runner_id
+            title: id
             format: uuid
             description: The runner the token belongs to (UUID).
         - name: token_id
@@ -2597,7 +2591,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.source.v1.CreateSourceResponse'
-  /v1/sources/{source.id}:
+  /v1/sources/{id}:
+    get:
+      tags:
+        - Sources
+      summary: Retrieve a source
+      description: 'Scope: `source:read`'
+      operationId: SourceAPI_GetSource
+      parameters:
+        - name: id
+          in: path
+          description: Unique identifier of the source (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: Unique identifier of the source (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.source.v1.GetSourceResponse'
+    delete:
+      tags:
+        - Sources
+      summary: Delete a source
+      description: 'Scope: `source:write`'
+      operationId: SourceAPI_DeleteSource
+      parameters:
+        - name: id
+          in: path
+          description: |-
+            Unique identifier of the source to delete (UUID).
+             Fails if any application components still reference this source.
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: |-
+              Unique identifier of the source to delete (UUID).
+               Fails if any application components still reference this source.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.source.v1.DeleteSourceResponse'
     patch:
       tags:
         - Sources
@@ -2605,15 +2649,15 @@ paths:
       description: 'Scope: `source:write`'
       operationId: SourceAPI_UpdateSource
       parameters:
-        - name: source.id
+        - name: id
           in: path
-          description: Unique identifier for the source (UUID).
+          description: Unique identifier of the source to update (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the source (UUID).
+            description: Unique identifier of the source to update (UUID).
       requestBody:
         content:
           application/json:
@@ -2623,8 +2667,8 @@ paths:
                 source:
                   title: source
                   description: |-
-                    The source with updated fields. The `id` field is required.
-                     Only fields specified in `update_mask` are updated.
+                    The source with updated fields. Only fields specified in `update_mask`
+                     are updated.
                   $ref: '#/components/schemas/admiral.api.source.v1.Source'
                 updateMask:
                   title: update_mask
@@ -2646,58 +2690,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.source.v1.UpdateSourceResponse'
-  /v1/sources/{source_id}:
-    get:
-      tags:
-        - Sources
-      summary: Retrieve a source
-      description: 'Scope: `source:read`'
-      operationId: SourceAPI_GetSource
-      parameters:
-        - name: source_id
-          in: path
-          description: The unique identifier of the source (UUID).
-          required: true
-          schema:
-            type: string
-            title: source_id
-            format: uuid
-            description: The unique identifier of the source (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.source.v1.GetSourceResponse'
-    delete:
-      tags:
-        - Sources
-      summary: Delete a source
-      description: 'Scope: `source:write`'
-      operationId: SourceAPI_DeleteSource
-      parameters:
-        - name: source_id
-          in: path
-          description: |-
-            The unique identifier of the source to delete (UUID).
-             Fails if any application components still reference this source.
-          required: true
-          schema:
-            type: string
-            title: source_id
-            format: uuid
-            description: |-
-              The unique identifier of the source to delete (UUID).
-               Fails if any application components still reference this source.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.source.v1.DeleteSourceResponse'
-  /v1/sources/{source_id}/inputs:
+  /v1/sources/{id}/inputs:
     get:
       tags:
         - Sources
@@ -2714,15 +2707,15 @@ paths:
          Scope: `source:read`
       operationId: SourceAPI_GetSourceInputs
       parameters:
-        - name: source_id
+        - name: id
           in: path
-          description: The source to inspect (UUID).
+          description: Unique identifier of the source to inspect (UUID).
           required: true
           schema:
             type: string
-            title: source_id
+            title: id
             format: uuid
-            description: The source to inspect (UUID).
+            description: Unique identifier of the source to inspect (UUID).
         - name: version
           in: query
           description: |-
@@ -2742,7 +2735,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.source.v1.GetSourceInputsResponse'
-  /v1/sources/{source_id}/outputs:
+  /v1/sources/{id}/outputs:
     get:
       tags:
         - Sources
@@ -2758,15 +2751,15 @@ paths:
          Scope: `source:read`
       operationId: SourceAPI_GetSourceOutputs
       parameters:
-        - name: source_id
+        - name: id
           in: path
-          description: The source to inspect (UUID).
+          description: Unique identifier of the source to inspect (UUID).
           required: true
           schema:
             type: string
-            title: source_id
+            title: id
             format: uuid
-            description: The source to inspect (UUID).
+            description: Unique identifier of the source to inspect (UUID).
         - name: version
           in: query
           description: The version to inspect. Required.
@@ -2782,7 +2775,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.source.v1.GetSourceOutputsResponse'
-  /v1/sources/{source_id}/sync:
+  /v1/sources/{id}/sync:
     post:
       tags:
         - Sources
@@ -2797,15 +2790,15 @@ paths:
          Scope: `source:write`
       operationId: SourceAPI_SyncSource
       parameters:
-        - name: source_id
+        - name: id
           in: path
-          description: The source to sync (UUID).
+          description: Unique identifier of the source to sync (UUID).
           required: true
           schema:
             type: string
-            title: source_id
+            title: id
             format: uuid
-            description: The source to sync (UUID).
+            description: Unique identifier of the source to sync (UUID).
       responses:
         "200":
           description: Success
@@ -2813,7 +2806,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.source.v1.SyncSourceResponse'
-  /v1/sources/{source_id}/versions:
+  /v1/sources/{id}/versions:
     get:
       tags:
         - Sources
@@ -2830,15 +2823,15 @@ paths:
          Scope: `source:read`
       operationId: SourceAPI_ListSourceVersions
       parameters:
-        - name: source_id
+        - name: id
           in: path
-          description: The source to query versions for (UUID).
+          description: Unique identifier of the source to query versions for (UUID).
           required: true
           schema:
             type: string
-            title: source_id
+            title: id
             format: uuid
-            description: The source to query versions for (UUID).
+            description: Unique identifier of the source to query versions for (UUID).
         - name: pageSize
           in: query
           description: Maximum number of versions to return. Defaults to 50.
@@ -2921,7 +2914,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.state.v1.ListStatesResponse'
-  /v1/states/{state_id}:
+  /v1/states/{id}:
     get:
       tags:
         - State
@@ -2932,13 +2925,13 @@ paths:
          Scope: `state:read`
       operationId: StateAPI_GetCurrentState
       parameters:
-        - name: state_id
+        - name: id
           in: path
           description: The unique identifier of the state record (UUID).
           required: true
           schema:
             type: string
-            title: state_id
+            title: id
             format: uuid
             description: The unique identifier of the state record (UUID).
       responses:
@@ -2959,7 +2952,7 @@ paths:
          Scope: `state:admin`
       operationId: StateAPI_DeleteState
       parameters:
-        - name: state_id
+        - name: id
           in: path
           description: |-
             The unique identifier of the state record to delete (UUID).
@@ -2967,7 +2960,7 @@ paths:
           required: true
           schema:
             type: string
-            title: state_id
+            title: id
             format: uuid
             description: |-
               The unique identifier of the state record to delete (UUID).
@@ -2979,7 +2972,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.state.v1.DeleteStateResponse'
-  /v1/states/{state_id}/force-unlock:
+  /v1/states/{id}/force-unlock:
     post:
       tags:
         - State
@@ -2992,13 +2985,13 @@ paths:
          Scope: `state:admin`
       operationId: StateAPI_ForceUnlockState
       parameters:
-        - name: state_id
+        - name: id
           in: path
           description: The state record to force-unlock (UUID).
           required: true
           schema:
             type: string
-            title: state_id
+            title: id
             format: uuid
             description: The state record to force-unlock (UUID).
       requestBody:
@@ -3025,7 +3018,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.state.v1.ForceUnlockStateResponse'
-  /v1/states/{state_id}/versions:
+  /v1/states/{id}/versions:
     get:
       tags:
         - State
@@ -3036,13 +3029,13 @@ paths:
          Scope: `state:read`
       operationId: StateAPI_ListStateVersions
       parameters:
-        - name: state_id
+        - name: id
           in: path
           description: The state record to list versions for (UUID).
           required: true
           schema:
             type: string
-            title: state_id
+            title: id
             format: uuid
             description: The state record to list versions for (UUID).
         - name: pageSize
@@ -3069,7 +3062,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.state.v1.ListStateVersionsResponse'
-  /v1/states/{state_id}/versions/{serial}:
+  /v1/states/{id}/versions/{serial}:
     get:
       tags:
         - State
@@ -3081,13 +3074,13 @@ paths:
          Scope: `state:read`
       operationId: StateAPI_GetStateVersion
       parameters:
-        - name: state_id
+        - name: id
           in: path
           description: The state record (UUID).
           required: true
           schema:
             type: string
-            title: state_id
+            title: id
             format: uuid
             description: The state record (UUID).
         - name: serial
@@ -3187,7 +3180,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.user.v1.CreatePersonalAccessTokenResponse'
-  /v1/user/tokens/{token_id}:
+  /v1/user/tokens/{id}:
     get:
       tags:
         - User
@@ -3195,13 +3188,13 @@ paths:
       description: 'Scope: `token:read`'
       operationId: UserAPI_GetPersonalAccessToken
       parameters:
-        - name: token_id
+        - name: id
           in: path
           description: The unique identifier of the token (UUID).
           required: true
           schema:
             type: string
-            title: token_id
+            title: id
             format: uuid
             description: The unique identifier of the token (UUID).
       responses:
@@ -3211,7 +3204,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.user.v1.GetPersonalAccessTokenResponse'
-  /v1/user/tokens/{token_id}/revoke:
+  /v1/user/tokens/{id}/revoke:
     post:
       tags:
         - User
@@ -3219,13 +3212,13 @@ paths:
       description: 'Scope: `token:write`'
       operationId: UserAPI_RevokePersonalAccessToken
       parameters:
-        - name: token_id
+        - name: id
           in: path
           description: The unique identifier of the token to revoke (UUID).
           required: true
           schema:
             type: string
-            title: token_id
+            title: id
             format: uuid
             description: The unique identifier of the token to revoke (UUID).
       responses:
@@ -3327,7 +3320,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.variable.v1.CreateVariableResponse'
-  /v1/variables/{variable.id}:
+  /v1/variables/{id}:
+    get:
+      tags:
+        - Variables
+      summary: Retrieve a variable
+      description: |-
+        Sensitive variable values are masked in the response.
+
+         Scope: `var:read`
+      operationId: VariableAPI_GetVariable
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the variable (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the variable (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.GetVariableResponse'
+    delete:
+      tags:
+        - Variables
+      summary: Delete a variable
+      description: 'Scope: `var:write`'
+      operationId: VariableAPI_DeleteVariable
+      parameters:
+        - name: id
+          in: path
+          description: The unique identifier of the variable to delete (UUID).
+          required: true
+          schema:
+            type: string
+            title: id
+            format: uuid
+            description: The unique identifier of the variable to delete (UUID).
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/admiral.api.variable.v1.DeleteVariableResponse'
     patch:
       tags:
         - Variables
@@ -3335,15 +3377,15 @@ paths:
       description: 'Scope: `var:write`'
       operationId: VariableAPI_UpdateVariable
       parameters:
-        - name: variable.id
+        - name: id
           in: path
-          description: Unique identifier for the variable (UUID).
+          description: The unique identifier of the variable (UUID).
           required: true
           schema:
             type: string
             title: id
             format: uuid
-            description: Unique identifier for the variable (UUID).
+            description: The unique identifier of the variable (UUID).
       requestBody:
         content:
           application/json:
@@ -3353,7 +3395,7 @@ paths:
                 variable:
                   title: variable
                   description: |-
-                    The variable with updated fields. The `id` field is required.
+                    The variable with updated fields.
                      Only fields specified in `update_mask` are updated.
                   $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
                 updateMask:
@@ -3375,56 +3417,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/admiral.api.variable.v1.UpdateVariableResponse'
-  /v1/variables/{variable_id}:
-    get:
-      tags:
-        - Variables
-      summary: Retrieve a variable
-      description: |-
-        Sensitive variable values are masked in the response.
-
-         Scope: `var:read`
-      operationId: VariableAPI_GetVariable
-      parameters:
-        - name: variable_id
-          in: path
-          description: The unique identifier of the variable (UUID).
-          required: true
-          schema:
-            type: string
-            title: variable_id
-            format: uuid
-            description: The unique identifier of the variable (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.variable.v1.GetVariableResponse'
-    delete:
-      tags:
-        - Variables
-      summary: Delete a variable
-      description: 'Scope: `var:write`'
-      operationId: VariableAPI_DeleteVariable
-      parameters:
-        - name: variable_id
-          in: path
-          description: The unique identifier of the variable to delete (UUID).
-          required: true
-          schema:
-            type: string
-            title: variable_id
-            format: uuid
-            description: The unique identifier of the variable to delete (UUID).
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/admiral.api.variable.v1.DeleteVariableResponse'
 components:
   schemas:
     admiral.api.application.v1.Application:
@@ -3556,9 +3548,9 @@ components:
     admiral.api.application.v1.DeleteApplicationRequest:
       type: object
       properties:
-        applicationId:
+        id:
           type: string
-          title: application_id
+          title: id
           format: uuid
           description: The unique identifier of the application to delete (UUID).
       title: DeleteApplicationRequest
@@ -3572,9 +3564,9 @@ components:
     admiral.api.application.v1.GetApplicationRequest:
       type: object
       properties:
-        applicationId:
+        id:
           type: string
-          title: application_id
+          title: id
           format: uuid
           description: The unique identifier of the application (UUID).
       title: GetApplicationRequest
@@ -3634,7 +3626,7 @@ components:
         application:
           title: application
           description: |-
-            The application with updated fields. The `id` field is required.
+            The application with updated fields.
              Only fields specified in `update_mask` are updated.
           $ref: '#/components/schemas/admiral.api.application.v1.Application'
         updateMask:
@@ -3643,6 +3635,11 @@ components:
             The set of fields to update. If unset, all mutable fields are updated.
              Supported fields: `name`, `description`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: The unique identifier of the application (UUID).
       title: UpdateApplicationRequest
       required:
         - application
@@ -3940,7 +3937,7 @@ components:
              the K8s agent for authentication.
 
              To create additional tokens (e.g., for rotation), use
-             CreateClusterToken (POST /v1/clusters/{cluster_id}/tokens).
+             CreateClusterToken (POST /v1/clusters/{id}/tokens).
       title: CreateClusterResponse
       additionalProperties: false
       description: |-
@@ -3949,9 +3946,9 @@ components:
     admiral.api.cluster.v1.CreateClusterTokenRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The cluster to bind this token to (UUID).
         name:
@@ -3992,9 +3989,9 @@ components:
     admiral.api.cluster.v1.DeleteClusterRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: |-
             The unique identifier of the cluster to delete (UUID).
@@ -4010,9 +4007,9 @@ components:
     admiral.api.cluster.v1.GetClusterRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The unique identifier of the cluster (UUID).
       title: GetClusterRequest
@@ -4031,9 +4028,9 @@ components:
     admiral.api.cluster.v1.GetClusterStatusRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The unique identifier of the cluster (UUID).
       title: GetClusterStatusRequest
@@ -4067,9 +4064,9 @@ components:
     admiral.api.cluster.v1.GetClusterTokenRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The cluster the token belongs to (UUID).
         tokenId:
@@ -4114,9 +4111,9 @@ components:
     admiral.api.cluster.v1.ListClusterTokensRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The cluster to list tokens for (UUID).
         filter:
@@ -4195,9 +4192,9 @@ components:
     admiral.api.cluster.v1.ListWorkloadsRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The cluster whose workloads to list (UUID).
         filter:
@@ -4338,9 +4335,9 @@ components:
     admiral.api.cluster.v1.ReportWorkloadStatusRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The cluster these workloads belong to (UUID).
         workloads:
@@ -4428,9 +4425,9 @@ components:
     admiral.api.cluster.v1.RevokeClusterTokenRequest:
       type: object
       properties:
-        clusterId:
+        id:
           type: string
-          title: cluster_id
+          title: id
           format: uuid
           description: The cluster the token belongs to (UUID).
         tokenId:
@@ -4466,6 +4463,11 @@ components:
             The set of fields to update. If unset, all mutable fields are updated.
              Supported fields: `name`, `description`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: The unique identifier of the cluster (UUID).
       title: UpdateClusterRequest
       required:
         - cluster
@@ -5162,12 +5164,12 @@ components:
     admiral.api.component.v1.DeleteComponentRequest:
       type: object
       properties:
-        componentId:
+        id:
           type: string
-          title: component_id
+          title: id
           format: uuid
           description: |-
-            The unique identifier of the component to delete (UUID).
+            Unique identifier of the component to delete (UUID).
              Fails if other components depend on this component (via depends_on
              or output references in values_template).
       title: DeleteComponentRequest
@@ -5209,11 +5211,11 @@ components:
     admiral.api.component.v1.GetComponentRequest:
       type: object
       properties:
-        componentId:
+        id:
           type: string
-          title: component_id
+          title: id
           format: uuid
-          description: The unique identifier of the component (UUID).
+          description: Unique identifier of the component (UUID).
       title: GetComponentRequest
       additionalProperties: false
       description: GetComponentRequest identifies a component to retrieve.
@@ -5230,11 +5232,11 @@ components:
     admiral.api.component.v1.ListComponentOverridesRequest:
       type: object
       properties:
-        componentId:
+        id:
           type: string
-          title: component_id
+          title: id
           format: uuid
-          description: The component to list overrides for (UUID).
+          description: Unique identifier of the component to list overrides for (UUID).
         pageSize:
           type: integer
           title: page_size
@@ -5397,8 +5399,8 @@ components:
         component:
           title: component
           description: |-
-            The component with updated fields. The `id` field is required.
-             Only fields specified in `update_mask` are updated.
+            The component with updated fields. Only fields specified in
+             `update_mask` are updated.
           $ref: '#/components/schemas/admiral.api.component.v1.Component'
         updateMask:
           title: update_mask
@@ -5407,6 +5409,11 @@ components:
              Supported fields: `name`, `description`, `source_id`, `version`,
              `values_template`, `depends_on`, `outputs`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: Unique identifier of the component to update (UUID).
       title: UpdateComponentRequest
       required:
         - component
@@ -5926,9 +5933,9 @@ components:
     admiral.api.connection.v1.DeleteConnectionRequest:
       type: object
       properties:
-        connectionId:
+        id:
           type: string
-          title: connection_id
+          title: id
           format: uuid
           description: |-
             The unique identifier of the connection to delete (UUID).
@@ -5989,9 +5996,9 @@ components:
     admiral.api.connection.v1.GetConnectionRequest:
       type: object
       properties:
-        connectionId:
+        id:
           type: string
-          title: connection_id
+          title: id
           format: uuid
           description: The unique identifier of the connection (UUID).
       title: GetConnectionRequest
@@ -6120,9 +6127,9 @@ components:
     admiral.api.connection.v1.TestConnectionRequest:
       type: object
       properties:
-        connectionId:
+        id:
           type: string
-          title: connection_id
+          title: id
           format: uuid
           description: The unique identifier of the connection to test (UUID).
       title: TestConnectionRequest
@@ -6154,7 +6161,7 @@ components:
         connection:
           title: connection
           description: |-
-            The connection with updated fields. The `id` field is required.
+            The connection with updated fields.
              Only fields specified in `update_mask` are updated.
 
              When updating auth_config, the entire auth config is replaced.
@@ -6166,6 +6173,11 @@ components:
             The set of fields to update. If unset, all mutable fields are updated.
              Supported fields: `name`, `description`, `auth_config`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: The unique identifier of the connection (UUID).
       title: UpdateConnectionRequest
       required:
         - connection
@@ -6184,11 +6196,11 @@ components:
     admiral.api.deployment.v1.CancelDeploymentRequest:
       type: object
       properties:
-        deploymentId:
+        id:
           type: string
-          title: deployment_id
+          title: id
           format: uuid
-          description: The deployment to cancel (UUID).
+          description: Unique identifier of the deployment to cancel (UUID).
         reason:
           type: string
           title: reason
@@ -6340,11 +6352,11 @@ components:
     admiral.api.deployment.v1.GetDeploymentRequest:
       type: object
       properties:
-        deploymentId:
+        id:
           type: string
-          title: deployment_id
+          title: id
           format: uuid
-          description: The unique identifier of the deployment (UUID).
+          description: Unique identifier of the deployment (UUID).
       title: GetDeploymentRequest
       additionalProperties: false
       description: GetDeploymentRequest identifies a deployment to retrieve.
@@ -6432,11 +6444,11 @@ components:
     admiral.api.deployment.v1.ListRevisionsRequest:
       type: object
       properties:
-        deploymentId:
+        id:
           type: string
-          title: deployment_id
+          title: id
           format: uuid
-          description: The deployment to list revisions for (UUID).
+          description: Unique identifier of the deployment to list revisions for (UUID).
         pageSize:
           type: integer
           title: page_size
@@ -6789,9 +6801,9 @@ components:
     admiral.api.environment.v1.DeleteEnvironmentRequest:
       type: object
       properties:
-        environmentId:
+        id:
           type: string
-          title: environment_id
+          title: id
           format: uuid
           description: The unique identifier of the environment to delete (UUID).
       title: DeleteEnvironmentRequest
@@ -6917,9 +6929,9 @@ components:
     admiral.api.environment.v1.GetEnvironmentRequest:
       type: object
       properties:
-        environmentId:
+        id:
           type: string
-          title: environment_id
+          title: id
           format: uuid
           description: The unique identifier of the environment (UUID).
       title: GetEnvironmentRequest
@@ -7020,7 +7032,7 @@ components:
         environment:
           title: environment
           description: |-
-            The environment with updated fields. The `id` field is required.
+            The environment with updated fields.
              Only fields specified in `update_mask` are updated.
           $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
         updateMask:
@@ -7030,6 +7042,11 @@ components:
              Supported fields: `name`, `description`, `runtime_type`, `kubernetes`,
              `labels`, `infrastructure`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: The unique identifier of the environment (UUID).
       title: UpdateEnvironmentRequest
       required:
         - environment
@@ -7161,7 +7178,7 @@ components:
              the runner binary for authentication.
 
              To create additional tokens (e.g., for rotation), use
-             CreateRunnerToken (POST /v1/runners/{runner_id}/tokens).
+             CreateRunnerToken (POST /v1/runners/{id}/tokens).
       title: CreateRunnerResponse
       additionalProperties: false
       description: |-
@@ -7170,9 +7187,9 @@ components:
     admiral.api.runner.v1.CreateRunnerTokenRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The runner to bind this token to (UUID).
         name:
@@ -7213,9 +7230,9 @@ components:
     admiral.api.runner.v1.DeleteRunnerRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: |-
             The unique identifier of the runner to delete (UUID).
@@ -7252,9 +7269,9 @@ components:
     admiral.api.runner.v1.GetRunnerRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The unique identifier of the runner (UUID).
       title: GetRunnerRequest
@@ -7273,9 +7290,9 @@ components:
     admiral.api.runner.v1.GetRunnerStatusRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The unique identifier of the runner (UUID).
       title: GetRunnerStatusRequest
@@ -7307,9 +7324,9 @@ components:
     admiral.api.runner.v1.GetRunnerTokenRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The runner the token belongs to (UUID).
         tokenId:
@@ -7555,9 +7572,9 @@ components:
     admiral.api.runner.v1.ListRunnerJobsRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The runner whose jobs to list (UUID).
         filter:
@@ -7606,9 +7623,9 @@ components:
     admiral.api.runner.v1.ListRunnerTokensRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The runner to list tokens for (UUID).
         filter:
@@ -7714,9 +7731,9 @@ components:
     admiral.api.runner.v1.RevokeRunnerTokenRequest:
       type: object
       properties:
-        runnerId:
+        id:
           type: string
-          title: runner_id
+          title: id
           format: uuid
           description: The runner the token belongs to (UUID).
         tokenId:
@@ -7925,6 +7942,11 @@ components:
             The set of fields to update. If unset, all mutable fields are updated.
              Supported fields: `name`, `description`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: The unique identifier of the runner (UUID).
       title: UpdateRunnerRequest
       required:
         - runner
@@ -8093,12 +8115,12 @@ components:
     admiral.api.source.v1.DeleteSourceRequest:
       type: object
       properties:
-        sourceId:
+        id:
           type: string
-          title: source_id
+          title: id
           format: uuid
           description: |-
-            The unique identifier of the source to delete (UUID).
+            Unique identifier of the source to delete (UUID).
              Fails if any application components still reference this source.
       title: DeleteSourceRequest
       additionalProperties: false
@@ -8111,11 +8133,11 @@ components:
     admiral.api.source.v1.GetSourceInputsRequest:
       type: object
       properties:
-        sourceId:
+        id:
           type: string
-          title: source_id
+          title: id
           format: uuid
-          description: The source to inspect (UUID).
+          description: Unique identifier of the source to inspect (UUID).
         version:
           type: string
           title: version
@@ -8153,11 +8175,11 @@ components:
     admiral.api.source.v1.GetSourceOutputsRequest:
       type: object
       properties:
-        sourceId:
+        id:
           type: string
-          title: source_id
+          title: id
           format: uuid
-          description: The source to inspect (UUID).
+          description: Unique identifier of the source to inspect (UUID).
         version:
           type: string
           title: version
@@ -8192,11 +8214,11 @@ components:
     admiral.api.source.v1.GetSourceRequest:
       type: object
       properties:
-        sourceId:
+        id:
           type: string
-          title: source_id
+          title: id
           format: uuid
-          description: The unique identifier of the source (UUID).
+          description: Unique identifier of the source (UUID).
       title: GetSourceRequest
       additionalProperties: false
       description: GetSourceRequest identifies a source to retrieve.
@@ -8278,11 +8300,11 @@ components:
     admiral.api.source.v1.ListSourceVersionsRequest:
       type: object
       properties:
-        sourceId:
+        id:
           type: string
-          title: source_id
+          title: id
           format: uuid
-          description: The source to query versions for (UUID).
+          description: Unique identifier of the source to query versions for (UUID).
         pageSize:
           type: integer
           title: page_size
@@ -8679,11 +8701,11 @@ components:
     admiral.api.source.v1.SyncSourceRequest:
       type: object
       properties:
-        sourceId:
+        id:
           type: string
-          title: source_id
+          title: id
           format: uuid
-          description: The source to sync (UUID).
+          description: Unique identifier of the source to sync (UUID).
       title: SyncSourceRequest
       additionalProperties: false
       description: SyncSourceRequest triggers a metadata refresh for a source.
@@ -8746,8 +8768,8 @@ components:
         source:
           title: source
           description: |-
-            The source with updated fields. The `id` field is required.
-             Only fields specified in `update_mask` are updated.
+            The source with updated fields. Only fields specified in `update_mask`
+             are updated.
           $ref: '#/components/schemas/admiral.api.source.v1.Source'
         updateMask:
           title: update_mask
@@ -8756,6 +8778,11 @@ components:
              Supported fields: `name`, `description`, `url`, `connection_id`, `catalog`,
              `source_config`, `labels`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: Unique identifier of the source to update (UUID).
       title: UpdateSourceRequest
       required:
         - source
@@ -8774,9 +8801,9 @@ components:
     admiral.api.state.v1.DeleteStateRequest:
       type: object
       properties:
-        stateId:
+        id:
           type: string
-          title: state_id
+          title: id
           format: uuid
           description: |-
             The unique identifier of the state record to delete (UUID).
@@ -8792,9 +8819,9 @@ components:
     admiral.api.state.v1.ForceUnlockStateRequest:
       type: object
       properties:
-        stateId:
+        id:
           type: string
-          title: state_id
+          title: id
           format: uuid
           description: The state record to force-unlock (UUID).
         reason:
@@ -8815,9 +8842,9 @@ components:
     admiral.api.state.v1.GetCurrentStateRequest:
       type: object
       properties:
-        stateId:
+        id:
           type: string
-          title: state_id
+          title: id
           format: uuid
           description: The unique identifier of the state record (UUID).
       title: GetCurrentStateRequest
@@ -8864,9 +8891,9 @@ components:
     admiral.api.state.v1.GetStateVersionRequest:
       type: object
       properties:
-        stateId:
+        id:
           type: string
-          title: state_id
+          title: id
           format: uuid
           description: The state record (UUID).
         serial:
@@ -8901,9 +8928,9 @@ components:
     admiral.api.state.v1.ListStateVersionsRequest:
       type: object
       properties:
-        stateId:
+        id:
           type: string
-          title: state_id
+          title: id
           format: uuid
           description: The state record to list versions for (UUID).
         pageSize:
@@ -9347,9 +9374,9 @@ components:
     admiral.api.user.v1.GetPersonalAccessTokenRequest:
       type: object
       properties:
-        tokenId:
+        id:
           type: string
-          title: token_id
+          title: id
           format: uuid
           description: The unique identifier of the token (UUID).
       title: GetPersonalAccessTokenRequest
@@ -9425,9 +9452,9 @@ components:
     admiral.api.user.v1.RevokePersonalAccessTokenRequest:
       type: object
       properties:
-        tokenId:
+        id:
           type: string
-          title: token_id
+          title: id
           format: uuid
           description: The unique identifier of the token to revoke (UUID).
       title: RevokePersonalAccessTokenRequest
@@ -9565,9 +9592,9 @@ components:
     admiral.api.variable.v1.DeleteVariableRequest:
       type: object
       properties:
-        variableId:
+        id:
           type: string
-          title: variable_id
+          title: id
           format: uuid
           description: The unique identifier of the variable to delete (UUID).
       title: DeleteVariableRequest
@@ -9581,9 +9608,9 @@ components:
     admiral.api.variable.v1.GetVariableRequest:
       type: object
       properties:
-        variableId:
+        id:
           type: string
-          title: variable_id
+          title: id
           format: uuid
           description: The unique identifier of the variable (UUID).
       title: GetVariableRequest
@@ -9664,7 +9691,7 @@ components:
         variable:
           title: variable
           description: |-
-            The variable with updated fields. The `id` field is required.
+            The variable with updated fields.
              Only fields specified in `update_mask` are updated.
           $ref: '#/components/schemas/admiral.api.variable.v1.Variable'
         updateMask:
@@ -9673,6 +9700,11 @@ components:
             The set of fields to update. If unset, all mutable fields are updated.
              Supported fields: `value`, `sensitive`, `type`, `description`.
           $ref: '#/components/schemas/google.protobuf.FieldMask'
+        id:
+          type: string
+          title: id
+          format: uuid
+          description: The unique identifier of the variable (UUID).
       title: UpdateVariableRequest
       required:
         - variable
