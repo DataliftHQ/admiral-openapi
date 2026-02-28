@@ -1,26 +1,8 @@
 openapi: 3.1.0
 info:
     title: Admiral API
-    description: The Admiral REST API for managing applications, infrastructure, and deployments. See https://docs.admiral.io/api for complete documentation.
-    version: 1.0.0
+    description: The Admiral REST API for managing applications, infrastructure, and deployments. See https://admiral.io/docs for complete documentation.
 paths:
-    /healthz:
-        get:
-            tags:
-                - Health
-            summary: Check service health
-            description: |-
-                Healthcheck verifies that the service is running and healthy.
-                 Returns an empty response on success. Use this endpoint for load balancer
-                 health checks and monitoring systems.
-            operationId: HealthcheckAPI_Healthcheck2
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.healthcheck.v1.HealthcheckResponse'
     /v1/agent/revisions/{revision_id}/bundle:
         get:
             tags:
@@ -29,7 +11,7 @@ paths:
             description: |-
                 The bundle contains pre-rendered Kubernetes manifests (from Helm template,
                  kustomize build, or raw manifests) ready for server-side apply. The agent
-                 does not need to render anything — it applies the bundle as-is.
+                 does not need to render anything -- it applies the bundle as-is.
 
                  The cluster is identified by the agent token's binding. Returns
                  PERMISSION_DENIED if the revision's target cluster does not match the
@@ -108,7 +90,7 @@ paths:
                 - Clusters
             summary: Report cluster status
             description: |-
-                The cluster is identified by the agent token — the server resolves the
+                The cluster is identified by the agent token -- the server resolves the
                  cluster from the AGT's binding. No cluster_id is required in the request.
 
                  This endpoint is agent-facing and restricted to agent tokens.
@@ -138,12 +120,34 @@ paths:
             parameters:
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                     (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                     STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                     Filterable fields:
+                       - `name` -- filter by application name.
+                       - `labels.key` -- filter by label key.
+
+                     Example: `field['name'] = 'inventory-api' AND field['labels.team'] = 'logistics'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by application name.
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['name'] = 'inventory-api' AND field['labels.team'] = 'logistics'`
                 - name: pageSize
                   in: query
                   description: Maximum number of applications to return per page.
@@ -187,83 +191,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.application.v1.CreateApplicationResponse'
-    /v1/applications/name/{name}:
-        get:
-            tags:
-                - Applications
-            summary: Retrieve an application
-            description: 'Scope: `app:read`'
-            operationId: ApplicationAPI_GetApplication2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the application (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the application (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.application.v1.GetApplicationResponse'
-        delete:
-            tags:
-                - Applications
-            summary: Delete an application
-            description: 'Scope: `app:write`'
-            operationId: ApplicationAPI_DeleteApplication2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the application (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the application (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.application.v1.DeleteApplicationResponse'
-        patch:
-            tags:
-                - Applications
-            summary: Update an application
-            description: 'Scope: `app:write`'
-            operationId: ApplicationAPI_UpdateApplication2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the application (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the application (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.application.v1.UpdateApplicationResponse'
-    /v1/applications/{id}:
+    /v1/applications/{application_id}:
         get:
             tags:
                 - Applications
@@ -271,13 +199,13 @@ paths:
             description: 'Scope: `app:read`'
             operationId: ApplicationAPI_GetApplication
             parameters:
-                - name: id
+                - name: application_id
                   in: path
                   description: The unique identifier of the application (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: application_id
                     format: uuid
                     description: The unique identifier of the application (UUID).
             responses:
@@ -294,13 +222,13 @@ paths:
             description: 'Scope: `app:write`'
             operationId: ApplicationAPI_DeleteApplication
             parameters:
-                - name: id
+                - name: application_id
                   in: path
                   description: The unique identifier of the application to delete (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: application_id
                     format: uuid
                     description: The unique identifier of the application to delete (UUID).
             responses:
@@ -317,15 +245,39 @@ paths:
             description: 'Scope: `app:write`'
             operationId: ApplicationAPI_UpdateApplication
             parameters:
-                - name: id
+                - name: application_id
                   in: path
                   description: The unique identifier of the application (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: application_id
                     format: uuid
                     description: The unique identifier of the application (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                application:
+                                    title: application
+                                    description: |-
+                                        The application with updated fields.
+                                         Only fields specified in `update_mask` are updated.
+                                    $ref: '#/components/schemas/admiral.api.application.v1.Application'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `labels`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateApplicationRequest
+                            required:
+                                - application
+                            additionalProperties: false
+                            description: UpdateApplicationRequest contains the application fields to update.
+                required: true
             responses:
                 "200":
                     description: Success
@@ -343,12 +295,36 @@ paths:
             parameters:
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                     (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                     STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                     Filterable fields:
+                       - `name` -- filter by cluster name.
+                       - `health_status` -- filter by health status.
+                       - `labels.key` -- filter by label key.
+
+                     Example: `field['health_status'] = 'HEALTHY' AND field['labels.region'] = 'us-east-1'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by cluster name.
+                           - `health_status` -- filter by health status.
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['health_status'] = 'HEALTHY' AND field['labels.region'] = 'us-east-1'`
                 - name: pageSize
                   in: query
                   description: Maximum number of clusters to return per page.
@@ -378,7 +354,7 @@ paths:
                 - Clusters
             summary: Create a cluster
             description: |-
-                The response includes a `plain_text_token` — the raw AGT secret shown
+                The response includes a `plain_text_token` -- the raw AGT secret shown
                  exactly once. Deploy this token to the K8s agent (e.g., via Helm values
                  or a Kubernetes Secret). The agent uses it to authenticate with
                  AgentAPI.RegisterAgent on first boot.
@@ -398,88 +374,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.cluster.v1.CreateClusterResponse'
-    /v1/clusters/name/{name}:
-        get:
-            tags:
-                - Clusters
-            summary: Retrieve a cluster
-            description: |-
-                Returns the Cluster record with its server-derived health_status. For
-                 detailed telemetry (node counts, resource usage, workload summary), use
-                 GetClusterStatus instead.
-
-                 Scope: `cluster:read`
-            operationId: ClusterAPI_GetCluster2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the cluster (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the cluster (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.cluster.v1.GetClusterResponse'
-        delete:
-            tags:
-                - Clusters
-            summary: Delete a cluster
-            description: 'Scope: `cluster:write`'
-            operationId: ClusterAPI_DeleteCluster2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the cluster (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the cluster (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.cluster.v1.DeleteClusterResponse'
-        patch:
-            tags:
-                - Clusters
-            summary: Update a cluster
-            description: 'Scope: `cluster:write`'
-            operationId: ClusterAPI_UpdateCluster2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the cluster (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the cluster (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.cluster.v1.UpdateClusterResponse'
-    /v1/clusters/{id}:
+    /v1/clusters/{cluster_id}:
         get:
             tags:
                 - Clusters
@@ -492,13 +387,13 @@ paths:
                  Scope: `cluster:read`
             operationId: ClusterAPI_GetCluster
             parameters:
-                - name: id
+                - name: cluster_id
                   in: path
                   description: The unique identifier of the cluster (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: cluster_id
                     format: uuid
                     description: The unique identifier of the cluster (UUID).
             responses:
@@ -515,7 +410,7 @@ paths:
             description: 'Scope: `cluster:write`'
             operationId: ClusterAPI_DeleteCluster
             parameters:
-                - name: id
+                - name: cluster_id
                   in: path
                   description: |-
                     The unique identifier of the cluster to delete (UUID).
@@ -523,7 +418,7 @@ paths:
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: cluster_id
                     format: uuid
                     description: |-
                         The unique identifier of the cluster to delete (UUID).
@@ -542,15 +437,39 @@ paths:
             description: 'Scope: `cluster:write`'
             operationId: ClusterAPI_UpdateCluster
             parameters:
-                - name: id
+                - name: cluster_id
                   in: path
                   description: The unique identifier of the cluster (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: cluster_id
                     format: uuid
                     description: The unique identifier of the cluster (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                cluster:
+                                    title: cluster
+                                    description: |-
+                                        The cluster with updated fields. The `id` field is required.
+                                         Only fields specified in `update_mask` are updated.
+                                    $ref: '#/components/schemas/admiral.api.cluster.v1.Cluster'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `labels`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateClusterRequest
+                            required:
+                                - cluster
+                            additionalProperties: false
+                            description: UpdateClusterRequest contains the cluster fields to update.
+                required: true
             responses:
                 "200":
                     description: Success
@@ -606,12 +525,26 @@ paths:
                     description: The cluster to list tokens for (UUID).
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Filterable fields:
+                       - `name` -- filter by token name.
+                       - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                     Example: `field['status'] = 'ACTIVE'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `name` -- filter by token name.
+                           - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                         Example: `field['status'] = 'ACTIVE'`
                 - name: pageSize
                   in: query
                   description: Maximum number of tokens to return per page.
@@ -775,12 +708,30 @@ paths:
                     description: The cluster whose workloads to list (UUID).
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Filterable fields:
+                       - `namespace` -- filter by Kubernetes namespace.
+                       - `kind` -- filter by workload kind (Deployment, StatefulSet, DaemonSet).
+                       - `name` -- filter by workload name.
+                       - `health_status` -- filter by workload health status.
+
+                     Example: `field['namespace'] = 'production' AND field['health_status'] = 'DEGRADED'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `namespace` -- filter by Kubernetes namespace.
+                           - `kind` -- filter by workload kind (Deployment, StatefulSet, DaemonSet).
+                           - `name` -- filter by workload name.
+                           - `health_status` -- filter by workload health status.
+
+                         Example: `field['namespace'] = 'production' AND field['health_status'] = 'DEGRADED'`
                 - name: pageSize
                   in: query
                   description: Maximum number of workloads to return per page.
@@ -875,12 +826,12 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                      Common filter fields:
-                       - `application_id` — scope to an application (required for meaningful
+                       - `application_id` -- scope to an application (required for meaningful
                          results since components always belong to an application).
-                       - `environment_id` — when present, triggers the resolved view with
+                       - `environment_id` -- when present, triggers the resolved view with
                          environment overrides applied to each component.
-                       - `category` — filter by component category (INFRASTRUCTURE, WORKLOAD).
-                       - `name` — filter by component name.
+                       - `category` -- filter by component category (INFRASTRUCTURE, WORKLOAD).
+                       - `name` -- filter by component name.
                   schema:
                     type: string
                     title: filter
@@ -889,12 +840,12 @@ paths:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `application_id` — scope to an application (required for meaningful
+                           - `application_id` -- scope to an application (required for meaningful
                              results since components always belong to an application).
-                           - `environment_id` — when present, triggers the resolved view with
+                           - `environment_id` -- when present, triggers the resolved view with
                              environment overrides applied to each component.
-                           - `category` — filter by component category (INFRASTRUCTURE, WORKLOAD).
-                           - `name` — filter by component name.
+                           - `category` -- filter by component category (INFRASTRUCTURE, WORKLOAD).
+                           - `name` -- filter by component name.
                 - name: pageSize
                   in: query
                   description: Maximum number of components to return per page.
@@ -942,41 +893,23 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.component.v1.CreateComponentResponse'
-    /v1/components/name/{name}:
+    /v1/components/{component_id}:
         get:
             tags:
                 - Components
             summary: Retrieve a component
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                 to scope the name within a parent application. The `application` parameter
-                 accepts either a UUID or a DNS-label name.
-
-                 Scope: `app:read`
-            operationId: ComponentAPI_GetComponent2
+            description: 'Scope: `app:read`'
+            operationId: ComponentAPI_GetComponent
             parameters:
-                - name: name
+                - name: component_id
                   in: path
-                  description: The human-readable name of the component (DNS label).
+                  description: Unique identifier of the component (UUID).
                   required: true
                   schema:
                     type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the component (DNS label).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
+                    title: component_id
+                    format: uuid
+                    description: Unique identifier of the component (UUID).
             responses:
                 "200":
                     description: Success
@@ -989,30 +922,23 @@ paths:
                 - Components
             summary: Delete a component
             description: 'Scope: `app:write`'
-            operationId: ComponentAPI_DeleteComponent2
+            operationId: ComponentAPI_DeleteComponent
             parameters:
-                - name: name
+                - name: component_id
                   in: path
-                  description: The human-readable name of the component (DNS label).
+                  description: |-
+                    Unique identifier of the component to delete (UUID).
+                     Fails if other components depend on this component (via depends_on
+                     or output references in values_template).
                   required: true
                   schema:
                     type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the component (DNS label).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
+                    title: component_id
+                    format: uuid
                     description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
+                        Unique identifier of the component to delete (UUID).
+                         Fails if other components depend on this component (via depends_on
+                         or output references in values_template).
             responses:
                 "200":
                     description: Success
@@ -1030,19 +956,42 @@ paths:
                  the rename if references exist.
 
                  Scope: `app:write`
-            operationId: ComponentAPI_UpdateComponent2
+            operationId: ComponentAPI_UpdateComponent
             parameters:
-                - name: name
+                - name: component_id
                   in: path
-                  description: The human-readable name of the component (DNS label).
+                  description: Unique identifier of the component to update (UUID).
                   required: true
                   schema:
                     type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the component (DNS label).
+                    title: component_id
+                    format: uuid
+                    description: Unique identifier of the component to update (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                component:
+                                    title: component
+                                    description: |-
+                                        The component with updated fields. Only fields specified in
+                                         `update_mask` are updated.
+                                    $ref: '#/components/schemas/admiral.api.component.v1.Component'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `source_id`, `version`,
+                                         `values_template`, `depends_on`, `outputs`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateComponentRequest
+                            required:
+                                - component
+                            additionalProperties: false
+                            description: UpdateComponentRequest contains the component fields to update.
+                required: true
             responses:
                 "200":
                     description: Success
@@ -1091,7 +1040,7 @@ paths:
                 For example, a "redis" component might use a Helm chart source in dev but
                  a Terraform ElastiCache module in prod.
 
-                 This is an upsert — if an override already exists for this component +
+                 This is an upsert -- if an override already exists for this component +
                  environment combination, it is replaced.
 
                  Scope: `env:write`
@@ -1205,114 +1154,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.component.v1.DeleteComponentOverrideResponse'
-    /v1/components/{id}:
-        get:
-            tags:
-                - Components
-            summary: Retrieve a component
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                 to scope the name within a parent application. The `application` parameter
-                 accepts either a UUID or a DNS-label name.
-
-                 Scope: `app:read`
-            operationId: ComponentAPI_GetComponent
-            parameters:
-                - name: id
-                  in: path
-                  description: Unique identifier of the component (UUID).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: Unique identifier of the component (UUID).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.component.v1.GetComponentResponse'
-        delete:
-            tags:
-                - Components
-            summary: Delete a component
-            description: 'Scope: `app:write`'
-            operationId: ComponentAPI_DeleteComponent
-            parameters:
-                - name: id
-                  in: path
-                  description: |-
-                    Unique identifier of the component to delete (UUID).
-                     Fails if other components depend on this component (via depends_on
-                     or output references in values_template).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: |-
-                        Unique identifier of the component to delete (UUID).
-                         Fails if other components depend on this component (via depends_on
-                         or output references in values_template).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.component.v1.DeleteComponentResponse'
-        patch:
-            tags:
-                - Components
-            summary: Update a component
-            description: |-
-                When renaming a component, the server validates that no other components
-                 reference the old name in their values_template expressions and rejects
-                 the rename if references exist.
-
-                 Scope: `app:write`
-            operationId: ComponentAPI_UpdateComponent
-            parameters:
-                - name: id
-                  in: path
-                  description: Unique identifier of the component to update (UUID).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: Unique identifier of the component to update (UUID).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.component.v1.UpdateComponentResponse'
     /v1/components/{id}/overrides:
         get:
             tags:
@@ -1364,12 +1205,38 @@ paths:
             parameters:
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                     (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                     STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                     Filterable fields:
+                       - `name` -- filter by connection name.
+                       - `type` -- filter by connection type (GIT_TOKEN, HELM_HTTP, etc.).
+                       - `status` -- filter by connection status (ACTIVE, ERROR, UNTESTED).
+                       - `labels.key` -- filter by label key.
+
+                     Example: `field['type'] = 'GIT_TOKEN' AND field['status'] = 'ACTIVE'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by connection name.
+                           - `type` -- filter by connection type (GIT_TOKEN, HELM_HTTP, etc.).
+                           - `status` -- filter by connection status (ACTIVE, ERROR, UNTESTED).
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['type'] = 'GIT_TOKEN' AND field['status'] = 'ACTIVE'`
                 - name: pageSize
                   in: query
                   description: Maximum number of connections to return per page.
@@ -1399,7 +1266,7 @@ paths:
                 - Connections
             summary: Create a connection
             description: |-
-                The connection type and auth config must match — for example, a GIT_TOKEN
+                The connection type and auth config must match -- for example, a GIT_TOKEN
                  connection requires a GitTokenAuth config. The server validates connectivity
                  on creation when possible and sets the initial status accordingly.
 
@@ -1418,92 +1285,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.connection.v1.CreateConnectionResponse'
-    /v1/connections/name/{name}:
-        get:
-            tags:
-                - Connections
-            summary: Retrieve a connection
-            description: |-
-                Returns connection metadata and status. Sensitive credential fields are
-                 never included in the response.
-
-                 Scope: `connection:read`
-            operationId: ConnectionAPI_GetConnection2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the connection (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the connection (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.connection.v1.GetConnectionResponse'
-        delete:
-            tags:
-                - Connections
-            summary: Delete a connection
-            description: 'Scope: `connection:write`'
-            operationId: ConnectionAPI_DeleteConnection2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the connection (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the connection (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.connection.v1.DeleteConnectionResponse'
-        patch:
-            tags:
-                - Connections
-            summary: Update a connection
-            description: |-
-                When updating auth_config, the entire auth config is replaced — partial
-                 updates within the auth config oneof are not supported. Omitting auth_config
-                 from the update_mask leaves credentials unchanged.
-
-                 Scope: `connection:write`
-            operationId: ConnectionAPI_UpdateConnection2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the connection (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the connection (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.connection.v1.UpdateConnectionResponse'
-    /v1/connections/{id}:
+    /v1/connections/{connection_id}:
         get:
             tags:
                 - Connections
@@ -1515,13 +1297,13 @@ paths:
                  Scope: `connection:read`
             operationId: ConnectionAPI_GetConnection
             parameters:
-                - name: id
+                - name: connection_id
                   in: path
                   description: The unique identifier of the connection (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: connection_id
                     format: uuid
                     description: The unique identifier of the connection (UUID).
             responses:
@@ -1538,7 +1320,7 @@ paths:
             description: 'Scope: `connection:write`'
             operationId: ConnectionAPI_DeleteConnection
             parameters:
-                - name: id
+                - name: connection_id
                   in: path
                   description: |-
                     The unique identifier of the connection to delete (UUID).
@@ -1546,7 +1328,7 @@ paths:
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: connection_id
                     format: uuid
                     description: |-
                         The unique identifier of the connection to delete (UUID).
@@ -1563,22 +1345,49 @@ paths:
                 - Connections
             summary: Update a connection
             description: |-
-                When updating auth_config, the entire auth config is replaced — partial
+                When updating auth_config, the entire auth config is replaced -- partial
                  updates within the auth config oneof are not supported. Omitting auth_config
                  from the update_mask leaves credentials unchanged.
 
                  Scope: `connection:write`
             operationId: ConnectionAPI_UpdateConnection
             parameters:
-                - name: id
+                - name: connection_id
                   in: path
                   description: The unique identifier of the connection (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: connection_id
                     format: uuid
                     description: The unique identifier of the connection (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                connection:
+                                    title: connection
+                                    description: |-
+                                        The connection with updated fields.
+                                         Only fields specified in `update_mask` are updated.
+
+                                         When updating auth_config, the entire auth config is replaced.
+                                         Omitting auth_config from the update_mask leaves credentials unchanged.
+                                    $ref: '#/components/schemas/admiral.api.connection.v1.Connection'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `auth_config`, `labels`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateConnectionRequest
+                            required:
+                                - connection
+                            additionalProperties: false
+                            description: UpdateConnectionRequest contains the connection fields to update.
+                required: true
             responses:
                 "200":
                     description: Success
@@ -1632,10 +1441,10 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                      Common filter fields:
-                       - `application_id` — deployments for a specific application.
-                       - `environment_id` — deployments to a specific environment.
-                       - `status` — filter by deployment status.
-                       - `trigger_type` — filter by trigger type (MANUAL, CI, DESTROY).
+                       - `application_id` -- deployments for a specific application.
+                       - `environment_id` -- deployments to a specific environment.
+                       - `status` -- filter by deployment status.
+                       - `trigger_type` -- filter by trigger type (MANUAL, CI, DESTROY).
                   schema:
                     type: string
                     title: filter
@@ -1644,10 +1453,10 @@ paths:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `application_id` — deployments for a specific application.
-                           - `environment_id` — deployments to a specific environment.
-                           - `status` — filter by deployment status.
-                           - `trigger_type` — filter by trigger type (MANUAL, CI, DESTROY).
+                           - `application_id` -- deployments for a specific application.
+                           - `environment_id` -- deployments to a specific environment.
+                           - `status` -- filter by deployment status.
+                           - `trigger_type` -- filter by trigger type (MANUAL, CI, DESTROY).
                 - name: pageSize
                   in: query
                   description: Maximum number of deployments to return per page.
@@ -1885,12 +1694,38 @@ paths:
             parameters:
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                     (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                     STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                     Filterable fields:
+                       - `application_id` -- filter by parent application (UUID).
+                       - `name` -- filter by environment name.
+                       - `runtime_type` -- filter by runtime type (KUBERNETES).
+                       - `labels.key` -- filter by label key.
+
+                     Example: `field['application_id'] = '<uuid>' AND field['name'] = 'prod'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `application_id` -- filter by parent application (UUID).
+                           - `name` -- filter by environment name.
+                           - `runtime_type` -- filter by runtime type (KUBERNETES).
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['application_id'] = '<uuid>' AND field['name'] = 'prod'`
                 - name: pageSize
                   in: query
                   description: Maximum number of environments to return per page.
@@ -1934,142 +1769,23 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.environment.v1.CreateEnvironmentResponse'
-    /v1/environments/name/{name}:
+    /v1/environments/{environment_id}:
         get:
             tags:
                 - Environments
             summary: Retrieve an environment
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                 to scope the name within a parent application. The `application` parameter
-                 accepts either a UUID or a DNS-label name.
-
-                 Scope: `env:read`
-            operationId: EnvironmentAPI_GetEnvironment2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the environment (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the environment (DNS label).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.environment.v1.GetEnvironmentResponse'
-        delete:
-            tags:
-                - Environments
-            summary: Delete an environment
-            description: 'Scope: `env:write`'
-            operationId: EnvironmentAPI_DeleteEnvironment2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the environment (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the environment (DNS label).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.environment.v1.DeleteEnvironmentResponse'
-        patch:
-            tags:
-                - Environments
-            summary: Update an environment
-            description: 'Scope: `env:write`'
-            operationId: EnvironmentAPI_UpdateEnvironment2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the environment (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the environment (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.environment.v1.UpdateEnvironmentResponse'
-    /v1/environments/{id}:
-        get:
-            tags:
-                - Environments
-            summary: Retrieve an environment
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                 to scope the name within a parent application. The `application` parameter
-                 accepts either a UUID or a DNS-label name.
-
-                 Scope: `env:read`
+            description: 'Scope: `env:read`'
             operationId: EnvironmentAPI_GetEnvironment
             parameters:
-                - name: id
+                - name: environment_id
                   in: path
                   description: The unique identifier of the environment (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: environment_id
                     format: uuid
                     description: The unique identifier of the environment (UUID).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
             responses:
                 "200":
                     description: Success
@@ -2084,26 +1800,15 @@ paths:
             description: 'Scope: `env:write`'
             operationId: EnvironmentAPI_DeleteEnvironment
             parameters:
-                - name: id
+                - name: environment_id
                   in: path
                   description: The unique identifier of the environment to delete (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: environment_id
                     format: uuid
                     description: The unique identifier of the environment to delete (UUID).
-                - name: application
-                  in: query
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                     by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  schema:
-                    type: string
-                    title: application
-                    description: |-
-                        Required when using name-based lookup. Identifies the parent application
-                         by UUID or DNS-label name. Ignored when using ID-based lookup.
             responses:
                 "200":
                     description: Success
@@ -2118,15 +1823,40 @@ paths:
             description: 'Scope: `env:write`'
             operationId: EnvironmentAPI_UpdateEnvironment
             parameters:
-                - name: id
+                - name: environment_id
                   in: path
                   description: The unique identifier of the environment (UUID).
                   required: true
                   schema:
                     type: string
-                    title: id
+                    title: environment_id
                     format: uuid
                     description: The unique identifier of the environment (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                environment:
+                                    title: environment
+                                    description: |-
+                                        The environment with updated fields.
+                                         Only fields specified in `update_mask` are updated.
+                                    $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `runtime_type`, `kubernetes`,
+                                         `labels`, `infrastructure`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateEnvironmentRequest
+                            required:
+                                - environment
+                            additionalProperties: false
+                            description: UpdateEnvironmentRequest contains the environment fields to update.
+                required: true
             responses:
                 "200":
                     description: Success
@@ -2134,30 +1864,13 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.environment.v1.UpdateEnvironmentResponse'
-    /v1/healthcheck:
-        get:
-            tags:
-                - Health
-            summary: Check service health
-            description: |-
-                Healthcheck verifies that the service is running and healthy.
-                 Returns an empty response on success. Use this endpoint for load balancer
-                 health checks and monitoring systems.
-            operationId: HealthcheckAPI_Healthcheck
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.healthcheck.v1.HealthcheckResponse'
     /v1/runner/heartbeat:
         post:
             tags:
                 - Runners
             summary: Send runner heartbeat
             description: |-
-                The runner is identified by the agent token — the server resolves the
+                The runner is identified by the agent token -- the server resolves the
                  runner from the AGT's binding. No runner_id is required in the request.
 
                  This endpoint is runner-facing and restricted to agent tokens.
@@ -2183,7 +1896,7 @@ paths:
                 - Runners
             summary: Claim a job
             description: |-
-                The runner is identified by the agent token — no runner_id is required.
+                The runner is identified by the agent token -- no runner_id is required.
 
                  This endpoint is runner-facing and restricted to agent tokens.
 
@@ -2496,12 +2209,38 @@ paths:
             parameters:
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                     (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                     STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                     Filterable fields:
+                       - `name` -- filter by runner name.
+                       - `kind` -- filter by runner kind (TERRAFORM, WORKFLOW).
+                       - `health_status` -- filter by health status.
+                       - `labels.key` -- filter by label key.
+
+                     Example: `field['kind'] = 'TERRAFORM' AND field['health_status'] = 'HEALTHY'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by runner name.
+                           - `kind` -- filter by runner kind (TERRAFORM, WORKFLOW).
+                           - `health_status` -- filter by health status.
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['kind'] = 'TERRAFORM' AND field['health_status'] = 'HEALTHY'`
                 - name: pageSize
                   in: query
                   description: Maximum number of runners to return per page.
@@ -2531,7 +2270,7 @@ paths:
                 - Runners
             summary: Create a runner
             description: |-
-                The response includes a `plain_text_token` — the raw AGT secret shown
+                The response includes a `plain_text_token` -- the raw AGT secret shown
                  exactly once. Deploy this token to the runner binary for authentication.
 
                  Scope: `runner:write`
@@ -2549,164 +2288,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.runner.v1.CreateRunnerResponse'
-    /v1/runners/name/{name}:
-        get:
-            tags:
-                - Runners
-            summary: Retrieve a runner
-            description: |-
-                Returns the Runner record with its server-derived health_status. For
-                 detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
-
-                 Scope: `runner:read`
-            operationId: RunnerAPI_GetRunner2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the runner (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the runner (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
-        delete:
-            tags:
-                - Runners
-            summary: Delete a runner
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_DeleteRunner2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the runner (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the runner (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.runner.v1.DeleteRunnerResponse'
-        patch:
-            tags:
-                - Runners
-            summary: Update a runner
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_UpdateRunner2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the runner (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the runner (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.runner.v1.UpdateRunnerResponse'
-    /v1/runners/{id}:
-        get:
-            tags:
-                - Runners
-            summary: Retrieve a runner
-            description: |-
-                Returns the Runner record with its server-derived health_status. For
-                 detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
-
-                 Scope: `runner:read`
-            operationId: RunnerAPI_GetRunner
-            parameters:
-                - name: id
-                  in: path
-                  description: The unique identifier of the runner (UUID).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: The unique identifier of the runner (UUID).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
-        delete:
-            tags:
-                - Runners
-            summary: Delete a runner
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_DeleteRunner
-            parameters:
-                - name: id
-                  in: path
-                  description: |-
-                    The unique identifier of the runner to delete (UUID).
-                     All associated agent tokens will be revoked.
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: |-
-                        The unique identifier of the runner to delete (UUID).
-                         All associated agent tokens will be revoked.
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.runner.v1.DeleteRunnerResponse'
-        patch:
-            tags:
-                - Runners
-            summary: Update a runner
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_UpdateRunner
-            parameters:
-                - name: id
-                  in: path
-                  description: The unique identifier of the runner (UUID).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: The unique identifier of the runner (UUID).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.runner.v1.UpdateRunnerResponse'
     /v1/runners/{id}/jobs:
         get:
             tags:
@@ -2727,23 +2308,27 @@ paths:
                 - name: filter
                   in: query
                   description: |-
-                    Filter expression using the PEG filter DSL.
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
 
-                     Common filter fields:
-                       - `status` — filter by job status.
-                       - `job_type` — filter by job type (PLAN, APPLY, etc.).
-                       - `deployment_id` — jobs for a specific deployment.
+                     Filterable fields:
+                       - `status` -- filter by job status (PENDING, ASSIGNED, RUNNING, etc.).
+                       - `job_type` -- filter by job type (PLAN, APPLY, DESTROY_PLAN, DESTROY_APPLY).
+                       - `deployment_id` -- jobs for a specific deployment (UUID).
+
+                     Example: `field['status'] = 'RUNNING'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
                     description: |-
-                        Filter expression using the PEG filter DSL.
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
 
-                         Common filter fields:
-                           - `status` — filter by job status.
-                           - `job_type` — filter by job type (PLAN, APPLY, etc.).
-                           - `deployment_id` — jobs for a specific deployment.
+                         Filterable fields:
+                           - `status` -- filter by job status (PENDING, ASSIGNED, RUNNING, etc.).
+                           - `job_type` -- filter by job type (PLAN, APPLY, DESTROY_PLAN, DESTROY_APPLY).
+                           - `deployment_id` -- jobs for a specific deployment (UUID).
+
+                         Example: `field['status'] = 'RUNNING'`
                 - name: pageSize
                   in: query
                   description: Maximum number of jobs to return per page.
@@ -2816,12 +2401,26 @@ paths:
                     description: The runner to list tokens for (UUID).
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Filterable fields:
+                       - `name` -- filter by token name.
+                       - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                     Example: `field['status'] = 'ACTIVE'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `name` -- filter by token name.
+                           - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                         Example: `field['status'] = 'ACTIVE'`
                 - name: pageSize
                   in: query
                   description: Maximum number of tokens to return per page.
@@ -2966,6 +2565,108 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.runner.v1.RevokeRunnerTokenResponse'
+    /v1/runners/{runner_id}:
+        get:
+            tags:
+                - Runners
+            summary: Retrieve a runner
+            description: |-
+                Returns the Runner record with its server-derived health_status. For
+                 detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
+
+                 Scope: `runner:read`
+            operationId: RunnerAPI_GetRunner
+            parameters:
+                - name: runner_id
+                  in: path
+                  description: The unique identifier of the runner (UUID).
+                  required: true
+                  schema:
+                    type: string
+                    title: runner_id
+                    format: uuid
+                    description: The unique identifier of the runner (UUID).
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/admiral.api.runner.v1.GetRunnerResponse'
+        delete:
+            tags:
+                - Runners
+            summary: Delete a runner
+            description: 'Scope: `runner:write`'
+            operationId: RunnerAPI_DeleteRunner
+            parameters:
+                - name: runner_id
+                  in: path
+                  description: |-
+                    The unique identifier of the runner to delete (UUID).
+                     All associated agent tokens will be revoked.
+                  required: true
+                  schema:
+                    type: string
+                    title: runner_id
+                    format: uuid
+                    description: |-
+                        The unique identifier of the runner to delete (UUID).
+                         All associated agent tokens will be revoked.
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/admiral.api.runner.v1.DeleteRunnerResponse'
+        patch:
+            tags:
+                - Runners
+            summary: Update a runner
+            description: 'Scope: `runner:write`'
+            operationId: RunnerAPI_UpdateRunner
+            parameters:
+                - name: runner_id
+                  in: path
+                  description: The unique identifier of the runner (UUID).
+                  required: true
+                  schema:
+                    type: string
+                    title: runner_id
+                    format: uuid
+                    description: The unique identifier of the runner (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                runner:
+                                    title: runner
+                                    description: |-
+                                        The runner with updated fields. The `id` field is required.
+                                         Only fields specified in `update_mask` are updated.
+                                    $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `labels`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateRunnerRequest
+                            required:
+                                - runner
+                            additionalProperties: false
+                            description: UpdateRunnerRequest contains the runner fields to update.
+                required: true
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/admiral.api.runner.v1.UpdateRunnerResponse'
     /v1/sources:
         get:
             tags:
@@ -2976,12 +2677,38 @@ paths:
             parameters:
                 - name: filter
                   in: query
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                     (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                     STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                     Filterable fields:
+                       - `name` -- filter by source name.
+                       - `type` -- filter by source type (TERRAFORM_REGISTRY, HELM_OCI, etc.).
+                       - `catalog` -- filter by catalog status (true/false).
+                       - `labels.key` -- filter by label key.
+
+                     Example: `field['type'] = 'TERRAFORM_REGISTRY' AND field['catalog'] = 'true'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by source name.
+                           - `type` -- filter by source type (TERRAFORM_REGISTRY, HELM_OCI, etc.).
+                           - `catalog` -- filter by catalog status (true/false).
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['type'] = 'TERRAFORM_REGISTRY' AND field['catalog'] = 'true'`
                 - name: pageSize
                   in: query
                   description: Maximum number of sources to return per page.
@@ -3011,7 +2738,7 @@ paths:
                 - Sources
             summary: Create a source
             description: |-
-                The source type and source_config must match — for example, a
+                The source type and source_config must match -- for example, a
                  TERRAFORM_REGISTRY source requires a TerraformRegistryConfig.
 
                  Scope: `source:write`
@@ -3029,156 +2756,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.source.v1.CreateSourceResponse'
-    /v1/sources/name/{name}:
-        get:
-            tags:
-                - Sources
-            summary: Retrieve a source
-            description: 'Scope: `source:read`'
-            operationId: SourceAPI_GetSource2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the source (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the source (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.source.v1.GetSourceResponse'
-        delete:
-            tags:
-                - Sources
-            summary: Delete a source
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_DeleteSource2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the source (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the source (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.source.v1.DeleteSourceResponse'
-        patch:
-            tags:
-                - Sources
-            summary: Update a source
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_UpdateSource2
-            parameters:
-                - name: name
-                  in: path
-                  description: The human-readable name of the source (DNS label).
-                  required: true
-                  schema:
-                    type: string
-                    title: name
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                    description: The human-readable name of the source (DNS label).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.source.v1.UpdateSourceResponse'
-    /v1/sources/{id}:
-        get:
-            tags:
-                - Sources
-            summary: Retrieve a source
-            description: 'Scope: `source:read`'
-            operationId: SourceAPI_GetSource
-            parameters:
-                - name: id
-                  in: path
-                  description: Unique identifier of the source (UUID).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: Unique identifier of the source (UUID).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.source.v1.GetSourceResponse'
-        delete:
-            tags:
-                - Sources
-            summary: Delete a source
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_DeleteSource
-            parameters:
-                - name: id
-                  in: path
-                  description: |-
-                    Unique identifier of the source to delete (UUID).
-                     Fails if any application components still reference this source.
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: |-
-                        Unique identifier of the source to delete (UUID).
-                         Fails if any application components still reference this source.
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.source.v1.DeleteSourceResponse'
-        patch:
-            tags:
-                - Sources
-            summary: Update a source
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_UpdateSource
-            parameters:
-                - name: id
-                  in: path
-                  description: Unique identifier of the source to update (UUID).
-                  required: true
-                  schema:
-                    type: string
-                    title: id
-                    format: uuid
-                    description: Unique identifier of the source to update (UUID).
-            responses:
-                "200":
-                    description: Success
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/admiral.api.source.v1.UpdateSourceResponse'
     /v1/sources/{id}/inputs:
         get:
             tags:
@@ -3231,7 +2808,7 @@ paths:
             summary: Retrieve source outputs
             description: |-
                 Only meaningful for Terraform modules, which declare formal output blocks.
-                 Helm charts, Kustomize, and raw manifests do not have formal outputs —
+                 Helm charts, Kustomize, and raw manifests do not have formal outputs --
                  workload component outputs are user-declared, not discovered.
 
                  This operation queries the external system in real time and may take
@@ -3345,6 +2922,105 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/admiral.api.source.v1.ListSourceVersionsResponse'
+    /v1/sources/{source_id}:
+        get:
+            tags:
+                - Sources
+            summary: Retrieve a source
+            description: 'Scope: `source:read`'
+            operationId: SourceAPI_GetSource
+            parameters:
+                - name: source_id
+                  in: path
+                  description: Unique identifier of the source (UUID).
+                  required: true
+                  schema:
+                    type: string
+                    title: source_id
+                    format: uuid
+                    description: Unique identifier of the source (UUID).
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/admiral.api.source.v1.GetSourceResponse'
+        delete:
+            tags:
+                - Sources
+            summary: Delete a source
+            description: 'Scope: `source:write`'
+            operationId: SourceAPI_DeleteSource
+            parameters:
+                - name: source_id
+                  in: path
+                  description: |-
+                    Unique identifier of the source to delete (UUID).
+                     Fails if any application components still reference this source.
+                  required: true
+                  schema:
+                    type: string
+                    title: source_id
+                    format: uuid
+                    description: |-
+                        Unique identifier of the source to delete (UUID).
+                         Fails if any application components still reference this source.
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/admiral.api.source.v1.DeleteSourceResponse'
+        patch:
+            tags:
+                - Sources
+            summary: Update a source
+            description: 'Scope: `source:write`'
+            operationId: SourceAPI_UpdateSource
+            parameters:
+                - name: source_id
+                  in: path
+                  description: Unique identifier of the source to update (UUID).
+                  required: true
+                  schema:
+                    type: string
+                    title: source_id
+                    format: uuid
+                    description: Unique identifier of the source to update (UUID).
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                source:
+                                    title: source
+                                    description: |-
+                                        The source with updated fields. Only fields specified in `update_mask`
+                                         are updated.
+                                    $ref: '#/components/schemas/admiral.api.source.v1.Source'
+                                updateMask:
+                                    title: update_mask
+                                    description: |-
+                                        The set of fields to update. If unset, all mutable fields are updated.
+                                         Supported fields: `name`, `description`, `url`, `connection_id`, `catalog`,
+                                         `source_config`, `labels`.
+                                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                            title: UpdateSourceRequest
+                            required:
+                                - source
+                            additionalProperties: false
+                            description: UpdateSourceRequest contains the source fields to update.
+                required: true
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/admiral.api.source.v1.UpdateSourceResponse'
     /v1/states:
         get:
             tags:
@@ -3359,9 +3035,9 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                      Common filter fields:
-                       - `component_id` — states for a specific component (UUID).
-                       - `environment_id` — states for a specific environment (UUID).
-                       - `application_id` — states for all components belonging to an
+                       - `component_id` -- states for a specific component (UUID).
+                       - `environment_id` -- states for a specific environment (UUID).
+                       - `application_id` -- states for all components belonging to an
                          application (UUID). The server resolves the application's components
                          and returns states for all of them. Can be combined with
                          `environment_id`.
@@ -3373,9 +3049,9 @@ paths:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `component_id` — states for a specific component (UUID).
-                           - `environment_id` — states for a specific environment (UUID).
-                           - `application_id` — states for all components belonging to an
+                           - `component_id` -- states for a specific component (UUID).
+                           - `environment_id` -- states for a specific environment (UUID).
+                           - `application_id` -- states for all components belonging to an
                              application (UUID). The server resolves the application's components
                              and returns states for all of them. Can be combined with
                              `environment_id`.
@@ -3445,7 +3121,7 @@ paths:
                   in: path
                   description: |-
                     The unique identifier of the state record to delete (UUID).
-                     Fails if the state is currently locked — force-unlock first.
+                     Fails if the state is currently locked -- force-unlock first.
                   required: true
                   schema:
                     type: string
@@ -3453,7 +3129,7 @@ paths:
                     format: uuid
                     description: |-
                         The unique identifier of the state record to delete (UUID).
-                         Fails if the state is currently locked — force-unlock first.
+                         Fails if the state is currently locked -- force-unlock first.
             responses:
                 "200":
                     description: Success
@@ -3617,15 +3293,25 @@ paths:
                 - name: filter
                   in: query
                   description: |-
-                    Filter expression using the PEG filter DSL
-                     (e.g., `status == "active"` or `name == "ci-*"`).
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                     Filterable fields:
+                       - `name` -- filter by token name.
+                       - `status` -- filter by token status (ACTIVE, REVOKED, EXPIRED).
+
+                     Example: `field['status'] = 'ACTIVE'`
                   schema:
                     type: string
                     title: filter
                     maxLength: 1024
                     description: |-
-                        Filter expression using the PEG filter DSL
-                         (e.g., `status == "active"` or `name == "ci-*"`).
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `name` -- filter by token name.
+                           - `status` -- filter by token status (ACTIVE, REVOKED, EXPIRED).
+
+                         Example: `field['status'] = 'ACTIVE'`
                 - name: pageSize
                   in: query
                   description: Maximum number of tokens to return per page.
@@ -3740,13 +3426,13 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                      Common filter fields:
-                       - `application_id` — scope to an application (triggers merge with
+                       - `application_id` -- scope to an application (triggers merge with
                          app-level variables alongside global variables).
-                       - `environment_id` — scope to an environment (requires application_id;
+                       - `environment_id` -- scope to an environment (requires application_id;
                          triggers merge with environment-level variables).
-                       - `sensitive` — filter by sensitivity.
-                       - `type` — filter by variable type.
-                       - `key` — filter by variable key (supports prefix matching).
+                       - `sensitive` -- filter by sensitivity.
+                       - `type` -- filter by variable type.
+                       - `key` -- filter by variable key (supports prefix matching).
                   schema:
                     type: string
                     title: filter
@@ -3755,13 +3441,13 @@ paths:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `application_id` — scope to an application (triggers merge with
+                           - `application_id` -- scope to an application (triggers merge with
                              app-level variables alongside global variables).
-                           - `environment_id` — scope to an environment (requires application_id;
+                           - `environment_id` -- scope to an environment (requires application_id;
                              triggers merge with environment-level variables).
-                           - `sensitive` — filter by sensitivity.
-                           - `type` — filter by variable type.
-                           - `key` — filter by variable key (supports prefix matching).
+                           - `sensitive` -- filter by sensitivity.
+                           - `type` -- filter by variable type.
+                           - `key` -- filter by variable key (supports prefix matching).
                 - name: pageSize
                   in: query
                   description: Maximum number of variables to return per page.
@@ -3928,7 +3614,7 @@ components:
                     minLength: 1
                     pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
                     description: |-
-                        URL-safe, human-readable identifier (e.g., "billing-api"). Unique within
+                        URL-safe, human-readable identifier (e.g., "inventory-api"). Unique within
                          the tenant. Lowercase alphanumeric and hyphens only, must start with a
                          letter and end with an alphanumeric character (1-63 chars).
                 description:
@@ -3937,7 +3623,7 @@ components:
                     maxLength: 1024
                     description: |-
                         Optional longer-form description of the application's purpose
-                         (e.g., "Handles invoice generation and payment processing").
+                         (e.g., "Core inventory service tracking warehouse stock and fulfillment").
                 labels:
                     type: object
                     title: labels
@@ -3948,7 +3634,7 @@ components:
                         maxLength: 256
                     description: |-
                         Arbitrary key-value labels for organizing and filtering applications
-                         (e.g., `{"team": "payments", "tier": "critical"}`).
+                         (e.g., `{"team": "logistics", "tier": "critical"}`).
                 createdBy:
                     type: string
                     title: created_by
@@ -3971,6 +3657,18 @@ components:
                 Application represents a deployable unit within a tenant. An application
                  groups manifests, dependencies, and environment configuration into a single
                  entity that Admiral orchestrates across environments.
+            example:
+                id: "a1b2c3d4-5678-9abc-def0-1234567890ab"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "inventory-api"
+                description: "Core inventory management service for tracking warehouse stock levels and fulfillment."
+                labels:
+                    team: "logistics"
+                    tier: "critical"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-09-15T10:30:00Z"
+                updatedAt: "2025-11-02T14:22:00Z"
         admiral.api.application.v1.Application.LabelsEntry:
             type: object
             properties:
@@ -3992,7 +3690,7 @@ components:
                     minLength: 1
                     pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
                     description: |-
-                        URL-safe, human-readable identifier (e.g., "billing-api"). Must be unique
+                        URL-safe, human-readable identifier (e.g., "inventory-api"). Must be unique
                          within the tenant. Lowercase alphanumeric and hyphens only.
                 description:
                     type:
@@ -4036,30 +3734,15 @@ components:
             description: CreateApplicationResponse contains the newly created application.
         admiral.api.application.v1.DeleteApplicationRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: The unique identifier of the application to delete (UUID).
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the application (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                applicationId:
+                    type: string
+                    title: application_id
+                    format: uuid
+                    description: The unique identifier of the application to delete (UUID).
             title: DeleteApplicationRequest
             additionalProperties: false
-            description: DeleteApplicationRequest identifies an application to delete by ID or name.
+            description: DeleteApplicationRequest identifies an application to delete.
         admiral.api.application.v1.DeleteApplicationResponse:
             type: object
             title: DeleteApplicationResponse
@@ -4067,30 +3750,15 @@ components:
             description: DeleteApplicationResponse is empty on success.
         admiral.api.application.v1.GetApplicationRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: The unique identifier of the application (UUID).
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the application (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                applicationId:
+                    type: string
+                    title: application_id
+                    format: uuid
+                    description: The unique identifier of the application (UUID).
             title: GetApplicationRequest
             additionalProperties: false
-            description: GetApplicationRequest identifies an application to retrieve by ID or name.
+            description: GetApplicationRequest identifies an application to retrieve.
         admiral.api.application.v1.GetApplicationResponse:
             type: object
             properties:
@@ -4108,7 +3776,18 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by application name.
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['name'] = 'inventory-api' AND field['labels.team'] = 'logistics'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -4141,41 +3820,24 @@ components:
             description: ListApplicationsResponse contains a page of applications.
         admiral.api.application.v1.UpdateApplicationRequest:
             type: object
-            allOf:
-                - properties:
-                    application:
-                        title: application
-                        description: |-
-                            The application with updated fields.
-                             Only fields specified in `update_mask` are updated.
-                        $ref: '#/components/schemas/admiral.api.application.v1.Application'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `labels`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the application (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the application (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                application:
+                    title: application
+                    description: |-
+                        The application with updated fields.
+                         Only fields specified in `update_mask` are updated.
+                    $ref: '#/components/schemas/admiral.api.application.v1.Application'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `labels`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                applicationId:
+                    type: string
+                    title: application_id
+                    format: uuid
+                    description: The unique identifier of the application (UUID).
             title: UpdateApplicationRequest
             required:
                 - application
@@ -4262,6 +3924,21 @@ components:
             title: Cluster
             additionalProperties: false
             description: Cluster represents a registered Kubernetes cluster within a tenant.
+            example:
+                id: "c3d4e5f6-7890-1abc-def0-abcdef012345"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "prod-us-east-1"
+                description: "Primary production cluster serving US East traffic."
+                labels:
+                    region: "us-east-1"
+                    cloud: "aws"
+                    tier: "production"
+                clusterUid: "kube-system-uid-9f8e7d6c"
+                healthStatus: "CLUSTER_HEALTH_STATUS_HEALTHY"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-06-10T08:00:00Z"
+                updatedAt: "2025-11-20T16:45:00Z"
         admiral.api.cluster.v1.Cluster.LabelsEntry:
             type: object
             properties:
@@ -4384,7 +4061,7 @@ components:
                  (ReportClusterStatusRequest) and the read response (GetClusterStatusResponse).
 
                  Server-derived fields (health_status, agent connectivity) are NOT included
-                 here — they live on the Cluster and Agent records respectively, and are
+                 here -- they live on the Cluster and Agent records respectively, and are
                  returned alongside this message in GetClusterStatusResponse.
         admiral.api.cluster.v1.ContainerStatus:
             type: object
@@ -4524,32 +4201,17 @@ components:
             description: CreateClusterTokenResponse contains the newly created AGT.
         admiral.api.cluster.v1.DeleteClusterRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: |-
-                            The unique identifier of the cluster to delete (UUID).
-                             All associated agent tokens will be revoked.
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the cluster (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                clusterId:
+                    type: string
+                    title: cluster_id
+                    format: uuid
+                    description: |-
+                        The unique identifier of the cluster to delete (UUID).
+                         All associated agent tokens will be revoked.
             title: DeleteClusterRequest
             additionalProperties: false
-            description: DeleteClusterRequest identifies a cluster to delete by ID or name.
+            description: DeleteClusterRequest identifies a cluster to delete.
         admiral.api.cluster.v1.DeleteClusterResponse:
             type: object
             title: DeleteClusterResponse
@@ -4557,30 +4219,15 @@ components:
             description: DeleteClusterResponse is empty on success.
         admiral.api.cluster.v1.GetClusterRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: The unique identifier of the cluster (UUID).
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the cluster (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                clusterId:
+                    type: string
+                    title: cluster_id
+                    format: uuid
+                    description: The unique identifier of the cluster (UUID).
             title: GetClusterRequest
             additionalProperties: false
-            description: GetClusterRequest identifies a cluster to retrieve by ID or name.
+            description: GetClusterRequest identifies a cluster to retrieve.
         admiral.api.cluster.v1.GetClusterResponse:
             type: object
             properties:
@@ -4686,7 +4333,14 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `name` -- filter by token name.
+                           - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                         Example: `field['status'] = 'ACTIVE'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -4724,7 +4378,19 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by cluster name.
+                           - `health_status` -- filter by health status.
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['health_status'] = 'HEALTHY' AND field['labels.region'] = 'us-east-1'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -4767,7 +4433,16 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `namespace` -- filter by Kubernetes namespace.
+                           - `kind` -- filter by workload kind (Deployment, StatefulSet, DaemonSet).
+                           - `name` -- filter by workload name.
+                           - `health_status` -- filter by workload health status.
+
+                         Example: `field['namespace'] = 'production' AND field['health_status'] = 'DEGRADED'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -4850,7 +4525,7 @@ components:
                  Admiral splits this into three storage tiers: current snapshot, time-series
                  metrics, and events.
 
-                 The cluster is identified by the agent token's binding — no cluster_id is
+                 The cluster is identified by the agent token's binding -- no cluster_id is
                  required. The server resolves the cluster from the AGT.
         admiral.api.cluster.v1.ReportClusterStatusResponse:
             type: object
@@ -5016,41 +4691,24 @@ components:
             description: RevokeClusterTokenResponse contains the revoked cluster AGT metadata.
         admiral.api.cluster.v1.UpdateClusterRequest:
             type: object
-            allOf:
-                - properties:
-                    cluster:
-                        title: cluster
-                        description: |-
-                            The cluster with updated fields. The `id` field is required.
-                             Only fields specified in `update_mask` are updated.
-                        $ref: '#/components/schemas/admiral.api.cluster.v1.Cluster'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `labels`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the cluster (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the cluster (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                cluster:
+                    title: cluster
+                    description: |-
+                        The cluster with updated fields. The `id` field is required.
+                         Only fields specified in `update_mask` are updated.
+                    $ref: '#/components/schemas/admiral.api.cluster.v1.Cluster'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `labels`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                clusterId:
+                    type: string
+                    title: cluster_id
+                    format: uuid
+                    description: The unique identifier of the cluster (UUID).
             title: UpdateClusterRequest
             required:
                 - cluster
@@ -5394,7 +5052,7 @@ components:
                     description: |-
                         Pinned version of the source artifact. For registry sources, a semver
                          string (e.g., "1.2.3"). For Git sources, a tag, branch, or commit SHA.
-                         Required — components always pin a version. Use UpdateComponent to
+                         Required -- components always pin a version. Use UpdateComponent to
                          change the version (rolling update).
                 valuesTemplate:
                     type: string
@@ -5498,6 +5156,24 @@ components:
                  components declare outputs explicitly. Other components consume these via
                  template expressions. The deployment engine resolves this DAG to determine
                  execution order.
+            example:
+                id: "d4e5f6a7-8901-2bcd-ef34-567890123456"
+                applicationId: "a1b2c3d4-5678-9abc-def0-1234567890ab"
+                name: "api-server"
+                description: "Main API server deployed via Helm chart."
+                category: "COMPONENT_CATEGORY_WORKLOAD"
+                sourceId: "f6a7b8c9-0123-4def-5678-901234567890"
+                version: "2.4.1"
+                valuesTemplate: "{\"replicaCount\": \"{{ .var.REPLICA_COUNT }}\", \"image.tag\": \"{{ .var.IMAGE_TAG }}\"}"
+                labels:
+                    component-type: "service"
+                dependsOn:
+                    - "vpc"
+                    - "redis"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-09-16T09:00:00Z"
+                updatedAt: "2025-10-28T11:30:00Z"
         admiral.api.component.v1.ComponentCategory:
             type: string
             title: ComponentCategory
@@ -5547,7 +5223,7 @@ components:
                 ComponentOutput declares a named output value produced by a component.
 
                  For infrastructure components (Terraform), outputs are auto-discovered from
-                 the module's output blocks and this field is ignored — do not declare
+                 the module's output blocks and this field is ignored -- do not declare
                  outputs manually for Terraform components.
 
                  For workload components (Helm, Kustomize, manifests), outputs must be
@@ -5603,7 +5279,7 @@ components:
                     title: values_template
                     description: |-
                         Override values template for this environment. When set, this template
-                         completely replaces the component's default values template — there is
+                         completely replaces the component's default values template -- there is
                          no merge.
                 dependsOn:
                     type: array
@@ -5746,41 +5422,18 @@ components:
             description: DeleteComponentOverrideResponse is empty on success.
         admiral.api.component.v1.DeleteComponentRequest:
             type: object
-            allOf:
-                - properties:
-                    application:
-                        type: string
-                        title: application
-                        description: |-
-                            Required when using name-based lookup. Identifies the parent application
-                             by UUID or DNS-label name. Ignored when using ID-based lookup.
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: |-
-                                Unique identifier of the component to delete (UUID).
-                                 Fails if other components depend on this component (via depends_on
-                                 or output references in values_template).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the component (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                componentId:
+                    type: string
+                    title: component_id
+                    format: uuid
+                    description: |-
+                        Unique identifier of the component to delete (UUID).
+                         Fails if other components depend on this component (via depends_on
+                         or output references in values_template).
             title: DeleteComponentRequest
             additionalProperties: false
-            description: DeleteComponentRequest identifies a component to delete by ID or name.
+            description: DeleteComponentRequest identifies a component to delete.
         admiral.api.component.v1.DeleteComponentResponse:
             type: object
             title: DeleteComponentResponse
@@ -5816,38 +5469,15 @@ components:
             description: GetComponentOverrideResponse contains the override record.
         admiral.api.component.v1.GetComponentRequest:
             type: object
-            allOf:
-                - properties:
-                    application:
-                        type: string
-                        title: application
-                        description: |-
-                            Required when using name-based lookup. Identifies the parent application
-                             by UUID or DNS-label name. Ignored when using ID-based lookup.
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: Unique identifier of the component (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the component (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                componentId:
+                    type: string
+                    title: component_id
+                    format: uuid
+                    description: Unique identifier of the component (UUID).
             title: GetComponentRequest
             additionalProperties: false
-            description: GetComponentRequest identifies a component to retrieve by ID or name.
+            description: GetComponentRequest identifies a component to retrieve.
         admiral.api.component.v1.GetComponentResponse:
             type: object
             properties:
@@ -5907,12 +5537,12 @@ components:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `application_id` — scope to an application (required for meaningful
+                           - `application_id` -- scope to an application (required for meaningful
                              results since components always belong to an application).
-                           - `environment_id` — when present, triggers the resolved view with
+                           - `environment_id` -- when present, triggers the resolved view with
                              environment overrides applied to each component.
-                           - `category` — filter by component category (INFRASTRUCTURE, WORKLOAD).
-                           - `name` — filter by component name.
+                           - `category` -- filter by component category (INFRASTRUCTURE, WORKLOAD).
+                           - `name` -- filter by component name.
                 pageSize:
                     type: integer
                     title: page_size
@@ -6024,48 +5654,25 @@ components:
             description: SetComponentOverrideResponse contains the override record.
         admiral.api.component.v1.UpdateComponentRequest:
             type: object
-            allOf:
-                - properties:
-                    component:
-                        title: component
-                        description: |-
-                            The component with updated fields. Only fields specified in
-                             `update_mask` are updated.
-                        $ref: '#/components/schemas/admiral.api.component.v1.Component'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `source_id`, `version`,
-                             `values_template`, `depends_on`, `outputs`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                    application:
-                        type: string
-                        title: application
-                        description: |-
-                            Required when using name-based lookup. Identifies the parent application
-                             by UUID or DNS-label name. Ignored when using ID-based lookup.
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: Unique identifier of the component to update (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the component (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                component:
+                    title: component
+                    description: |-
+                        The component with updated fields. Only fields specified in
+                         `update_mask` are updated.
+                    $ref: '#/components/schemas/admiral.api.component.v1.Component'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `source_id`, `version`,
+                         `values_template`, `depends_on`, `outputs`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                componentId:
+                    type: string
+                    title: component_id
+                    format: uuid
+                    description: Unique identifier of the component to update (UUID).
             title: UpdateComponentRequest
             required:
                 - component
@@ -6392,8 +5999,23 @@ components:
                 Connection represents stored credentials for accessing an external system.
                  Connections are tenant-scoped and referenced by sources when fetching artifacts.
 
-                 Sensitive fields within auth_config are write-only — they are accepted on
+                 Sensitive fields within auth_config are write-only -- they are accepted on
                  create and update but never returned in API responses.
+            example:
+                id: "b8c9d0e1-2345-6fab-cdef-0123456789ab"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "ecr-prod"
+                description: "Read-only access to production ECR registry for container image pulls."
+                type: "CONNECTION_TYPE_DOCKER_REGISTRY"
+                status: "CONNECTION_STATUS_ACTIVE"
+                labels:
+                    cloud: "aws"
+                    team: "platform"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-07-20T14:00:00Z"
+                updatedAt: "2025-10-15T10:30:00Z"
+                lastTestedAt: "2025-11-01T08:00:00Z"
         admiral.api.connection.v1.Connection.LabelsEntry:
             type: object
             properties:
@@ -6584,32 +6206,17 @@ components:
             description: CreateConnectionResponse contains the newly created connection.
         admiral.api.connection.v1.DeleteConnectionRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: |-
-                            The unique identifier of the connection to delete (UUID).
-                             Fails if any sources still reference this connection.
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the connection (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                connectionId:
+                    type: string
+                    title: connection_id
+                    format: uuid
+                    description: |-
+                        The unique identifier of the connection to delete (UUID).
+                         Fails if any sources still reference this connection.
             title: DeleteConnectionRequest
             additionalProperties: false
-            description: DeleteConnectionRequest identifies a connection to delete by ID or name.
+            description: DeleteConnectionRequest identifies a connection to delete.
         admiral.api.connection.v1.DeleteConnectionResponse:
             type: object
             title: DeleteConnectionResponse
@@ -6662,30 +6269,15 @@ components:
                  GCPFederationConfig (Workload Identity) instead.
         admiral.api.connection.v1.GetConnectionRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: The unique identifier of the connection (UUID).
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the connection (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                connectionId:
+                    type: string
+                    title: connection_id
+                    format: uuid
+                    description: The unique identifier of the connection (UUID).
             title: GetConnectionRequest
             additionalProperties: false
-            description: GetConnectionRequest identifies a connection to retrieve by ID or name.
+            description: GetConnectionRequest identifies a connection to retrieve.
         admiral.api.connection.v1.GetConnectionResponse:
             type: object
             properties:
@@ -6719,7 +6311,7 @@ components:
             additionalProperties: false
             description: |-
                 GitHubAppAuth holds GitHub App credentials for Git operations.
-                 Preferred over personal tokens for organizations — provides granular
+                 Preferred over personal tokens for organizations -- provides granular
                  repository permissions and a better audit trail.
         admiral.api.connection.v1.GitSSHAuth:
             type: object
@@ -6775,7 +6367,20 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by connection name.
+                           - `type` -- filter by connection type (GIT_TOKEN, HELM_HTTP, etc.).
+                           - `status` -- filter by connection status (ACTIVE, ERROR, UNTESTED).
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['type'] = 'GIT_TOKEN' AND field['status'] = 'ACTIVE'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -6839,44 +6444,27 @@ components:
             description: TestConnectionResponse contains the result of the connectivity test.
         admiral.api.connection.v1.UpdateConnectionRequest:
             type: object
-            allOf:
-                - properties:
-                    connection:
-                        title: connection
-                        description: |-
-                            The connection with updated fields.
-                             Only fields specified in `update_mask` are updated.
+            properties:
+                connection:
+                    title: connection
+                    description: |-
+                        The connection with updated fields.
+                         Only fields specified in `update_mask` are updated.
 
-                             When updating auth_config, the entire auth config is replaced.
-                             Omitting auth_config from the update_mask leaves credentials unchanged.
-                        $ref: '#/components/schemas/admiral.api.connection.v1.Connection'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `auth_config`, `labels`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the connection (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the connection (DNS label).
-                      title: name
-                      required:
-                        - name
+                         When updating auth_config, the entire auth config is replaced.
+                         Omitting auth_config from the update_mask leaves credentials unchanged.
+                    $ref: '#/components/schemas/admiral.api.connection.v1.Connection'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `auth_config`, `labels`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                connectionId:
+                    type: string
+                    title: connection_id
+                    format: uuid
+                    description: The unique identifier of the connection (UUID).
             title: UpdateConnectionRequest
             required:
                 - connection
@@ -7024,6 +6612,18 @@ components:
                  environment. Each deployment produces one Revision per component. The
                  deployment tracks the composite status across all revisions and provides
                  the audit trail for what was deployed, when, and by whom.
+            example:
+                id: "7e8f9a0b-1c2d-3e4f-5a6b-7c8d9e0f1a2b"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                applicationId: "a1b2c3d4-5678-9abc-def0-1234567890ab"
+                environmentId: "e5f6a7b8-9012-3cde-f456-789012345678"
+                status: "DEPLOYMENT_STATUS_SUCCEEDED"
+                version: "42"
+                description: "Deploy v2.4.1 with updated ingress rules"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-11-20T14:00:00Z"
+                updatedAt: "2025-11-20T14:12:00Z"
+                completedAt: "2025-11-20T14:12:00Z"
         admiral.api.deployment.v1.DeploymentStatus:
             type: string
             title: DeploymentStatus
@@ -7106,10 +6706,10 @@ components:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `application_id` — deployments for a specific application.
-                           - `environment_id` — deployments to a specific environment.
-                           - `status` — filter by deployment status.
-                           - `trigger_type` — filter by trigger type (MANUAL, CI, DESTROY).
+                           - `application_id` -- deployments for a specific application.
+                           - `environment_id` -- deployments to a specific environment.
+                           - `status` -- filter by deployment status.
+                           - `trigger_type` -- filter by trigger type (MANUAL, CI, DESTROY).
                 pageSize:
                     type: integer
                     title: page_size
@@ -7249,7 +6849,7 @@ components:
                     type: string
                     title: resolved_values
                     description: |-
-                        The resolved values template snapshot — the values_template with all
+                        The resolved values template snapshot -- the values_template with all
                          variable references and component output references fully resolved.
                          Stored for audit: shows exactly what inputs were used. Sensitive
                          variable values are masked in API responses.
@@ -7268,7 +6868,7 @@ components:
                     title: blocked_by
                     description: |-
                         Component IDs that are blocking this revision. Only populated when
-                         status is BLOCKED — indicates which upstream components failed.
+                         status is BLOCKED -- indicates which upstream components failed.
                 artifactChecksum:
                     type: string
                     title: artifact_checksum
@@ -7448,7 +7048,7 @@ components:
                     runtimeType:
                         title: runtime_type
                         description: |-
-                            The kind of runtime this environment targets. Optional — can be assigned
+                            The kind of runtime this environment targets. Optional -- can be assigned
                              later via UpdateEnvironment.
                         $ref: '#/components/schemas/admiral.api.environment.v1.RuntimeType'
                     labels:
@@ -7499,38 +7099,15 @@ components:
             description: CreateEnvironmentResponse contains the newly created environment.
         admiral.api.environment.v1.DeleteEnvironmentRequest:
             type: object
-            allOf:
-                - properties:
-                    application:
-                        type: string
-                        title: application
-                        description: |-
-                            Required when using name-based lookup. Identifies the parent application
-                             by UUID or DNS-label name. Ignored when using ID-based lookup.
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the environment to delete (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the environment (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                environmentId:
+                    type: string
+                    title: environment_id
+                    format: uuid
+                    description: The unique identifier of the environment to delete (UUID).
             title: DeleteEnvironmentRequest
             additionalProperties: false
-            description: DeleteEnvironmentRequest identifies an environment to delete by ID or name.
+            description: DeleteEnvironmentRequest identifies an environment to delete.
         admiral.api.environment.v1.DeleteEnvironmentResponse:
             type: object
             title: DeleteEnvironmentResponse
@@ -7571,7 +7148,7 @@ components:
                     runtimeType:
                         title: runtime_type
                         description: |-
-                            The kind of runtime this environment targets. Optional — can be assigned
+                            The kind of runtime this environment targets. Optional -- can be assigned
                              after creation.
                         $ref: '#/components/schemas/admiral.api.environment.v1.RuntimeType'
                     labels:
@@ -7599,7 +7176,7 @@ components:
                              deployed. Server-derived by comparing current resolved config (variables,
                              component settings, overrides, source versions) against the last
                              successful deployment's snapshot. False if no successful deployment
-                             exists yet (a fresh environment with no deployments returns false —
+                             exists yet (a fresh environment with no deployments returns false --
                              use `last_deployed_at` to distinguish "clean" from "never deployed").
                     lastDeployedAt:
                         title: last_deployed_at
@@ -7637,6 +7214,26 @@ components:
             description: |-
                 Environment represents a named deployment target for an application. Each
                  environment binds an application to a runtime where its workloads are deployed.
+            example:
+                id: "e5f6a7b8-9012-3cde-f456-789012345678"
+                applicationId: "a1b2c3d4-5678-9abc-def0-1234567890ab"
+                name: "staging"
+                description: "Shared staging environment for QA validation before production promotion."
+                runtimeType: "RUNTIME_TYPE_KUBERNETES"
+                labels:
+                    region: "us-east-1"
+                    tier: "staging"
+                infrastructure:
+                    runnerId: "b2c3d4e5-6789-0abc-def1-234567890abc"
+                kubernetes:
+                    clusterId: "c3d4e5f6-7890-1abc-def0-abcdef012345"
+                    namespace: "inventory-staging"
+                hasPendingChanges: true
+                lastDeployedAt: "2025-11-01T09:15:00Z"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-09-15T11:00:00Z"
+                updatedAt: "2025-11-02T14:30:00Z"
         admiral.api.environment.v1.Environment.LabelsEntry:
             type: object
             properties:
@@ -7650,38 +7247,15 @@ components:
             additionalProperties: false
         admiral.api.environment.v1.GetEnvironmentRequest:
             type: object
-            allOf:
-                - properties:
-                    application:
-                        type: string
-                        title: application
-                        description: |-
-                            Required when using name-based lookup. Identifies the parent application
-                             by UUID or DNS-label name. Ignored when using ID-based lookup.
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the environment (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the environment (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                environmentId:
+                    type: string
+                    title: environment_id
+                    format: uuid
+                    description: The unique identifier of the environment (UUID).
             title: GetEnvironmentRequest
             additionalProperties: false
-            description: GetEnvironmentRequest identifies an environment to retrieve by ID or name.
+            description: GetEnvironmentRequest identifies an environment to retrieve.
         admiral.api.environment.v1.GetEnvironmentResponse:
             type: object
             properties:
@@ -7733,7 +7307,20 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `application_id` -- filter by parent application (UUID).
+                           - `name` -- filter by environment name.
+                           - `runtime_type` -- filter by runtime type (KUBERNETES).
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['application_id'] = '<uuid>' AND field['name'] = 'prod'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -7773,48 +7360,25 @@ components:
             description: RuntimeType identifies the kind of runtime an environment targets.
         admiral.api.environment.v1.UpdateEnvironmentRequest:
             type: object
-            allOf:
-                - properties:
-                    environment:
-                        title: environment
-                        description: |-
-                            The environment with updated fields.
-                             Only fields specified in `update_mask` are updated.
-                        $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `runtime_type`, `kubernetes`,
-                             `labels`, `infrastructure`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                    application:
-                        type: string
-                        title: application
-                        description: |-
-                            Required when using name-based lookup. Identifies the parent application
-                             by UUID or DNS-label name. Ignored when using ID-based lookup.
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the environment (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the environment (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                environment:
+                    title: environment
+                    description: |-
+                        The environment with updated fields.
+                         Only fields specified in `update_mask` are updated.
+                    $ref: '#/components/schemas/admiral.api.environment.v1.Environment'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `runtime_type`, `kubernetes`,
+                         `labels`, `infrastructure`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                environmentId:
+                    type: string
+                    title: environment_id
+                    format: uuid
+                    description: The unique identifier of the environment (UUID).
             title: UpdateEnvironmentRequest
             required:
                 - environment
@@ -7871,14 +7435,14 @@ components:
             additionalProperties: false
             description: |-
                 ClaimJobRequest is sent by the runner to poll for available work.
-                 The runner is identified by the AGT's binding — no runner_id is required.
+                 The runner is identified by the AGT's binding -- no runner_id is required.
         admiral.api.runner.v1.ClaimJobResponse:
             type: object
             properties:
                 job:
                     title: job
                     description: |-
-                        The job to execute. Absent if no work is available — the runner should
+                        The job to execute. Absent if no work is available -- the runner should
                          wait and poll again after its configured interval.
                     $ref: '#/components/schemas/admiral.api.runner.v1.Job'
             title: ClaimJobResponse
@@ -7997,32 +7561,17 @@ components:
             description: CreateRunnerTokenResponse contains the newly created AGT.
         admiral.api.runner.v1.DeleteRunnerRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: |-
-                            The unique identifier of the runner to delete (UUID).
-                             All associated agent tokens will be revoked.
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the runner (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                runnerId:
+                    type: string
+                    title: runner_id
+                    format: uuid
+                    description: |-
+                        The unique identifier of the runner to delete (UUID).
+                         All associated agent tokens will be revoked.
             title: DeleteRunnerRequest
             additionalProperties: false
-            description: DeleteRunnerRequest identifies a runner to delete by ID or name.
+            description: DeleteRunnerRequest identifies a runner to delete.
         admiral.api.runner.v1.DeleteRunnerResponse:
             type: object
             title: DeleteRunnerResponse
@@ -8051,30 +7600,15 @@ components:
             description: GetJobBundleResponse contains the rendered artifacts for execution.
         admiral.api.runner.v1.GetRunnerRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: The unique identifier of the runner (UUID).
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the runner (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                runnerId:
+                    type: string
+                    title: runner_id
+                    format: uuid
+                    description: The unique identifier of the runner (UUID).
             title: GetRunnerRequest
             additionalProperties: false
-            description: GetRunnerRequest identifies a runner to retrieve by ID or name.
+            description: GetRunnerRequest identifies a runner to retrieve.
         admiral.api.runner.v1.GetRunnerResponse:
             type: object
             properties:
@@ -8161,14 +7695,14 @@ components:
                          instances sharing the same AGT. The server uses this to track heartbeats
                          per instance and aggregate capacity metrics across all instances of the
                          same runner. A new instance_id is generated each time the runner process
-                         starts — it is not persisted across restarts.
+                         starts -- it is not persisted across restarts.
             title: HeartbeatRequest
             required:
                 - status
             additionalProperties: false
             description: |-
                 HeartbeatRequest contains the runner's alive signal and current capacity.
-                 The runner is identified by the AGT's binding — no runner_id is required.
+                 The runner is identified by the AGT's binding -- no runner_id is required.
         admiral.api.runner.v1.HeartbeatResponse:
             type: object
             properties:
@@ -8380,12 +7914,14 @@ components:
                     title: filter
                     maxLength: 1024
                     description: |-
-                        Filter expression using the PEG filter DSL.
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
 
-                         Common filter fields:
-                           - `status` — filter by job status.
-                           - `job_type` — filter by job type (PLAN, APPLY, etc.).
-                           - `deployment_id` — jobs for a specific deployment.
+                         Filterable fields:
+                           - `status` -- filter by job status (PENDING, ASSIGNED, RUNNING, etc.).
+                           - `job_type` -- filter by job type (PLAN, APPLY, DESTROY_PLAN, DESTROY_APPLY).
+                           - `deployment_id` -- jobs for a specific deployment (UUID).
+
+                         Example: `field['status'] = 'RUNNING'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -8430,7 +7966,14 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `name` -- filter by token name.
+                           - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                         Example: `field['status'] = 'ACTIVE'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -8468,7 +8011,20 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by runner name.
+                           - `kind` -- filter by runner kind (TERRAFORM, WORKFLOW).
+                           - `health_status` -- filter by health status.
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['kind'] = 'TERRAFORM' AND field['health_status'] = 'HEALTHY'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -8623,6 +8179,20 @@ components:
                 Runner represents a registered infrastructure execution runner within a
                  tenant. Runners claim and execute Terraform operations (plan, apply, destroy)
                  dispatched by the deployment engine.
+            example:
+                id: "b2c3d4e5-6789-0abc-def1-234567890abc"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "prod-terraform-runner"
+                description: "Terraform runner for production AWS infrastructure provisioning."
+                kind: "RUNNER_KIND_TERRAFORM"
+                labels:
+                    cloud: "aws"
+                    team: "platform"
+                healthStatus: "RUNNER_HEALTH_STATUS_HEALTHY"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-07-15T10:00:00Z"
+                updatedAt: "2025-11-18T08:30:00Z"
         admiral.api.runner.v1.Runner.LabelsEntry:
             type: object
             properties:
@@ -8711,7 +8281,7 @@ components:
                  reported via Heartbeat. This message is used in both the push payload
                  (HeartbeatRequest) and the read response (GetRunnerStatusResponse).
 
-                 Server-derived fields (health_status) are NOT included here — they live
+                 Server-derived fields (health_status) are NOT included here -- they live
                  on the Runner record and are returned alongside this message in
                  GetRunnerStatusResponse.
         admiral.api.runner.v1.RunnerStatus.ToolVersionsEntry:
@@ -8727,41 +8297,24 @@ components:
             additionalProperties: false
         admiral.api.runner.v1.UpdateRunnerRequest:
             type: object
-            allOf:
-                - properties:
-                    runner:
-                        title: runner
-                        description: |-
-                            The runner with updated fields. The `id` field is required.
-                             Only fields specified in `update_mask` are updated.
-                        $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `labels`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: The unique identifier of the runner (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the runner (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                runner:
+                    title: runner
+                    description: |-
+                        The runner with updated fields. The `id` field is required.
+                         Only fields specified in `update_mask` are updated.
+                    $ref: '#/components/schemas/admiral.api.runner.v1.Runner'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `labels`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                runnerId:
+                    type: string
+                    title: runner_id
+                    format: uuid
+                    description: The unique identifier of the runner (UUID).
             title: UpdateRunnerRequest
             required:
                 - runner
@@ -8929,32 +8482,17 @@ components:
             description: CreateSourceResponse contains the newly created source.
         admiral.api.source.v1.DeleteSourceRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: |-
-                            Unique identifier of the source to delete (UUID).
-                             Fails if any application components still reference this source.
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the source (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                sourceId:
+                    type: string
+                    title: source_id
+                    format: uuid
+                    description: |-
+                        Unique identifier of the source to delete (UUID).
+                         Fails if any application components still reference this source.
             title: DeleteSourceRequest
             additionalProperties: false
-            description: DeleteSourceRequest identifies a source to delete by ID or name.
+            description: DeleteSourceRequest identifies a source to delete.
         admiral.api.source.v1.DeleteSourceResponse:
             type: object
             title: DeleteSourceResponse
@@ -8996,7 +8534,7 @@ components:
                     title: resolved_version
                     description: |-
                         The version that was actually inspected (resolved from the requested
-                         version — e.g., a branch name resolved to a commit SHA).
+                         version -- e.g., a branch name resolved to a commit SHA).
             title: GetSourceInputsResponse
             additionalProperties: false
             description: |-
@@ -9030,7 +8568,7 @@ components:
                     title: outputs
                     description: |-
                         Discovered output definitions. Only populated for Terraform module sources.
-                         Workload sources (Helm, Kustomize, manifests) do not have formal outputs —
+                         Workload sources (Helm, Kustomize, manifests) do not have formal outputs --
                          workload component outputs are user-declared at the component level.
                 resolvedVersion:
                     type: string
@@ -9043,30 +8581,15 @@ components:
                  the requested version.
         admiral.api.source.v1.GetSourceRequest:
             type: object
-            oneOf:
-                - properties:
-                    id:
-                        type: string
-                        title: id
-                        format: uuid
-                        description: Unique identifier of the source (UUID).
-                  title: id
-                  required:
-                    - id
-                - properties:
-                    name:
-                        type: string
-                        title: name
-                        maxLength: 63
-                        minLength: 1
-                        pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                        description: The human-readable name of the source (DNS label).
-                  title: name
-                  required:
-                    - name
+            properties:
+                sourceId:
+                    type: string
+                    title: source_id
+                    format: uuid
+                    description: Unique identifier of the source (UUID).
             title: GetSourceRequest
             additionalProperties: false
-            description: GetSourceRequest identifies a source to retrieve by ID or name.
+            description: GetSourceRequest identifies a source to retrieve.
         admiral.api.source.v1.GetSourceResponse:
             type: object
             properties:
@@ -9187,7 +8710,20 @@ components:
                     type: string
                     title: filter
                     maxLength: 1024
-                    description: Filter expression using the PEG filter DSL.
+                    description: |-
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                         (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                         STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                         Filterable fields:
+                           - `name` -- filter by source name.
+                           - `type` -- filter by source type (TERRAFORM_REGISTRY, HELM_OCI, etc.).
+                           - `catalog` -- filter by catalog status (true/false).
+                           - `labels.key` -- filter by label key.
+
+                         Example: `field['type'] = 'TERRAFORM_REGISTRY' AND field['catalog'] = 'true'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -9295,7 +8831,7 @@ components:
                         format: uuid
                         description: |-
                             Reference to the connection providing credentials for this source (UUID).
-                             Optional — null for public sources that require no authentication
+                             Optional -- null for public sources that require no authentication
                              (e.g., public Terraform registry, public Helm repos).
                     catalog:
                         type: boolean
@@ -9407,12 +8943,27 @@ components:
             title: Source
             additionalProperties: false
             description: |-
-                Source represents a fetchable artifact definition — a pointer to an external
+                Source represents a fetchable artifact definition -- a pointer to an external
                  module, chart, or manifest set that Admiral can fetch, inspect, and render
                  into deployment snapshots.
 
                  Sources are tenant-scoped and optionally marked as catalog entries (curated,
                  pre-approved artifacts managed by platform engineers).
+            example:
+                id: "f6a7b8c9-0123-4def-5678-901234567890"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "nginx-ingress"
+                description: "NGINX Ingress Controller Helm chart from the official repository."
+                type: "SOURCE_TYPE_HELM_REPOSITORY"
+                url: "https://kubernetes.github.io/ingress-nginx"
+                catalog: true
+                labels:
+                    category: "networking"
+                    team: "platform"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-08-01T12:00:00Z"
+                updatedAt: "2025-10-20T09:00:00Z"
         admiral.api.source.v1.Source.LabelsEntry:
             type: object
             properties:
@@ -9499,7 +9050,7 @@ components:
             description: |-
                 SourceOutput represents a value produced by the source after apply. Only
                  meaningful for Terraform modules, which declare formal output blocks.
-                 Workload sources (Helm, Kustomize, manifests) do not have formal outputs —
+                 Workload sources (Helm, Kustomize, manifests) do not have formal outputs --
                  workload component outputs are user-declared at the component level, not
                  discovered from the source.
         admiral.api.source.v1.SourceType:
@@ -9609,42 +9160,25 @@ components:
                  registry sources.
         admiral.api.source.v1.UpdateSourceRequest:
             type: object
-            allOf:
-                - properties:
-                    source:
-                        title: source
-                        description: |-
-                            The source with updated fields. Only fields specified in `update_mask`
-                             are updated.
-                        $ref: '#/components/schemas/admiral.api.source.v1.Source'
-                    updateMask:
-                        title: update_mask
-                        description: |-
-                            The set of fields to update. If unset, all mutable fields are updated.
-                             Supported fields: `name`, `description`, `url`, `connection_id`, `catalog`,
-                             `source_config`, `labels`.
-                        $ref: '#/components/schemas/google.protobuf.FieldMask'
-                - oneOf:
-                    - properties:
-                        id:
-                            type: string
-                            title: id
-                            format: uuid
-                            description: Unique identifier of the source to update (UUID).
-                      title: id
-                      required:
-                        - id
-                    - properties:
-                        name:
-                            type: string
-                            title: name
-                            maxLength: 63
-                            minLength: 1
-                            pattern: ^[a-z]([a-z0-9-]{0,61}[a-z0-9])?$
-                            description: The human-readable name of the source (DNS label).
-                      title: name
-                      required:
-                        - name
+            properties:
+                source:
+                    title: source
+                    description: |-
+                        The source with updated fields. Only fields specified in `update_mask`
+                         are updated.
+                    $ref: '#/components/schemas/admiral.api.source.v1.Source'
+                updateMask:
+                    title: update_mask
+                    description: |-
+                        The set of fields to update. If unset, all mutable fields are updated.
+                         Supported fields: `name`, `description`, `url`, `connection_id`, `catalog`,
+                         `source_config`, `labels`.
+                    $ref: '#/components/schemas/google.protobuf.FieldMask'
+                sourceId:
+                    type: string
+                    title: source_id
+                    format: uuid
+                    description: Unique identifier of the source to update (UUID).
             title: UpdateSourceRequest
             required:
                 - source
@@ -9669,7 +9203,7 @@ components:
                     format: uuid
                     description: |-
                         The unique identifier of the state record to delete (UUID).
-                         Fails if the state is currently locked — force-unlock first.
+                         Fails if the state is currently locked -- force-unlock first.
             title: DeleteStateRequest
             additionalProperties: false
             description: DeleteStateRequest identifies a state record to permanently delete.
@@ -9746,7 +9280,7 @@ components:
                     format: byte
                     description: |-
                         The raw Terraform state data (JSON-encoded). Empty if no state exists
-                         yet (fresh init — Terraform handles this gracefully).
+                         yet (fresh init -- Terraform handles this gracefully).
             title: GetStateResponse
             additionalProperties: false
             description: GetStateResponse contains the current state data.
@@ -9784,7 +9318,7 @@ components:
             additionalProperties: false
             description: |-
                 GetStateVersionResponse contains the full state data at a historical serial.
-                 Returns both the version metadata and the raw data separately — the
+                 Returns both the version metadata and the raw data separately -- the
                  StateVersion message intentionally omits data to keep ListStateVersions
                  lightweight.
         admiral.api.state.v1.ListStateVersionsRequest:
@@ -9836,9 +9370,9 @@ components:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `component_id` — states for a specific component (UUID).
-                           - `environment_id` — states for a specific environment (UUID).
-                           - `application_id` — states for all components belonging to an
+                           - `component_id` -- states for a specific component (UUID).
+                           - `environment_id` -- states for a specific environment (UUID).
+                           - `application_id` -- states for all components belonging to an
                              application (UUID). The server resolves the application's components
                              and returns states for all of them. Can be combined with
                              `environment_id`.
@@ -9994,7 +9528,7 @@ components:
                     type: string
                     title: lineage
                     description: |-
-                        Terraform state lineage — a UUID generated on first init. All
+                        Terraform state lineage -- a UUID generated on first init. All
                          subsequent writes must match this lineage to prevent cross-state
                          contamination.
                 lock:
@@ -10039,7 +9573,7 @@ components:
                     type: string
                     title: who
                     description: |-
-                        Identifier of who holds the lock. Populated by Terraform — typically
+                        Identifier of who holds the lock. Populated by Terraform -- typically
                          the format "username@hostname" (e.g., "deploy@prod-runner-01").
                          This field is informational only; its format is controlled by Terraform.
                 version:
@@ -10149,7 +9683,7 @@ components:
                     format: uuid
                     description: |-
                         The job that produced this state version (UUID). Absent for state that
-                         was written outside the normal job lifecycle — for example, state
+                         was written outside the normal job lifecycle -- for example, state
                          uploaded directly via an admin migration tool, or state that existed
                          before Admiral began managing the component.
                 createdAt:
@@ -10207,7 +9741,7 @@ components:
                     description: |-
                         The scopes to grant this token. Must be valid scopes allowed for PATs.
                          The server enforces that issued scopes are a subset of the caller's own
-                         scopes — a token cannot grant more access than the user holds.
+                         scopes -- a token cannot grant more access than the user holds.
                 expiresAt:
                     title: expires_at
                     description: |-
@@ -10279,8 +9813,13 @@ components:
                     title: filter
                     maxLength: 1024
                     description: |-
-                        Filter expression using the PEG filter DSL
-                         (e.g., `status == "active"` or `name == "ci-*"`).
+                        Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                         Filterable fields:
+                           - `name` -- filter by token name.
+                           - `status` -- filter by token status (ACTIVE, REVOKED, EXPIRED).
+
+                         Example: `field['status'] = 'ACTIVE'`
                 pageSize:
                     type: integer
                     title: page_size
@@ -10384,6 +9923,16 @@ components:
             title: User
             additionalProperties: false
             description: User represents the authenticated user's profile information.
+            example:
+                id: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                email: "alex.chen@example.com"
+                displayName: "Alex Chen"
+                givenName: "Alex"
+                familyName: "Chen"
+                avatarUrl: "https://avatars.example.com/alex-chen.jpg"
+                createdAt: "2025-06-01T09:00:00Z"
+                updatedAt: "2025-11-15T11:00:00Z"
         admiral.api.variable.v1.CreateVariableRequest:
             type: object
             properties:
@@ -10499,13 +10048,13 @@ components:
                         Filter expression using the PEG filter DSL.
 
                          Common filter fields:
-                           - `application_id` — scope to an application (triggers merge with
+                           - `application_id` -- scope to an application (triggers merge with
                              app-level variables alongside global variables).
-                           - `environment_id` — scope to an environment (requires application_id;
+                           - `environment_id` -- scope to an environment (requires application_id;
                              triggers merge with environment-level variables).
-                           - `sensitive` — filter by sensitivity.
-                           - `type` — filter by variable type.
-                           - `key` — filter by variable key (supports prefix matching).
+                           - `sensitive` -- filter by sensitivity.
+                           - `type` -- filter by variable type.
+                           - `key` -- filter by variable key (supports prefix matching).
                 pageSize:
                     type: integer
                     title: page_size
@@ -10610,7 +10159,7 @@ components:
                     type: string
                     title: value
                     description: |-
-                        The variable value. Always stored as a string — use `type` to indicate
+                        The variable value. Always stored as a string -- use `type` to indicate
                          how to interpret it. Masked or empty for sensitive variables in responses.
 
                          For COMPLEX type, this is a JSON-encoded string (e.g., '["a","b"]' or
@@ -10681,6 +10230,21 @@ components:
                  outputs which are system-managed values produced by apply (e.g., Terraform
                  outputs). Component outputs are resolved at render time and referenced via
                  a separate namespace ({{ .component.<name>.<output> }}).
+            example:
+                id: "1a2b3c4d-5e6f-7890-abcd-ef0123456789"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                key: "DATABASE_URL"
+                value: "postgresql://db.internal:5432/inventory"
+                sensitive: false
+                type: "VARIABLE_TYPE_STRING"
+                scope: "VARIABLE_SCOPE_ENVIRONMENT"
+                description: "Primary database connection string for the inventory service."
+                applicationId: "a1b2c3d4-5678-9abc-def0-1234567890ab"
+                environmentId: "e5f6a7b8-9012-3cde-f456-789012345678"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                updatedBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdAt: "2025-09-16T12:00:00Z"
+                updatedAt: "2025-10-30T15:00:00Z"
         admiral.api.variable.v1.VariableType:
             type: string
             title: VariableType
@@ -10774,6 +10338,22 @@ components:
                    - PATs:         UserAPI    (/v1/user/tokens)
                    - Cluster AGTs: ClusterAPI (/v1/clusters/{id}/tokens)
                    - Runner AGTs:  RunnerAPI  (/v1/runners/{id}/tokens)
+            example:
+                id: "9f8e7d6c-5b4a-3210-fedc-ba0987654321"
+                tenantId: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+                name: "ci-deploy-key"
+                tokenType: "TOKEN_TYPE_PAT"
+                scopes:
+                    - "deploy:write"
+                    - "app:read"
+                    - "env:read"
+                status: "ACCESS_TOKEN_STATUS_ACTIVE"
+                bindingType: "BINDING_TYPE_USER"
+                bindingId: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                createdBy: "d290f1ee-6c54-4b01-90e6-d701748f0851"
+                expiresAt: "2026-06-01T00:00:00Z"
+                lastUsedAt: "2025-11-20T14:30:00Z"
+                createdAt: "2025-09-01T10:00:00Z"
         admiral.common.v1.AccessTokenStatus:
             type: string
             title: AccessTokenStatus

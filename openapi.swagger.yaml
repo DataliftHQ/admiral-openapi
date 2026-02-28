@@ -20,24 +20,6 @@ consumes:
 produces:
     - application/json
 paths:
-    /healthz:
-        get:
-            summary: |-
-                Healthcheck verifies that the service is running and healthy.
-                Returns an empty response on success. Use this endpoint for load balancer
-                health checks and monitoring systems.
-            operationId: HealthcheckAPI_Healthcheck2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1HealthcheckResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            tags:
-                - HealthcheckAPI
     /v1/agent/revisions/{revisionId}/bundle:
         get:
             summary: |-
@@ -47,7 +29,7 @@ paths:
             description: |-
                 The bundle contains pre-rendered Kubernetes manifests (from Helm template,
                 kustomize build, or raw manifests) ready for server-side apply. The agent
-                does not need to render anything — it applies the bundle as-is.
+                does not need to render anything -- it applies the bundle as-is.
 
                 The cluster is identified by the agent token's binding. Returns
                 PERMISSION_DENIED if the revision's target cluster does not match the
@@ -115,7 +97,7 @@ paths:
                 The payload includes cluster-level metrics, per-workload status, and
                 Kubernetes events. Admiral splits this into three storage tiers on receipt.
             description: |-
-                The cluster is identified by the agent token — the server resolves the
+                The cluster is identified by the agent token -- the server resolves the
                 cluster from the AGT's binding. No cluster_id is required in the request.
 
                 This endpoint is agent-facing and restricted to agent tokens.
@@ -138,7 +120,7 @@ paths:
                     Admiral splits this into three storage tiers: current snapshot, time-series
                     metrics, and events.
 
-                    The cluster is identified by the agent token's binding — no cluster_id is
+                    The cluster is identified by the agent token's binding -- no cluster_id is
                     required. The server resolves the cluster from the AGT.
                   in: body
                   required: true
@@ -164,7 +146,18 @@ paths:
                         $ref: '#/definitions/rpcStatus'
             parameters:
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                    (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                    STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                    Filterable fields:
+                      - `name` -- filter by application name.
+                      - `labels.key` -- filter by label key.
+
+                    Example: `field['name'] = 'inventory-api' AND field['labels.team'] = 'logistics'`
                   in: query
                   required: false
                   type: string
@@ -203,82 +196,9 @@ paths:
                     $ref: '#/definitions/v1CreateApplicationRequest'
             tags:
                 - ApplicationAPI
-    /v1/applications/name/{name}:
+    /v1/applications/{applicationId}:
         get:
-            summary: GetApplication retrieves an application by ID or name.
-            description: 'Scope: `app:read`'
-            operationId: ApplicationAPI_GetApplication2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetApplicationResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the application (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - ApplicationAPI
-        delete:
-            summary: |-
-                DeleteApplication permanently deletes an application and all of its
-                associated environments. This action cannot be undone.
-            description: 'Scope: `app:write`'
-            operationId: ApplicationAPI_DeleteApplication2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteApplicationResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the application (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - ApplicationAPI
-        patch:
-            summary: |-
-                UpdateApplication updates an application's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `app:write`'
-            operationId: ApplicationAPI_UpdateApplication2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateApplicationResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the application (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/ApplicationAPIUpdateApplicationBody'
-            tags:
-                - ApplicationAPI
-    /v1/applications/{id}:
-        get:
-            summary: GetApplication retrieves an application by ID or name.
+            summary: GetApplication retrieves an application by ID.
             description: 'Scope: `app:read`'
             operationId: ApplicationAPI_GetApplication
             responses:
@@ -291,7 +211,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: applicationId
                   description: The unique identifier of the application (UUID).
                   in: path
                   required: true
@@ -314,7 +234,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: applicationId
                   description: The unique identifier of the application to delete (UUID).
                   in: path
                   required: true
@@ -337,7 +257,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: applicationId
                   description: The unique identifier of the application (UUID).
                   in: path
                   required: true
@@ -365,7 +285,19 @@ paths:
                         $ref: '#/definitions/rpcStatus'
             parameters:
                 - name: filter
-                  description: Filter expression using the PEG filter DSL
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                    (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                    STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                    Filterable fields:
+                      - `name` -- filter by cluster name.
+                      - `health_status` -- filter by health status.
+                      - `labels.key` -- filter by label key.
+
+                    Example: `field['health_status'] = 'HEALTHY' AND field['labels.region'] = 'us-east-1'`
                   in: query
                   required: false
                   type: string
@@ -388,7 +320,7 @@ paths:
                 generates an initial Agent Token (AGT) for the K8s agent. The cluster
                 starts in PENDING status until an agent registers against it.
             description: |-
-                The response includes a `plain_text_token` — the raw AGT secret shown
+                The response includes a `plain_text_token` -- the raw AGT secret shown
                 exactly once. Deploy this token to the K8s agent (e.g., via Helm values
                 or a Kubernetes Secret). The agent uses it to authenticate with
                 AgentAPI.RegisterAgent on first boot.
@@ -413,87 +345,9 @@ paths:
                     $ref: '#/definitions/v1CreateClusterRequest'
             tags:
                 - ClusterAPI
-    /v1/clusters/name/{name}:
+    /v1/clusters/{clusterId}:
         get:
-            summary: GetCluster retrieves a cluster by ID or name.
-            description: |-
-                Returns the Cluster record with its server-derived health_status. For
-                detailed telemetry (node counts, resource usage, workload summary), use
-                GetClusterStatus instead.
-
-                Scope: `cluster:read`
-            operationId: ClusterAPI_GetCluster2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetClusterResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the cluster (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - ClusterAPI
-        delete:
-            summary: |-
-                DeleteCluster permanently deletes a cluster record and revokes all
-                associated agent tokens. This action cannot be undone.
-            description: 'Scope: `cluster:write`'
-            operationId: ClusterAPI_DeleteCluster2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteClusterResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the cluster (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - ClusterAPI
-        patch:
-            summary: |-
-                UpdateCluster updates a cluster's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `cluster:write`'
-            operationId: ClusterAPI_UpdateCluster2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateClusterResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the cluster (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/ClusterAPIUpdateClusterBody'
-            tags:
-                - ClusterAPI
-    /v1/clusters/{id}:
-        get:
-            summary: GetCluster retrieves a cluster by ID or name.
+            summary: GetCluster retrieves a cluster by ID.
             description: |-
                 Returns the Cluster record with its server-derived health_status. For
                 detailed telemetry (node counts, resource usage, workload summary), use
@@ -511,7 +365,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: clusterId
                   description: The unique identifier of the cluster (UUID).
                   in: path
                   required: true
@@ -534,7 +388,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: clusterId
                   description: |-
                     The unique identifier of the cluster to delete (UUID).
                     All associated agent tokens will be revoked.
@@ -559,7 +413,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: clusterId
                   description: The unique identifier of the cluster (UUID).
                   in: path
                   required: true
@@ -624,7 +478,14 @@ paths:
                   required: true
                   type: string
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Filterable fields:
+                      - `name` -- filter by token name.
+                      - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                    Example: `field['status'] = 'ACTIVE'`
                   in: query
                   required: false
                   type: string
@@ -679,7 +540,7 @@ paths:
         get:
             summary: |-
                 GetClusterToken retrieves a single AGT by ID.
-                Returns metadata only — the token secret is never included.
+                Returns metadata only -- the token secret is never included.
             description: 'Scope: `cluster:read`'
             operationId: ClusterAPI_GetClusterToken
             responses:
@@ -760,7 +621,16 @@ paths:
                   required: true
                   type: string
                 - name: filter
-                  description: Filter expression using the PEG filter DSL
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Filterable fields:
+                      - `namespace` -- filter by Kubernetes namespace.
+                      - `kind` -- filter by workload kind (Deployment, StatefulSet, DaemonSet).
+                      - `name` -- filter by workload name.
+                      - `health_status` -- filter by workload health status.
+
+                    Example: `field['namespace'] = 'production' AND field['health_status'] = 'DEGRADED'`
                   in: query
                   required: false
                   type: string
@@ -838,12 +708,12 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                     Common filter fields:
-                      - `application_id` — scope to an application (required for meaningful
+                      - `application_id` -- scope to an application (required for meaningful
                         results since components always belong to an application).
-                      - `environment_id` — when present, triggers the resolved view with
+                      - `environment_id` -- when present, triggers the resolved view with
                         environment overrides applied to each component.
-                      - `category` — filter by component category (INFRASTRUCTURE, WORKLOAD).
-                      - `name` — filter by component name.
+                      - `category` -- filter by component category (INFRASTRUCTURE, WORKLOAD).
+                      - `name` -- filter by component name.
                   in: query
                   required: false
                   type: string
@@ -888,16 +758,11 @@ paths:
                     $ref: '#/definitions/v1CreateComponentRequest'
             tags:
                 - ComponentAPI
-    /v1/components/name/{name}:
+    /v1/components/{componentId}:
         get:
-            summary: GetComponent retrieves a component by ID or name.
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                to scope the name within a parent application. The `application` parameter
-                accepts either a UUID or a DNS-label name.
-
-                Scope: `app:read`
-            operationId: ComponentAPI_GetComponent2
+            summary: GetComponent retrieves a component by ID.
+            description: 'Scope: `app:read`'
+            operationId: ComponentAPI_GetComponent
             responses:
                 "200":
                     description: A successful response.
@@ -908,17 +773,10 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: name
-                  description: The human-readable name of the component (DNS label).
+                - name: componentId
+                  description: Unique identifier of the component (UUID).
                   in: path
                   required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
                   type: string
             tags:
                 - ComponentAPI
@@ -926,11 +784,11 @@ paths:
             summary: |-
                 DeleteComponent removes a component from an application. Fails if other
                 components depend on this component (via depends_on or output references
-                in values_template) — remove or update those dependencies first. Also
+                in values_template) -- remove or update those dependencies first. Also
                 removes all environment overrides for this component.
                 This action cannot be undone.
             description: 'Scope: `app:write`'
-            operationId: ComponentAPI_DeleteComponent2
+            operationId: ComponentAPI_DeleteComponent
             responses:
                 "200":
                     description: A successful response.
@@ -941,17 +799,13 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: name
-                  description: The human-readable name of the component (DNS label).
+                - name: componentId
+                  description: |-
+                    Unique identifier of the component to delete (UUID).
+                    Fails if other components depend on this component (via depends_on
+                    or output references in values_template).
                   in: path
                   required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
                   type: string
             tags:
                 - ComponentAPI
@@ -965,7 +819,7 @@ paths:
                 the rename if references exist.
 
                 Scope: `app:write`
-            operationId: ComponentAPI_UpdateComponent2
+            operationId: ComponentAPI_UpdateComponent
             responses:
                 "200":
                     description: A successful response.
@@ -976,8 +830,8 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: name
-                  description: The human-readable name of the component (DNS label).
+                - name: componentId
+                  description: Unique identifier of the component to update (UUID).
                   in: path
                   required: true
                   type: string
@@ -1054,7 +908,7 @@ paths:
                 For example, a "redis" component might use a Helm chart source in dev but
                 a Terraform ElastiCache module in prod.
 
-                This is an upsert — if an override already exists for this component +
+                This is an upsert -- if an override already exists for this component +
                 environment combination, it is replaced.
 
                 Scope: `env:write`
@@ -1084,109 +938,6 @@ paths:
                   required: true
                   schema:
                     $ref: '#/definitions/ComponentAPISetComponentOverrideBody'
-            tags:
-                - ComponentAPI
-    /v1/components/{id}:
-        get:
-            summary: GetComponent retrieves a component by ID or name.
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                to scope the name within a parent application. The `application` parameter
-                accepts either a UUID or a DNS-label name.
-
-                Scope: `app:read`
-            operationId: ComponentAPI_GetComponent
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetComponentResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: Unique identifier of the component (UUID).
-                  in: path
-                  required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
-                  type: string
-            tags:
-                - ComponentAPI
-        delete:
-            summary: |-
-                DeleteComponent removes a component from an application. Fails if other
-                components depend on this component (via depends_on or output references
-                in values_template) — remove or update those dependencies first. Also
-                removes all environment overrides for this component.
-                This action cannot be undone.
-            description: 'Scope: `app:write`'
-            operationId: ComponentAPI_DeleteComponent
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteComponentResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: |-
-                    Unique identifier of the component to delete (UUID).
-                    Fails if other components depend on this component (via depends_on
-                    or output references in values_template).
-                  in: path
-                  required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
-                  type: string
-            tags:
-                - ComponentAPI
-        patch:
-            summary: |-
-                UpdateComponent updates a component's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: |-
-                When renaming a component, the server validates that no other components
-                reference the old name in their values_template expressions and rejects
-                the rename if references exist.
-
-                Scope: `app:write`
-            operationId: ComponentAPI_UpdateComponent
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateComponentResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: Unique identifier of the component to update (UUID).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/ComponentAPIUpdateComponentBody'
             tags:
                 - ComponentAPI
     /v1/components/{id}/overrides:
@@ -1242,7 +993,20 @@ paths:
                         $ref: '#/definitions/rpcStatus'
             parameters:
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                    (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                    STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                    Filterable fields:
+                      - `name` -- filter by connection name.
+                      - `type` -- filter by connection type (GIT_TOKEN, HELM_HTTP, etc.).
+                      - `status` -- filter by connection status (ACTIVE, ERROR, UNTESTED).
+                      - `labels.key` -- filter by label key.
+
+                    Example: `field['type'] = 'GIT_TOKEN' AND field['status'] = 'ACTIVE'`
                   in: query
                   required: false
                   type: string
@@ -1262,7 +1026,7 @@ paths:
         post:
             summary: CreateConnection creates a new connection within the caller's tenant.
             description: |-
-                The connection type and auth config must match — for example, a GIT_TOKEN
+                The connection type and auth config must match -- for example, a GIT_TOKEN
                 connection requires a GitTokenAuth config. The server validates connectivity
                 on creation when possible and sets the initial status accordingly.
 
@@ -1286,92 +1050,9 @@ paths:
                     $ref: '#/definitions/v1CreateConnectionRequest'
             tags:
                 - ConnectionAPI
-    /v1/connections/name/{name}:
+    /v1/connections/{connectionId}:
         get:
-            summary: GetConnection retrieves a connection by ID or name.
-            description: |-
-                Returns connection metadata and status. Sensitive credential fields are
-                never included in the response.
-
-                Scope: `connection:read`
-            operationId: ConnectionAPI_GetConnection2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetConnectionResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the connection (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - ConnectionAPI
-        delete:
-            summary: |-
-                DeleteConnection permanently deletes a connection. Fails if any sources
-                still reference this connection — remove or reassign those sources first.
-                This action cannot be undone.
-            description: 'Scope: `connection:write`'
-            operationId: ConnectionAPI_DeleteConnection2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteConnectionResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the connection (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - ConnectionAPI
-        patch:
-            summary: |-
-                UpdateConnection updates a connection's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: |-
-                When updating auth_config, the entire auth config is replaced — partial
-                updates within the auth config oneof are not supported. Omitting auth_config
-                from the update_mask leaves credentials unchanged.
-
-                Scope: `connection:write`
-            operationId: ConnectionAPI_UpdateConnection2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateConnectionResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the connection (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/ConnectionAPIUpdateConnectionBody'
-            tags:
-                - ConnectionAPI
-    /v1/connections/{id}:
-        get:
-            summary: GetConnection retrieves a connection by ID or name.
+            summary: GetConnection retrieves a connection by ID.
             description: |-
                 Returns connection metadata and status. Sensitive credential fields are
                 never included in the response.
@@ -1388,7 +1069,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: connectionId
                   description: The unique identifier of the connection (UUID).
                   in: path
                   required: true
@@ -1398,7 +1079,7 @@ paths:
         delete:
             summary: |-
                 DeleteConnection permanently deletes a connection. Fails if any sources
-                still reference this connection — remove or reassign those sources first.
+                still reference this connection -- remove or reassign those sources first.
                 This action cannot be undone.
             description: 'Scope: `connection:write`'
             operationId: ConnectionAPI_DeleteConnection
@@ -1412,7 +1093,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: connectionId
                   description: |-
                     The unique identifier of the connection to delete (UUID).
                     Fails if any sources still reference this connection.
@@ -1426,7 +1107,7 @@ paths:
                 UpdateConnection updates a connection's mutable fields.
                 Use the `update_mask` to specify which fields to update.
             description: |-
-                When updating auth_config, the entire auth config is replaced — partial
+                When updating auth_config, the entire auth config is replaced -- partial
                 updates within the auth config oneof are not supported. Omitting auth_config
                 from the update_mask leaves credentials unchanged.
 
@@ -1442,7 +1123,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: connectionId
                   description: The unique identifier of the connection (UUID).
                   in: path
                   required: true
@@ -1512,10 +1193,10 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                     Common filter fields:
-                      - `application_id` — deployments for a specific application.
-                      - `environment_id` — deployments to a specific environment.
-                      - `status` — filter by deployment status.
-                      - `trigger_type` — filter by trigger type (MANUAL, CI, DESTROY).
+                      - `application_id` -- deployments for a specific application.
+                      - `environment_id` -- deployments to a specific environment.
+                      - `status` -- filter by deployment status.
+                      - `trigger_type` -- filter by trigger type (MANUAL, CI, DESTROY).
                   in: query
                   required: false
                   type: string
@@ -1660,7 +1341,7 @@ paths:
         post:
             summary: |-
                 CancelDeployment cancels an in-progress deployment. Revisions that are
-                already SUCCEEDED remain applied — cancellation only stops pending and
+                already SUCCEEDED remain applied -- cancellation only stops pending and
                 queued revisions from proceeding. The deployment status becomes CANCELLED.
             description: 'Scope: `deploy:write`'
             operationId: DeploymentAPI_CancelDeployment
@@ -1737,7 +1418,20 @@ paths:
                         $ref: '#/definitions/rpcStatus'
             parameters:
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                    (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                    STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                    Filterable fields:
+                      - `application_id` -- filter by parent application (UUID).
+                      - `name` -- filter by environment name.
+                      - `runtime_type` -- filter by runtime type (KUBERNETES).
+                      - `labels.key` -- filter by label key.
+
+                    Example: `field['application_id'] = '<uuid>' AND field['name'] = 'prod'`
                   in: query
                   required: false
                   type: string
@@ -1776,110 +1470,10 @@ paths:
                     $ref: '#/definitions/v1CreateEnvironmentRequest'
             tags:
                 - EnvironmentAPI
-    /v1/environments/name/{name}:
+    /v1/environments/{environmentId}:
         get:
-            summary: GetEnvironment retrieves an environment by ID or name.
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                to scope the name within a parent application. The `application` parameter
-                accepts either a UUID or a DNS-label name.
-
-                Scope: `env:read`
-            operationId: EnvironmentAPI_GetEnvironment2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetEnvironmentResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the environment (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
-                  type: string
-            tags:
-                - EnvironmentAPI
-        delete:
-            summary: |-
-                DeleteEnvironment permanently deletes an environment. Fails if the
-                environment has an active deployment (last deployment status is SUCCEEDED
-                with resources running). To delete an environment with deployed resources,
-                first run a destroy deployment to tear down all components, then delete
-                the environment record. This action cannot be undone.
-            description: 'Scope: `env:write`'
-            operationId: EnvironmentAPI_DeleteEnvironment2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteEnvironmentResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the environment (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
-                  type: string
-            tags:
-                - EnvironmentAPI
-        patch:
-            summary: |-
-                UpdateEnvironment updates an environment's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `env:write`'
-            operationId: EnvironmentAPI_UpdateEnvironment2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateEnvironmentResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the environment (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/EnvironmentAPIUpdateEnvironmentBody'
-            tags:
-                - EnvironmentAPI
-    /v1/environments/{id}:
-        get:
-            summary: GetEnvironment retrieves an environment by ID or name.
-            description: |-
-                When using name-based lookup, the `application` query parameter is required
-                to scope the name within a parent application. The `application` parameter
-                accepts either a UUID or a DNS-label name.
-
-                Scope: `env:read`
+            summary: GetEnvironment retrieves an environment by ID.
+            description: 'Scope: `env:read`'
             operationId: EnvironmentAPI_GetEnvironment
             responses:
                 "200":
@@ -1891,17 +1485,10 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: environmentId
                   description: The unique identifier of the environment (UUID).
                   in: path
                   required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
                   type: string
             tags:
                 - EnvironmentAPI
@@ -1924,17 +1511,10 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: environmentId
                   description: The unique identifier of the environment to delete (UUID).
                   in: path
                   required: true
-                  type: string
-                - name: application
-                  description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
-                  in: query
-                  required: false
                   type: string
             tags:
                 - EnvironmentAPI
@@ -1954,7 +1534,7 @@ paths:
                     schema:
                         $ref: '#/definitions/rpcStatus'
             parameters:
-                - name: id
+                - name: environmentId
                   description: The unique identifier of the environment (UUID).
                   in: path
                   required: true
@@ -1966,31 +1546,13 @@ paths:
                     $ref: '#/definitions/EnvironmentAPIUpdateEnvironmentBody'
             tags:
                 - EnvironmentAPI
-    /v1/healthcheck:
-        get:
-            summary: |-
-                Healthcheck verifies that the service is running and healthy.
-                Returns an empty response on success. Use this endpoint for load balancer
-                health checks and monitoring systems.
-            operationId: HealthcheckAPI_Healthcheck
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1HealthcheckResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            tags:
-                - HealthcheckAPI
     /v1/runner/heartbeat:
         post:
             summary: |-
                 Heartbeat reports that the runner is alive and includes current capacity
                 metrics. The server uses heartbeat recency to derive health status.
             description: |-
-                The runner is identified by the agent token — the server resolves the
+                The runner is identified by the agent token -- the server resolves the
                 runner from the AGT's binding. No runner_id is required in the request.
 
                 This endpoint is runner-facing and restricted to agent tokens.
@@ -2010,7 +1572,7 @@ paths:
                 - name: body
                   description: |-
                     HeartbeatRequest contains the runner's alive signal and current capacity.
-                    The runner is identified by the AGT's binding — no runner_id is required.
+                    The runner is identified by the AGT's binding -- no runner_id is required.
                   in: body
                   required: true
                   schema:
@@ -2024,7 +1586,7 @@ paths:
                 metadata if work is available, or an empty response if no jobs are
                 pending. The runner should call this on a polling interval.
             description: |-
-                The runner is identified by the agent token — no runner_id is required.
+                The runner is identified by the agent token -- no runner_id is required.
 
                 This endpoint is runner-facing and restricted to agent tokens.
 
@@ -2043,7 +1605,7 @@ paths:
                 - name: body
                   description: |-
                     ClaimJobRequest is sent by the runner to poll for available work.
-                    The runner is identified by the AGT's binding — no runner_id is required.
+                    The runner is identified by the AGT's binding -- no runner_id is required.
                   in: body
                   required: true
                   schema:
@@ -2054,7 +1616,7 @@ paths:
         get:
             summary: |-
                 GetJobBundle fetches the rendered artifacts for a claimed job. Separated
-                from ClaimJob to keep the claim response lightweight — the runner first
+                from ClaimJob to keep the claim response lightweight -- the runner first
                 claims a job, then fetches the (potentially large) artifact bundle.
             description: |-
                 The bundle contains everything the runner needs to execute the Terraform
@@ -2120,7 +1682,7 @@ paths:
         get:
             summary: |-
                 GetState fetches the current state for a job's component + environment.
-                Returns empty data if no state exists yet (fresh init — Terraform
+                Returns empty data if no state exists yet (fresh init -- Terraform
                 handles this gracefully).
             description: |-
                 The server validates that the AGT's runner binding matches the runner
@@ -2280,7 +1842,20 @@ paths:
                         $ref: '#/definitions/rpcStatus'
             parameters:
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                    (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                    STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                    Filterable fields:
+                      - `name` -- filter by runner name.
+                      - `kind` -- filter by runner kind (TERRAFORM, WORKFLOW).
+                      - `health_status` -- filter by health status.
+                      - `labels.key` -- filter by label key.
+
+                    Example: `field['kind'] = 'TERRAFORM' AND field['health_status'] = 'HEALTHY'`
                   in: query
                   required: false
                   type: string
@@ -2303,7 +1878,7 @@ paths:
                 generates an initial Agent Token (AGT). The runner starts in PENDING
                 health status until it begins heartbeating.
             description: |-
-                The response includes a `plain_text_token` — the raw AGT secret shown
+                The response includes a `plain_text_token` -- the raw AGT secret shown
                 exactly once. Deploy this token to the runner binary for authentication.
 
                 Scope: `runner:write`
@@ -2324,164 +1899,6 @@ paths:
                   required: true
                   schema:
                     $ref: '#/definitions/v1CreateRunnerRequest'
-            tags:
-                - RunnerAPI
-    /v1/runners/name/{name}:
-        get:
-            summary: GetRunner retrieves a runner by ID or name.
-            description: |-
-                Returns the Runner record with its server-derived health_status. For
-                detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
-
-                Scope: `runner:read`
-            operationId: RunnerAPI_GetRunner2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetRunnerResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the runner (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - RunnerAPI
-        delete:
-            summary: |-
-                DeleteRunner permanently deletes a runner record and revokes all
-                associated agent tokens. Any jobs assigned to this runner that are
-                not yet completed will be failed. This action cannot be undone.
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_DeleteRunner2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteRunnerResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the runner (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - RunnerAPI
-        patch:
-            summary: |-
-                UpdateRunner updates a runner's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_UpdateRunner2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateRunnerResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the runner (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
-            tags:
-                - RunnerAPI
-    /v1/runners/{id}:
-        get:
-            summary: GetRunner retrieves a runner by ID or name.
-            description: |-
-                Returns the Runner record with its server-derived health_status. For
-                detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
-
-                Scope: `runner:read`
-            operationId: RunnerAPI_GetRunner
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetRunnerResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: The unique identifier of the runner (UUID).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - RunnerAPI
-        delete:
-            summary: |-
-                DeleteRunner permanently deletes a runner record and revokes all
-                associated agent tokens. Any jobs assigned to this runner that are
-                not yet completed will be failed. This action cannot be undone.
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_DeleteRunner
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteRunnerResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: |-
-                    The unique identifier of the runner to delete (UUID).
-                    All associated agent tokens will be revoked.
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - RunnerAPI
-        patch:
-            summary: |-
-                UpdateRunner updates a runner's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `runner:write`'
-            operationId: RunnerAPI_UpdateRunner
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateRunnerResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: The unique identifier of the runner (UUID).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
             tags:
                 - RunnerAPI
     /v1/runners/{id}/jobs:
@@ -2508,12 +1925,14 @@ paths:
                   type: string
                 - name: filter
                   description: |-
-                    Filter expression using the PEG filter DSL.
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
 
-                    Common filter fields:
-                      - `status` — filter by job status.
-                      - `job_type` — filter by job type (PLAN, APPLY, etc.).
-                      - `deployment_id` — jobs for a specific deployment.
+                    Filterable fields:
+                      - `status` -- filter by job status (PENDING, ASSIGNED, RUNNING, etc.).
+                      - `job_type` -- filter by job type (PLAN, APPLY, DESTROY_PLAN, DESTROY_APPLY).
+                      - `deployment_id` -- jobs for a specific deployment (UUID).
+
+                    Example: `field['status'] = 'RUNNING'`
                   in: query
                   required: false
                   type: string
@@ -2582,7 +2001,14 @@ paths:
                   required: true
                   type: string
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Filterable fields:
+                      - `name` -- filter by token name.
+                      - `status` -- filter by token status (ACTIVE, REVOKED).
+
+                    Example: `field['status'] = 'ACTIVE'`
                   in: query
                   required: false
                   type: string
@@ -2637,7 +2063,7 @@ paths:
         get:
             summary: |-
                 GetRunnerToken retrieves a single AGT by ID.
-                Returns metadata only — the token secret is never included.
+                Returns metadata only -- the token secret is never included.
             description: 'Scope: `runner:read`'
             operationId: RunnerAPI_GetRunnerToken
             responses:
@@ -2697,6 +2123,86 @@ paths:
                     $ref: '#/definitions/RunnerAPIRevokeRunnerTokenBody'
             tags:
                 - RunnerAPI
+    /v1/runners/{runnerId}:
+        get:
+            summary: GetRunner retrieves a runner by ID.
+            description: |-
+                Returns the Runner record with its server-derived health_status. For
+                detailed telemetry (active jobs, capacity), use GetRunnerStatus instead.
+
+                Scope: `runner:read`
+            operationId: RunnerAPI_GetRunner
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/v1GetRunnerResponse'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            parameters:
+                - name: runnerId
+                  description: The unique identifier of the runner (UUID).
+                  in: path
+                  required: true
+                  type: string
+            tags:
+                - RunnerAPI
+        delete:
+            summary: |-
+                DeleteRunner permanently deletes a runner record and revokes all
+                associated agent tokens. Any jobs assigned to this runner that are
+                not yet completed will be failed. This action cannot be undone.
+            description: 'Scope: `runner:write`'
+            operationId: RunnerAPI_DeleteRunner
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/v1DeleteRunnerResponse'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            parameters:
+                - name: runnerId
+                  description: |-
+                    The unique identifier of the runner to delete (UUID).
+                    All associated agent tokens will be revoked.
+                  in: path
+                  required: true
+                  type: string
+            tags:
+                - RunnerAPI
+        patch:
+            summary: |-
+                UpdateRunner updates a runner's mutable fields.
+                Use the `update_mask` to specify which fields to update.
+            description: 'Scope: `runner:write`'
+            operationId: RunnerAPI_UpdateRunner
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/v1UpdateRunnerResponse'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            parameters:
+                - name: runnerId
+                  description: The unique identifier of the runner (UUID).
+                  in: path
+                  required: true
+                  type: string
+                - name: body
+                  in: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/RunnerAPIUpdateRunnerBody'
+            tags:
+                - RunnerAPI
     /v1/sources:
         get:
             summary: |-
@@ -2715,7 +2221,20 @@ paths:
                         $ref: '#/definitions/rpcStatus'
             parameters:
                 - name: filter
-                  description: Filter expression using the PEG filter DSL.
+                  description: |-
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Syntax: `field['name'] = 'value'` with AND/OR/NOT, comparison operators
+                    (=, !=, <, >, <=, >=, ~=), and predicates (IN, BETWEEN, CONTAINS,
+                    STARTS_WITH, ENDS_WITH, IS NULL, EXISTS).
+
+                    Filterable fields:
+                      - `name` -- filter by source name.
+                      - `type` -- filter by source type (TERRAFORM_REGISTRY, HELM_OCI, etc.).
+                      - `catalog` -- filter by catalog status (true/false).
+                      - `labels.key` -- filter by label key.
+
+                    Example: `field['type'] = 'TERRAFORM_REGISTRY' AND field['catalog'] = 'true'`
                   in: query
                   required: false
                   type: string
@@ -2735,7 +2254,7 @@ paths:
         post:
             summary: CreateSource creates a new source definition within the caller's tenant.
             description: |-
-                The source type and source_config must match — for example, a
+                The source type and source_config must match -- for example, a
                 TERRAFORM_REGISTRY source requires a TerraformRegistryConfig.
 
                 Scope: `source:write`
@@ -2756,156 +2275,6 @@ paths:
                   required: true
                   schema:
                     $ref: '#/definitions/v1CreateSourceRequest'
-            tags:
-                - SourceAPI
-    /v1/sources/name/{name}:
-        get:
-            summary: GetSource retrieves a source by ID or name.
-            description: 'Scope: `source:read`'
-            operationId: SourceAPI_GetSource2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetSourceResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the source (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - SourceAPI
-        delete:
-            summary: |-
-                DeleteSource permanently deletes a source definition. Fails if any
-                application components still reference this source — remove or reassign
-                those components first. This action cannot be undone.
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_DeleteSource2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteSourceResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the source (DNS label).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - SourceAPI
-        patch:
-            summary: |-
-                UpdateSource updates a source's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_UpdateSource2
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateSourceResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: name
-                  description: The human-readable name of the source (DNS label).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/SourceAPIUpdateSourceBody'
-            tags:
-                - SourceAPI
-    /v1/sources/{id}:
-        get:
-            summary: GetSource retrieves a source by ID or name.
-            description: 'Scope: `source:read`'
-            operationId: SourceAPI_GetSource
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1GetSourceResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: Unique identifier of the source (UUID).
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - SourceAPI
-        delete:
-            summary: |-
-                DeleteSource permanently deletes a source definition. Fails if any
-                application components still reference this source — remove or reassign
-                those components first. This action cannot be undone.
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_DeleteSource
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1DeleteSourceResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: |-
-                    Unique identifier of the source to delete (UUID).
-                    Fails if any application components still reference this source.
-                  in: path
-                  required: true
-                  type: string
-            tags:
-                - SourceAPI
-        patch:
-            summary: |-
-                UpdateSource updates a source's mutable fields.
-                Use the `update_mask` to specify which fields to update.
-            description: 'Scope: `source:write`'
-            operationId: SourceAPI_UpdateSource
-            responses:
-                "200":
-                    description: A successful response.
-                    schema:
-                        $ref: '#/definitions/v1UpdateSourceResponse'
-                default:
-                    description: An unexpected error response.
-                    schema:
-                        $ref: '#/definitions/rpcStatus'
-            parameters:
-                - name: id
-                  description: Unique identifier of the source to update (UUID).
-                  in: path
-                  required: true
-                  type: string
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/SourceAPIUpdateSourceBody'
             tags:
                 - SourceAPI
     /v1/sources/{id}/inputs:
@@ -2955,7 +2324,7 @@ paths:
                 parses its outputs (values produced after apply).
             description: |-
                 Only meaningful for Terraform modules, which declare formal output blocks.
-                Helm charts, Kustomize, and raw manifests do not have formal outputs —
+                Helm charts, Kustomize, and raw manifests do not have formal outputs --
                 workload component outputs are user-declared, not discovered.
 
                 This operation queries the external system in real time and may take
@@ -2988,7 +2357,7 @@ paths:
     /v1/sources/{id}/sync:
         post:
             summary: |-
-                SyncSource triggers a refresh of the source's cached metadata — version
+                SyncSource triggers a refresh of the source's cached metadata -- version
                 list, discovered inputs/outputs, and connectivity status.
             description: |-
                 Use this after updating credentials on the referenced connection, or to
@@ -3065,12 +2434,88 @@ paths:
                   type: string
             tags:
                 - SourceAPI
+    /v1/sources/{sourceId}:
+        get:
+            summary: GetSource retrieves a source by ID.
+            description: 'Scope: `source:read`'
+            operationId: SourceAPI_GetSource
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/v1GetSourceResponse'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            parameters:
+                - name: sourceId
+                  description: Unique identifier of the source (UUID).
+                  in: path
+                  required: true
+                  type: string
+            tags:
+                - SourceAPI
+        delete:
+            summary: |-
+                DeleteSource permanently deletes a source definition. Fails if any
+                application components still reference this source -- remove or reassign
+                those components first. This action cannot be undone.
+            description: 'Scope: `source:write`'
+            operationId: SourceAPI_DeleteSource
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/v1DeleteSourceResponse'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            parameters:
+                - name: sourceId
+                  description: |-
+                    Unique identifier of the source to delete (UUID).
+                    Fails if any application components still reference this source.
+                  in: path
+                  required: true
+                  type: string
+            tags:
+                - SourceAPI
+        patch:
+            summary: |-
+                UpdateSource updates a source's mutable fields.
+                Use the `update_mask` to specify which fields to update.
+            description: 'Scope: `source:write`'
+            operationId: SourceAPI_UpdateSource
+            responses:
+                "200":
+                    description: A successful response.
+                    schema:
+                        $ref: '#/definitions/v1UpdateSourceResponse'
+                default:
+                    description: An unexpected error response.
+                    schema:
+                        $ref: '#/definitions/rpcStatus'
+            parameters:
+                - name: sourceId
+                  description: Unique identifier of the source to update (UUID).
+                  in: path
+                  required: true
+                  type: string
+                - name: body
+                  in: body
+                  required: true
+                  schema:
+                    $ref: '#/definitions/SourceAPIUpdateSourceBody'
+            tags:
+                - SourceAPI
     /v1/states:
         get:
             summary: |-
                 ListStates returns a paginated list of state records within the caller's
                 tenant. Use filters to scope by component, environment, or application.
-                Returns metadata only — use GetCurrentState to fetch full state data.
+                Returns metadata only -- use GetCurrentState to fetch full state data.
             description: 'Scope: `state:read`'
             operationId: StateAPI_ListStates
             responses:
@@ -3088,9 +2533,9 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                     Common filter fields:
-                      - `component_id` — states for a specific component (UUID).
-                      - `environment_id` — states for a specific environment (UUID).
-                      - `application_id` — states for all components belonging to an
+                      - `component_id` -- states for a specific component (UUID).
+                      - `environment_id` -- states for a specific environment (UUID).
+                      - `application_id` -- states for all components belonging to an
                         application (UUID). The server resolves the application's components
                         and returns states for all of them. Can be combined with
                         `environment_id`.
@@ -3141,7 +2586,7 @@ paths:
         delete:
             summary: |-
                 DeleteState permanently deletes a state record and all its version
-                history. Fails if the state is currently locked — force-unlock first.
+                history. Fails if the state is currently locked -- force-unlock first.
                 This action cannot be undone.
             description: |-
                 Returns NOT_FOUND if the state record does not exist.
@@ -3162,7 +2607,7 @@ paths:
                 - name: id
                   description: |-
                     The unique identifier of the state record to delete (UUID).
-                    Fails if the state is currently locked — force-unlock first.
+                    Fails if the state is currently locked -- force-unlock first.
                   in: path
                   required: true
                   type: string
@@ -3207,7 +2652,7 @@ paths:
         get:
             summary: |-
                 ListStateVersions returns a paginated history of state versions for a
-                state record. Returns metadata only (serial, md5, size) — use
+                state record. Returns metadata only (serial, md5, size) -- use
                 GetStateVersion to fetch the full state data at a specific serial.
             description: |-
                 Returns NOT_FOUND if the state record does not exist.
@@ -3312,8 +2757,13 @@ paths:
             parameters:
                 - name: filter
                   description: |-
-                    Filter expression using the PEG filter DSL
-                    (e.g., `status == "active"` or `name == "ci-*"`).
+                    Filter expression to narrow results. Uses the Admiral filter DSL.
+
+                    Filterable fields:
+                      - `name` -- filter by token name.
+                      - `status` -- filter by token status (ACTIVE, REVOKED, EXPIRED).
+
+                    Example: `field['status'] = 'ACTIVE'`
                   in: query
                   required: false
                   type: string
@@ -3359,7 +2809,7 @@ paths:
         get:
             summary: |-
                 GetPersonalAccessToken retrieves a single PAT by ID.
-                Returns metadata only — the token secret is never included.
+                Returns metadata only -- the token secret is never included.
             description: 'Scope: `token:read`'
             operationId: UserAPI_GetPersonalAccessToken
             responses:
@@ -3437,13 +2887,13 @@ paths:
                     Filter expression using the PEG filter DSL.
 
                     Common filter fields:
-                      - `application_id` — scope to an application (triggers merge with
+                      - `application_id` -- scope to an application (triggers merge with
                         app-level variables alongside global variables).
-                      - `environment_id` — scope to an environment (requires application_id;
+                      - `environment_id` -- scope to an environment (requires application_id;
                         triggers merge with environment-level variables).
-                      - `sensitive` — filter by sensitivity.
-                      - `type` — filter by variable type.
-                      - `key` — filter by variable key (supports prefix matching).
+                      - `sensitive` -- filter by sensitivity.
+                      - `type` -- filter by variable type.
+                      - `key` -- filter by variable key (supports prefix matching).
                   in: query
                   required: false
                   type: string
@@ -3540,7 +2990,7 @@ paths:
             summary: |-
                 UpdateVariable updates a variable's mutable fields.
                 Use the `update_mask` to specify which fields to update.
-                Only `value` and `sensitive` are mutable — key is immutable.
+                Only `value` and `sensitive` are mutable -- key is immutable.
             description: 'Scope: `var:write`'
             operationId: VariableAPI_UpdateVariable
             responses:
@@ -3579,9 +3029,6 @@ definitions:
                 description: |-
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `labels`.
-            id:
-                type: string
-                description: The unique identifier of the application (UUID).
         description: UpdateApplicationRequest contains the application fields to update.
     ClusterAPICreateClusterTokenBody:
         type: object
@@ -3638,9 +3085,6 @@ definitions:
                 description: |-
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `labels`.
-            id:
-                type: string
-                description: The unique identifier of the cluster (UUID).
         description: UpdateClusterRequest contains the cluster fields to update.
     ComponentAPISetComponentOverrideBody:
         type: object
@@ -3687,14 +3131,6 @@ definitions:
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `source_id`, `version`,
                     `values_template`, `depends_on`, `outputs`.
-            id:
-                type: string
-                description: Unique identifier of the component to update (UUID).
-            application:
-                type: string
-                description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
         description: UpdateComponentRequest contains the component fields to update.
     ConnectionAPITestConnectionBody:
         type: object
@@ -3715,9 +3151,6 @@ definitions:
                 description: |-
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `auth_config`, `labels`.
-            id:
-                type: string
-                description: The unique identifier of the connection (UUID).
         description: UpdateConnectionRequest contains the connection fields to update.
     DeploymentAPICancelDeploymentBody:
         type: object
@@ -3743,14 +3176,6 @@ definitions:
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `runtime_type`, `kubernetes`,
                     `labels`, `infrastructure`.
-            id:
-                type: string
-                description: The unique identifier of the environment (UUID).
-            application:
-                type: string
-                description: |-
-                    Required when using name-based lookup. Identifies the parent application
-                    by UUID or DNS-label name. Ignored when using ID-based lookup.
         description: UpdateEnvironmentRequest contains the environment fields to update.
     RunnerAPICreateRunnerTokenBody:
         type: object
@@ -3791,9 +3216,6 @@ definitions:
                 description: |-
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `labels`.
-            id:
-                type: string
-                description: The unique identifier of the runner (UUID).
         description: UpdateRunnerRequest contains the runner fields to update.
     SourceAPISyncSourceBody:
         type: object
@@ -3812,9 +3234,6 @@ definitions:
                     The set of fields to update. If unset, all mutable fields are updated.
                     Supported fields: `name`, `description`, `url`, `connection_id`, `catalog`,
                     `source_config`, `labels`.
-            id:
-                type: string
-                description: Unique identifier of the source to update (UUID).
         description: UpdateSourceRequest contains the source fields to update.
     StateAPIForceUnlockStateBody:
         type: object
@@ -4164,21 +3583,21 @@ definitions:
             name:
                 type: string
                 description: |-
-                    URL-safe, human-readable identifier (e.g., "billing-api"). Unique within
+                    URL-safe, human-readable identifier (e.g., "inventory-api"). Unique within
                     the tenant. Lowercase alphanumeric and hyphens only, must start with a
                     letter and end with an alphanumeric character (1-63 chars).
             description:
                 type: string
                 description: |-
                     Optional longer-form description of the application's purpose
-                    (e.g., "Handles invoice generation and payment processing").
+                    (e.g., "Core inventory service tracking warehouse stock and fulfillment").
             labels:
                 type: object
                 additionalProperties:
                     type: string
                 description: |-
                     Arbitrary key-value labels for organizing and filtering applications
-                    (e.g., `{"team": "payments", "tier": "critical"}`).
+                    (e.g., `{"team": "logistics", "tier": "critical"}`).
             createdBy:
                 type: string
                 description: User ID who created this application (UUID, server-populated from token).
@@ -4295,14 +3714,14 @@ definitions:
         type: object
         description: |-
             ClaimJobRequest is sent by the runner to poll for available work.
-            The runner is identified by the AGT's binding — no runner_id is required.
+            The runner is identified by the AGT's binding -- no runner_id is required.
     v1ClaimJobResponse:
         type: object
         properties:
             job:
                 $ref: '#/definitions/v1Job'
                 description: |-
-                    The job to execute. Absent if no work is available — the runner should
+                    The job to execute. Absent if no work is available -- the runner should
                     wait and poll again after its configured interval.
         description: ClaimJobResponse contains the next job to execute, if any.
     v1Cluster:
@@ -4448,7 +3867,7 @@ definitions:
             (ReportClusterStatusRequest) and the read response (GetClusterStatusResponse).
 
             Server-derived fields (health_status, agent connectivity) are NOT included
-            here — they live on the Cluster and Agent records respectively, and are
+            here -- they live on the Cluster and Agent records respectively, and are
             returned alongside this message in GetClusterStatusResponse.
     v1Component:
         type: object
@@ -4487,7 +3906,7 @@ definitions:
                 description: |-
                     Pinned version of the source artifact. For registry sources, a semver
                     string (e.g., "1.2.3"). For Git sources, a tag, branch, or commit SHA.
-                    Required — components always pin a version. Use UpdateComponent to
+                    Required -- components always pin a version. Use UpdateComponent to
                     change the version (rolling update).
             valuesTemplate:
                 type: string
@@ -4629,7 +4048,7 @@ definitions:
             ComponentOutput declares a named output value produced by a component.
 
             For infrastructure components (Terraform), outputs are auto-discovered from
-            the module's output blocks and this field is ignored — do not declare
+            the module's output blocks and this field is ignored -- do not declare
             outputs manually for Terraform components.
 
             For workload components (Helm, Kustomize, manifests), outputs must be
@@ -4670,7 +4089,7 @@ definitions:
                 type: string
                 description: |-
                     Override values template for this environment. When set, this template
-                    completely replaces the component's default values template — there is
+                    completely replaces the component's default values template -- there is
                     no merge.
             dependsOn:
                 type: array
@@ -4812,7 +4231,7 @@ definitions:
             Connection represents stored credentials for accessing an external system.
             Connections are tenant-scoped and referenced by sources when fetching artifacts.
 
-            Sensitive fields within auth_config are write-only — they are accepted on
+            Sensitive fields within auth_config are write-only -- they are accepted on
             create and update but never returned in API responses.
     v1ConnectionStatus:
         type: string
@@ -4857,7 +4276,7 @@ definitions:
              - CONNECTION_TYPE_GIT_TOKEN: HTTPS personal access token or OAuth token for Git operations.
              - CONNECTION_TYPE_GIT_SSH: SSH private key for Git operations.
              - CONNECTION_TYPE_GIT_GITHUB_APP: GitHub App credentials (app ID, installation ID, private key).
-            Preferred over personal tokens for GitHub — provides granular permissions
+            Preferred over personal tokens for GitHub -- provides granular permissions
             and a better audit trail.
              - CONNECTION_TYPE_HELM_HTTP: Basic auth (username + password) for classic HTTP/S Helm chart repositories.
              - CONNECTION_TYPE_OCI_BASIC: Username and password for OCI-compliant registries (Docker Hub, Harbor,
@@ -4901,7 +4320,7 @@ definitions:
             name:
                 type: string
                 description: |-
-                    URL-safe, human-readable identifier (e.g., "billing-api"). Must be unique
+                    URL-safe, human-readable identifier (e.g., "inventory-api"). Must be unique
                     within the tenant. Lowercase alphanumeric and hyphens only.
             description:
                 type: string
@@ -5114,7 +4533,7 @@ definitions:
             runtimeType:
                 $ref: '#/definitions/v1RuntimeType'
                 description: |-
-                    The kind of runtime this environment targets. Optional — can be assigned
+                    The kind of runtime this environment targets. Optional -- can be assigned
                     later via UpdateEnvironment.
             kubernetes:
                 $ref: '#/definitions/v1KubernetesConfig'
@@ -5151,7 +4570,7 @@ definitions:
                 description: |-
                     The scopes to grant this token. Must be valid scopes allowed for PATs.
                     The server enforces that issued scopes are a subset of the caller's own
-                    scopes — a token cannot grant more access than the user holds.
+                    scopes -- a token cannot grant more access than the user holds.
             expiresAt:
                 type: string
                 format: date-time
@@ -5471,7 +4890,7 @@ definitions:
             runtimeType:
                 $ref: '#/definitions/v1RuntimeType'
                 description: |-
-                    The kind of runtime this environment targets. Optional — can be assigned
+                    The kind of runtime this environment targets. Optional -- can be assigned
                     after creation.
             kubernetes:
                 $ref: '#/definitions/v1KubernetesConfig'
@@ -5495,7 +4914,7 @@ definitions:
                     deployed. Server-derived by comparing current resolved config (variables,
                     component settings, overrides, source versions) against the last
                     successful deployment's snapshot. False if no successful deployment
-                    exists yet (a fresh environment with no deployments returns false —
+                    exists yet (a fresh environment with no deployments returns false --
                     use `last_deployed_at` to distinguish "clean" from "never deployed").
             lastDeployedAt:
                 type: string
@@ -5717,7 +5136,7 @@ definitions:
                 type: string
                 description: |-
                     The version that was actually inspected (resolved from the requested
-                    version — e.g., a branch name resolved to a commit SHA).
+                    version -- e.g., a branch name resolved to a commit SHA).
         description: |-
             GetSourceInputsResponse contains the discovered inputs for the source at
             the requested version.
@@ -5731,7 +5150,7 @@ definitions:
                     $ref: '#/definitions/v1SourceOutput'
                 description: |-
                     Discovered output definitions. Only populated for Terraform module sources.
-                    Workload sources (Helm, Kustomize, manifests) do not have formal outputs —
+                    Workload sources (Helm, Kustomize, manifests) do not have formal outputs --
                     workload component outputs are user-declared at the component level.
             resolvedVersion:
                 type: string
@@ -5754,7 +5173,7 @@ definitions:
                 format: byte
                 description: |-
                     The raw Terraform state data (JSON-encoded). Empty if no state exists
-                    yet (fresh init — Terraform handles this gracefully).
+                    yet (fresh init -- Terraform handles this gracefully).
         description: GetStateResponse contains the current state data.
     v1GetStateVersionResponse:
         type: object
@@ -5768,7 +5187,7 @@ definitions:
                 description: The raw Terraform state data (JSON-encoded) at this serial.
         description: |-
             GetStateVersionResponse contains the full state data at a historical serial.
-            Returns both the version metadata and the raw data separately — the
+            Returns both the version metadata and the raw data separately -- the
             StateVersion message intentionally omits data to keep ListStateVersions
             lightweight.
     v1GetUserResponse:
@@ -5801,7 +5220,7 @@ definitions:
                     Write-only: masked in responses.
         description: |-
             GitHubAppAuth holds GitHub App credentials for Git operations.
-            Preferred over personal tokens for organizations — provides granular
+            Preferred over personal tokens for organizations -- provides granular
             repository permissions and a better audit trail.
     v1GitSSHAuth:
         type: object
@@ -5844,10 +5263,10 @@ definitions:
                     instances sharing the same AGT. The server uses this to track heartbeats
                     per instance and aggregate capacity metrics across all instances of the
                     same runner. A new instance_id is generated each time the runner process
-                    starts — it is not persisted across restarts.
+                    starts -- it is not persisted across restarts.
         description: |-
             HeartbeatRequest contains the runner's alive signal and current capacity.
-            The runner is identified by the AGT's binding — no runner_id is required.
+            The runner is identified by the AGT's binding -- no runner_id is required.
     v1HeartbeatResponse:
         type: object
         properties:
@@ -6408,7 +5827,7 @@ definitions:
             Admiral splits this into three storage tiers: current snapshot, time-series
             metrics, and events.
 
-            The cluster is identified by the agent token's binding — no cluster_id is
+            The cluster is identified by the agent token's binding -- no cluster_id is
             required. The server resolves the cluster from the AGT.
     v1ReportClusterStatusResponse:
         type: object
@@ -6484,7 +5903,7 @@ definitions:
             resolvedValues:
                 type: string
                 description: |-
-                    The resolved values template snapshot — the values_template with all
+                    The resolved values template snapshot -- the values_template with all
                     variable references and component output references fully resolved.
                     Stored for audit: shows exactly what inputs were used. Sensitive
                     variable values are masked in API responses.
@@ -6501,7 +5920,7 @@ definitions:
                     type: string
                 description: |-
                     Component IDs that are blocking this revision. Only populated when
-                    status is BLOCKED — indicates which upstream components failed.
+                    status is BLOCKED -- indicates which upstream components failed.
             artifactChecksum:
                 type: string
                 description: SHA-256 checksum of the rendered artifact bundle (tar.gz).
@@ -6836,7 +6255,7 @@ definitions:
             reported via Heartbeat. This message is used in both the push payload
             (HeartbeatRequest) and the read response (GetRunnerStatusResponse).
 
-            Server-derived fields (health_status) are NOT included here — they live
+            Server-derived fields (health_status) are NOT included here -- they live
             on the Runner record and are returned alongside this message in
             GetRunnerStatusResponse.
     v1RuntimeType:
@@ -6893,7 +6312,7 @@ definitions:
                 type: string
                 description: |-
                     Reference to the connection providing credentials for this source (UUID).
-                    Optional — null for public sources that require no authentication
+                    Optional -- null for public sources that require no authentication
                     (e.g., public Terraform registry, public Helm repos).
             catalog:
                 type: boolean
@@ -6955,7 +6374,7 @@ definitions:
                 format: date-time
                 description: When the source was last updated.
         description: |-
-            Source represents a fetchable artifact definition — a pointer to an external
+            Source represents a fetchable artifact definition -- a pointer to an external
             module, chart, or manifest set that Admiral can fetch, inspect, and render
             into deployment snapshots.
 
@@ -7020,7 +6439,7 @@ definitions:
         description: |-
             SourceOutput represents a value produced by the source after apply. Only
             meaningful for Terraform modules, which declare formal output blocks.
-            Workload sources (Helm, Kustomize, manifests) do not have formal outputs —
+            Workload sources (Helm, Kustomize, manifests) do not have formal outputs --
             workload component outputs are user-declared at the component level, not
             discovered from the source.
     v1SourceType:
@@ -7112,7 +6531,7 @@ definitions:
             lineage:
                 type: string
                 description: |-
-                    Terraform state lineage — a UUID generated on first init. All
+                    Terraform state lineage -- a UUID generated on first init. All
                     subsequent writes must match this lineage to prevent cross-state
                     contamination.
             lock:
@@ -7150,7 +6569,7 @@ definitions:
             who:
                 type: string
                 description: |-
-                    Identifier of who holds the lock. Populated by Terraform — typically
+                    Identifier of who holds the lock. Populated by Terraform -- typically
                     the format "username@hostname" (e.g., "deploy@prod-runner-01").
                     This field is informational only; its format is controlled by Terraform.
             version:
@@ -7228,7 +6647,7 @@ definitions:
                 type: string
                 description: |-
                     The job that produced this state version (UUID). Absent for state that
-                    was written outside the normal job lifecycle — for example, state
+                    was written outside the normal job lifecycle -- for example, state
                     uploaded directly via an admin migration tool, or state that existed
                     before Admiral began managing the component.
             createdAt:
@@ -7435,7 +6854,7 @@ definitions:
             value:
                 type: string
                 description: |-
-                    The variable value. Always stored as a string — use `type` to indicate
+                    The variable value. Always stored as a string -- use `type` to indicate
                     how to interpret it. Masked or empty for sensitive variables in responses.
 
                     For COMPLEX type, this is a JSON-encoded string (e.g., '["a","b"]' or
